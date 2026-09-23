@@ -122,10 +122,13 @@ async function submitAdd() {
 async function removeItem(item: RoadmapItem) {
   if (!state.editable.value || !canDeleteItem(item)) return;
   try {
-    await state.applySnapshotFromIntent({ op: 'delete_item', itemKey: item.key });
+    await state.applyOptimisticRemoval(
+      { kind: 'delete', itemKey: item.key },
+      { op: 'delete_item', itemKey: item.key },
+    );
     state.toast(`已删除条目 ${item.title}`);
   } catch {
-    /* toast handled centrally */
+    /* toast handled centrally; the row is put back when the intent fails */
   }
 }
 

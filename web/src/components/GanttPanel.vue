@@ -784,13 +784,20 @@ function cardDragStart(e: PointerEvent, it: RoadmapItem) {
 
 async function unscheduleItem(it: RoadmapItem) {
   if (!state.editable.value) return;
-  await state.applySnapshotFromIntent({
-    op: 'unschedule',
-    itemKey: it.key,
-    baseVersion: it.version,
-  });
   state.popKeys.value = [it.key];
-  state.toast(`${it.key} 已退回 Backlog`);
+  try {
+    await state.applyOptimisticRemoval(
+      { kind: 'unschedule', itemKey: it.key },
+      {
+        op: 'unschedule',
+        itemKey: it.key,
+        baseVersion: it.version,
+      },
+    );
+    state.toast(`${it.key} 已退回 Backlog`);
+  } catch {
+    state.popKeys.value = state.popKeys.value.filter((key) => key !== it.key);
+  }
 }
 
 function setExpanded(it: RoadmapItem, open: boolean) {

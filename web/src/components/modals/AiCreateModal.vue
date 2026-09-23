@@ -592,7 +592,7 @@ async function start(opts?: { groupKey?: string }) {
     }
 
     try {
-      if (teamId) state.snapshot.value = await state.api.fetchTeam(teamId);
+      if (teamId) state.commitSnapshot(await state.api.fetchTeam(teamId));
     } catch {
       /* SSE will catch up */
     }
