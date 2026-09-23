@@ -144,7 +144,7 @@ function barSprintTitle(start: string | null | undefined, days: number | null | 
 }
 
 function itemOpsHint() {
-  return `单击展开 · 双击${isDraft.value ? '改任务名' : '改备注名'} · 拖动/两端拉伸排期${props.item.jiraKey ? ' · 左上 ↗ / ⌘单击打开 Jira' : ''}`;
+  return `单击展开 · 双击${isDraft.value ? '改任务名' : '改备注名'} / Assignee · 拖动/两端拉伸排期${props.item.jiraKey ? ' · 左上 ↗ / ⌘单击打开 Jira' : ''}`;
 }
 
 function subOpsHint(s: RoadmapSub) {
@@ -437,7 +437,7 @@ function openAlias(sub: RoadmapSub | null) {
   aliasValue.value = editingTitle
     ? target.title || ''
     : target.alias || '';
-  aliasOwner.value = sub ? findMember(sub.owner) : null;
+  aliasOwner.value = findMember(sub ? sub.owner : props.item.owner);
   aliasOwnerDirty.value = false;
   aliasDesc.value = editingTitle ? String(target.description || '') : '';
   aliasDescOpen.value = editingTitle && Boolean(String(target.description || '').trim());
@@ -500,13 +500,17 @@ async function saveAlias() {
       }
       emit('updateSub', intent);
     } else {
-      emit('setAlias', {
+      const intent: Record<string, unknown> = {
         op: 'update_item',
         itemKey: props.item.key,
         title: text,
         description: aliasDesc.value.trim() || null,
         baseVersion: props.item.version,
-      });
+      };
+      if (aliasOwnerDirty.value) {
+        intent.owner = aliasOwner.value?.name || null;
+      }
+      emit('setAlias', intent);
     }
     aliasOpen.value = false;
     return;
@@ -524,12 +528,16 @@ async function saveAlias() {
     }
     emit('updateSub', intent);
   } else {
-    emit('setAlias', {
+    const intent: Record<string, unknown> = {
       op: 'set_alias',
       itemKey: props.item.key,
       alias: text || null,
       baseVersion: props.item.version,
-    });
+    };
+    if (aliasOwnerDirty.value) {
+      intent.owner = aliasOwner.value?.name || null;
+    }
+    emit('setAlias', intent);
   }
   aliasOpen.value = false;
   if (!text && hadAlias) state.toast('备注名已清除，恢复展示原 ticket 名');
@@ -537,16 +545,24 @@ async function saveAlias() {
 
 function cancelAlias() {
   aliasOpen.value = false;
-  if (aliasOwnerDirty.value && aliasTarget.value.sub) {
-    // Owner was changed live via float — persist even if Esc on alias.
-    const sub = aliasTarget.value.sub;
+  if (!aliasOwnerDirty.value) return;
+  // Assignee was changed live via float — persist even if Esc on the editor.
+  const sub = aliasTarget.value.sub;
+  if (sub) {
     emit('updateSub', {
       op: 'update_sub',
       subId: sub.id,
       owner: aliasOwner.value?.name || null,
       baseVersion: sub.version,
     });
+    return;
   }
+  emit('setAlias', {
+    op: 'update_item',
+    itemKey: props.item.key,
+    owner: aliasOwner.value?.name || null,
+    baseVersion: props.item.version,
+  });
 }
 
 function openAliasOwnerPop(chip: HTMLElement) {
@@ -560,7 +576,11 @@ function openAliasOwnerPop(chip: HTMLElement) {
       const inp = rowRef.value?.querySelector('.alias-editor input') as HTMLInputElement | null;
       inp?.focus();
     },
-    { allowClear: true, assigneeMap: assigneeMap.value },
+    {
+      allowClear: true,
+      assigneeMap: assigneeMap.value,
+      clearLabel: aliasTarget.value.sub ? '移除 Owner' : '移除 Assignee',
+    },
   );
 }
 
@@ -908,7 +928,7 @@ watch(
           { 'free-h': wrapMode, enter: enter, draft: isDraft && !itemDone, pop: isPop },
         ]"
         :style="{ left: `${barLeft()}px`, width: `${barW}px` }"
-        :data-tip="`${dispKey} · ${item.start ? fmtMD(item.start) : ''} → ${item.start && item.days ? fmtMD(addD(item.start, item.days - 1)) : ''} · ${item.days}d${isDraft ? ' · 未创建 Jira' : ''}${barSprintTitle(item.start, item.days)}${itemDone ? ` · ${item.status}` : ''}||${item.title}||${tooltipHintLine(item.description, itemOpsHint())}`"
+        :data-tip="`${dispKey} · ${item.start ? fmtMD(item.start) : ''} → ${item.start && item.days ? fmtMD(addD(item.start, item.days - 1)) : ''} · ${item.days}d${item.owner ? ` · Assignee ${showName(item.owner)}` : ''}${isDraft ? ' · 未创建 Jira' : ''}${barSprintTitle(item.start, item.days)}${itemDone ? ` · ${item.status}` : ''}||${item.title}||${tooltipHintLine(item.description, itemOpsHint())}`"
         :data-pai-item="item.key"
         :data-pai-team="teamId"
         :data-pai-target-start="item.targetStart || ''"
@@ -918,6 +938,14 @@ watch(
         <div v-if="wrapMode" class="wrap-label">{{ itemDone ? '✓ ' : '' }}{{ esc(disp) }}</div>
         <span v-else-if="labelIn" class="in-label">{{ itemDone ? '✓ ' : '' }}{{ esc(disp) }}</span>
         <span v-else class="out-label">{{ itemDone ? '✓ ' : '' }}{{ disp }}</span>
+        <span
+          v-if="item.owner"
+          class="own-av bar-owner"
+          :style="{ background: memberColor(item.owner) }"
+          :data-tip="`Assignee：${showName(item.owner)}`"
+        >
+          {{ initials(item.owner) }}
+        </span>
         <a
           v-if="item.jiraKey"
           class="bar-link"
@@ -1202,11 +1230,14 @@ watch(
     >
       <div class="ae-row">
       <button
-        v-if="aliasTarget.sub"
         class="te-owner ae-owner"
         type="button"
         :data-tip="
-          aliasOwner ? `Owner：${showName(aliasOwner.name)}（点击更换）` : '设置 Owner'
+          aliasOwner
+            ? `${aliasTarget.sub ? 'Owner' : 'Assignee'}：${showName(aliasOwner.name)}（点击更换）`
+            : aliasTarget.sub
+              ? '设置 Owner'
+              : '设置 Assignee'
         "
         @pointerdown.prevent.stop
         @click="openAliasOwnerPop($event.currentTarget as HTMLElement)"

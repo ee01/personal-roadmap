@@ -14,8 +14,10 @@ import {
   DESCRIPTION_MAX_CHARS,
   parseParentLinkInput,
 } from '../composables/useRoadmapContract';
-import { CURQ, fmtMD, esc } from '../composables/useGeometry';
-import type { RoadmapItem } from '../types';
+import { CURQ, fmtMD, esc, initials } from '../composables/useGeometry';
+import { memberChipHtml, openOwnerFloat } from '../composables/useOwnerFloat';
+import { dispName, teamAssigneeMap } from '../composables/useAssigneeMap';
+import type { RoadmapItem, TeamMember } from '../types';
 import DraftPlanningModal from './modals/DraftPlanningModal.vue';
 
 const state = useRoadmapState();
@@ -29,6 +31,38 @@ function browseUrl(key: string) {
   return jiraBrowseUrl(key, jiraBase.value);
 }
 
+const assigneeMap = computed(() => teamAssigneeMap(state.snapshot.value));
+function showName(name: string | null | undefined) {
+  return dispName(assigneeMap.value, name);
+}
+function memberColor(name: string | null | undefined) {
+  return members.value.find((m) => m.name === name)?.avatarColor || '#8895A5';
+}
+const members = computed(() => state.snapshot.value?.members || []);
+const assigneeMember = computed<TeamMember | null>(() => {
+  const name = form.value.owner.trim();
+  if (!name) return null;
+  return (
+    members.value.find((m) => m.name === name) || {
+      id: '',
+      name,
+      avatarColor: '#8895A5',
+    }
+  );
+});
+
+function openAssignee(chip: HTMLElement) {
+  openOwnerFloat(
+    chip,
+    members.value,
+    form.value.owner || null,
+    (member) => {
+      form.value.owner = member?.name || '';
+    },
+    { allowClear: true, assigneeMap: assigneeMap.value, clearLabel: '移除 Assignee' },
+  );
+}
+
 function itemMatchesQuery(item: RoadmapItem, raw: string): boolean {
   const q = raw.trim().toLowerCase();
   if (!q) return true;
@@ -40,6 +74,7 @@ function itemMatchesQuery(item: RoadmapItem, raw: string): boolean {
     item.type || '',
     item.quarter || '',
     item.parentLink || '',
+    item.owner || '',
     itemDisplayKey(item),
   ]
     .join(' ')
@@ -74,6 +109,7 @@ const form = ref({
   targetEnd: '',
   description: '',
   parentLink: '',
+  owner: '',
 });
 
 function openAdd() {
@@ -87,6 +123,7 @@ function openAdd() {
     targetEnd: '',
     description: '',
     parentLink: '',
+    owner: '',
   };
   addOpen.value = true;
   nextTick(() => {
@@ -115,6 +152,7 @@ async function submitAdd() {
       targetEnd: form.value.targetEnd || undefined,
       description: form.value.description.trim() || undefined,
       parentLink: parentLink.value || undefined,
+      owner: form.value.owner.trim() || undefined,
     });
     addOpen.value = false;
     state.toast(`<span class="ok">✓</span> 已新建条目 <b>${esc(title)}</b>`);
@@ -147,6 +185,7 @@ function cardTipHead(item: RoadmapItem) {
     itemDisplayKey(item),
     `预估 ${formatEstimate(item.estimate)}`,
     item.parentLink ? `Parent ${item.parentLink}` : '',
+    item.owner ? `Assignee ${showName(item.owner)}` : '',
     item.targetStart || item.targetEnd ? '' : '无 Target 日期',
     isDoneStatus(item) ? item.status : '',
   ].filter(Boolean);
@@ -298,6 +337,16 @@ onBeforeUnmount(() => {
             >
               Parent {{ it.parentLink }}
             </span>
+            <span
+              v-if="it.owner"
+              class="card-owner"
+              :data-tip="`Assignee ${showName(it.owner)}||创建 Jira 时写入；甘特上双击可改`"
+            >
+              <span class="own-av" :style="{ background: memberColor(it.owner) }">{{
+                initials(it.owner)
+              }}</span>
+              {{ showName(it.owner) }}
+            </span>
             <span v-if="it.targetStart || it.targetEnd" class="card-target">
               {{ targetLabel(it) }}
             </span>
@@ -398,6 +447,31 @@ onBeforeUnmount(() => {
         />
         <div class="f-note">
           对应这条条目要挂上的 Initiative。创建 Jira 时作为上下文；直连创建会写入 Parent Link。
+        </div>
+        <label class="f-label">Assignee（可选）</label>
+        <div class="assignee-pick">
+          <button
+            type="button"
+            class="te-owner"
+            :data-tip="form.owner ? `Assignee：${showName(form.owner)}（点击更换）` : '选择 Assignee'"
+            @pointerdown.prevent
+            @click="openAssignee($event.currentTarget as HTMLElement)"
+            v-html="memberChipHtml(assigneeMember)"
+          />
+          <span class="who" :class="{ muted: !form.owner }">{{
+            form.owner ? showName(form.owner) : '不指定'
+          }}</span>
+          <button
+            v-if="form.owner"
+            type="button"
+            class="assignee-clear"
+            @click="form.owner = ''"
+          >
+            清除
+          </button>
+        </div>
+        <div class="f-note">
+          团队成员名。创建 Jira 时按映射写入 assignee；排到甘特后双击这条 Epic（不论是否 Draft）也可以改。
         </div>
         <div class="f-grid">
           <div>

@@ -178,13 +178,15 @@ describe('remote MCP HTTP', () => {
         method: 'tools/call',
         params: {
           name: 'roadmap_add_item',
-          arguments: { title: 'MCP with INIT', parentLink: 'init-77' },
+          arguments: { title: 'MCP with INIT', parentLink: 'init-77', assignee: 'Ada' },
         },
       },
     });
     expect(created.json().result.isError).toBe(false);
     const body = created.json().result.structuredContent;
     expect(body.parentLink).toBe('INIT-77');
+    expect(body.owner).toBe('Ada');
+    expect(body.assignee).toBe('Ada');
     const itemKey = body.itemKey as string;
 
     const listed = await app.inject({
@@ -202,6 +204,7 @@ describe('remote MCP HTTP', () => {
       (item: { key: string }) => item.key === itemKey,
     );
     expect(row.parentLink).toBe('INIT-77');
+    expect(row.owner).toBe('Ada');
 
     const context = await app.inject({
       method: 'POST',
@@ -218,6 +221,7 @@ describe('remote MCP HTTP', () => {
       (item: { key: string }) => item.key === itemKey,
     );
     expect(ctxItem.parentLink).toBe('INIT-77');
+    expect(ctxItem.assignee).toBe('Ada');
 
     const rejected = await app.inject({
       method: 'POST',

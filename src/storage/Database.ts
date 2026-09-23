@@ -302,6 +302,13 @@ const MIGRATIONS: Migration[] = [
       addColumn(database, 'items', 'parent_link', 'TEXT');
     },
   },
+  {
+    id: '019_items_owner',
+    up: (database) => {
+      // Epic assignee (team member name). Editable on draft and Jira-linked rows.
+      addColumn(database, 'items', 'owner', 'TEXT');
+    },
+  },
 ];
 
 function runMigrations(database: Db): void {

@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS items (
   project_key TEXT,
   description TEXT,
   parent_link TEXT,
+  /** Team member name; becomes the Jira assignee on create / write-back. */
+  owner TEXT,
   status TEXT,
   version INTEGER NOT NULL DEFAULT 1,
   created_at INTEGER NOT NULL,

@@ -660,6 +660,8 @@ export interface CreateJiraParent {
   description?: string | null;
   /** INIT (or other parent) issue key written into Jira Parent Link on direct create. */
   parentLink?: string | null;
+  /** Jira username (firstname.lastname). Omit / null → leave the epic assignee empty. */
+  assignee?: string | null;
 }
 
 export interface CreateJiraChild {
@@ -758,6 +760,8 @@ export function buildCreateJiraPayload(
     fixVersionByKey?: Record<string, string | null | undefined>;
     /** Per-child Jira username (firstname.lastname). */
     assigneeByDraftId?: Record<string, string | null | undefined>;
+    /** Parent epic Jira username. Empty leaves the epic assignee unset. */
+    parentAssignee?: string | null;
   },
 ): CreateJiraPayload {
   const parentIsDraft = isDraftItem(group.item);
@@ -779,6 +783,7 @@ export function buildCreateJiraPayload(
           suggestedFixVersion: parentSuggested || null,
           description: group.item.description ?? null,
           parentLink: group.item.parentLink ?? null,
+          assignee: fields.parentAssignee || null,
         }
       : null,
     children: group.subs.map((sub) => {

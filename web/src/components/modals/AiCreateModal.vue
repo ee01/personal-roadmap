@@ -34,6 +34,7 @@ import {
   buildAgentCreatePrompt,
   dispName,
   resolveAssignee,
+  resolveItemAssignee,
   teamAssigneeMap,
   type ResolvedAssignee,
 } from '../../composables/useAssigneeMap';
@@ -108,6 +109,11 @@ const groups = computed(
 const assigneeChips = computed(() => {
   const seen = new Map<string, ResolvedAssignee>();
   for (const g of groups.value) {
+    if (isDraftItem(g.item) && g.item.owner) {
+      const r = resolveSub({ owner: g.item.owner, createdBy: '' });
+      const k = r.name.toLowerCase();
+      if (k && !seen.has(k)) seen.set(k, r);
+    }
     for (const sub of g.subs) {
       const r = resolveSub(sub);
       const k = r.name.toLowerCase();
@@ -519,6 +525,10 @@ async function start(opts?: { groupKey?: string }) {
         fixVersionOverride: override,
         fixVersionByKey: fixVersionByKey.value,
         assigneeByDraftId: assigneeByDraftId.value,
+        parentAssignee: resolveItemAssignee({
+          map: assigneeMap.value,
+          owner: group.item.owner,
+        }),
       };
       const createPayload = buildCreateJiraPayload(group, baseFields);
       const result = agentMode.value
@@ -825,6 +835,11 @@ function closeModal() {
               class="fv-chip desc"
               :data-tip="`创建时写入 Jira Parent Link||${g.item.parentLink}`"
             >Parent {{ g.item.parentLink }}</span>
+            <span
+              v-if="isDraftItem(g.item) && g.item.owner"
+              class="fv-chip"
+              :data-tip="`创建时写入 Jira assignee||${showName(g.item.owner)}`"
+            >{{ showName(g.item.owner) }}</span>
             <span
               v-if="g.item.description"
               class="fv-chip desc"

@@ -92,6 +92,8 @@ function toPlanningContextItem(item: ItemRow) {
     jiraKey: item.jira_key,
     description: item.description,
     parentLink: item.parent_link || null,
+    owner: item.owner || null,
+    assignee: item.owner || null,
     canDelete: isManualDraft(item),
     canUnschedule: Boolean(item.scheduled),
   };
@@ -232,6 +234,7 @@ export function addPlanningItem(
       targetEnd: input.targetEnd ? String(input.targetEnd) : undefined,
       description: input.description,
       parentLink: input.parentLink,
+      owner: input.owner !== undefined ? input.owner : input.assignee,
     },
     actor,
   );
@@ -245,6 +248,8 @@ export function addPlanningItem(
       ok: true,
       itemKey: result.itemKey,
       parentLink: created?.parentLink ?? null,
+      owner: created?.owner ?? null,
+      assignee: created?.owner ?? null,
       item: created
         ? {
             key: created.key,
@@ -252,6 +257,8 @@ export function addPlanningItem(
             type: created.type,
             view: created.scheduled ? 'gantt' : 'backlog',
             parentLink: created.parentLink ?? null,
+            owner: created.owner ?? null,
+            assignee: created.owner ?? null,
             description: created.description ?? null,
             quarter: created.quarter ?? null,
             jiraKey: created.jiraKey,

@@ -35,6 +35,11 @@ export const ROADMAP_CREATE_JIRA_SYSTEM_PROMPT = [
   '1. 清单里标了 Parent Link 且状态为「待创建」的主任务，创建时必须把该 key 写入 Jira Parent Link 字段（对应 INIT），不要留空，不要改成别的 issue。',
   '2. 已有 Jira key 的父任务不要改写它的 Parent Link。',
   '3. 清单没有 Parent Link 时不要臆造 Initiative。',
+  '',
+  '【主任务 Assignee 规则 — 必须遵守】',
+  '1. 【主任务 Assignee】里列出的待创建主任务，必须把该人写入 Jira assignee。',
+  '2. 没有列出的主任务留空 assignee，不要回落到创建人，也不要臆造。',
+  '3. 已有 Jira key 的父任务不要改写它的 assignee。子任务仍按【Assignee 规则】回落到创建人。',
 ].join('\n');
 
 export function describeFixVersionConstraint(input: {
@@ -125,6 +130,18 @@ export function buildAgentCreatePrompt(input: {
         ? `已有 Jira ${item.jiraKey}，不要改写其 Parent Link`
         : '待创建，必须写入 Jira Parent Link';
       L.push(`- ${item.key} ${item.title} → ${String(item.parentLink).trim()}（${state}）`);
+    }
+  }
+  const assignedParents = [...parentRows.values()].filter(
+    (item) => !item.jiraKey && String(item.owner || '').trim(),
+  );
+  if (assignedParents.length) {
+    L.push('', '【主任务 Assignee】');
+    for (const item of assignedParents) {
+      const full = effectiveFullName(input.map, item.owner);
+      L.push(
+        `- ${item.key} ${item.title} → ${full || String(item.owner).trim()}（待创建，必须写入 Jira assignee）`,
+      );
     }
   }
   L.push('', '【任务清单】');

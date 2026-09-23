@@ -493,6 +493,7 @@ describe('create-jira payload', () => {
         suggestedFixVersion: null,
         description: null,
         parentLink: null,
+        assignee: null,
       },
       children: [
         {
@@ -861,6 +862,45 @@ describe('draft description contract', () => {
     expect(ROADMAP_CREATE_JIRA_SYSTEM_PROMPT).toContain('Parent Link');
     expect(prompt).toContain('INIT-42');
     expect(prompt).toContain('待创建，必须写入 Jira Parent Link');
+  });
+
+  it('puts a stored epic assignee into the Agent prompt and the direct-create payload', () => {
+    const parent = item({
+      key: 'LOCAL-ab12cd34',
+      source: 'manual',
+      jiraKey: null,
+      title: 'Manual epic',
+      owner: 'Ada Lovelace',
+    });
+    const prompt = buildAgentCreatePrompt({
+      userPrompt: 'create',
+      projectKey: 'NOVA',
+      itemType: 'Epic',
+      subType: 'Task',
+      fixVersion: '',
+      sprint: '',
+      map: {},
+      currentUser: 'Tester',
+      members: [],
+      items: [parent],
+      parentItems: [parent],
+      drafts: [],
+    });
+    expect(prompt).toContain('【主任务 Assignee】');
+    expect(prompt).toContain('Ada Lovelace');
+    expect(prompt).toContain('必须写入 Jira assignee');
+    expect(prompt).not.toContain('创建人回落');
+    const group = buildDraftGroups([parent])[0];
+    expect(
+      buildCreateJiraPayload(group, {
+        teamId: 'T1',
+        token: null,
+        projectKey: 'NOVA',
+        issueType: 'Epic',
+        subType: 'Task',
+        parentAssignee: 'ada.lovelace',
+      }).parent?.assignee,
+    ).toBe('ada.lovelace');
   });
 
   it('accepts an INIT key or browse URL and rejects free text', () => {

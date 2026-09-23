@@ -215,6 +215,7 @@ function mapItem(row: ItemRow, subs: SubRow[], markers: MarkerRow[] = []) {
     createdAt: row.created_at,
     description: row.description || null,
     parentLink: row.parent_link || null,
+    owner: row.owner || null,
     status: row.status || null,
     subs: subs.map((sub) => ({
       id: sub.id,
@@ -1119,51 +1120,74 @@ export function applyIntent(
     } else {
       const check = bumpItemVersion(teamId, key, Number(intent.baseVersion));
       if (!check.ok) return check;
+      const nextOwner =
+        intent.owner !== undefined ? readOwner(intent.owner) : check.item.owner;
       db.prepare(
-        `UPDATE items SET alias = ?, version = version + 1, updated_at = ?
+        `UPDATE items SET alias = ?, owner = ?, version = version + 1, updated_at = ?
          WHERE team_id = ? AND key = ?`,
-      ).run(intent.alias ? String(intent.alias) : null, ts, teamId, key);
+      ).run(
+        intent.alias ? String(intent.alias) : null,
+        nextOwner,
+        ts,
+        teamId,
+        key,
+      );
+      if (nextOwner) ensureMember(teamId, nextOwner);
       writeActivity({
         teamId,
         actor,
         op,
         targetType: 'item',
         targetKey: key,
-        summary: { alias: intent.alias, title: check.item.title, key },
+        summary: {
+          alias: intent.alias,
+          title: check.item.title,
+          key,
+          owner: nextOwner,
+        },
       });
     }
   } else if (op === 'update_item') {
     const key = String(intent.itemKey || '');
     const hasTitle = intent.title !== undefined;
     const hasDesc = intent.description !== undefined;
+    const hasOwner = intent.owner !== undefined;
     const nextTitle = hasTitle ? String(intent.title || '').trim() : '';
     if (hasTitle && !nextTitle) return { ok: false, error: 'title_required' };
-    if (!hasTitle && !hasDesc) return { ok: false, error: 'title_required' };
+    if (!hasTitle && !hasDesc && !hasOwner) return { ok: false, error: 'title_required' };
     const check = bumpItemVersion(teamId, key, Number(intent.baseVersion));
     if (!check.ok) return check;
     const nextDesc = hasDesc ? clipDescription(intent.description) : undefined;
     if (hasDesc && check.item.jira_key) {
       return { ok: false, error: 'item_not_draft' };
     }
+    const nextOwner = hasOwner ? readOwner(intent.owner) : check.item.owner;
     const titleSame = !hasTitle || check.item.title === nextTitle;
     const descSame =
       nextDesc === undefined || (check.item.description || null) === nextDesc;
-    if (titleSame && descSame) {
+    const ownerSame = (nextOwner || null) === (check.item.owner || null);
+    if (titleSame && descSame && ownerSame) {
       // no-op
     } else {
       const title = hasTitle ? nextTitle : check.item.title;
       const description = hasDesc ? nextDesc : check.item.description;
       db.prepare(
-        `UPDATE items SET title = ?, description = ?, version = version + 1, updated_at = ?
+        `UPDATE items SET title = ?, description = ?, owner = ?, version = version + 1, updated_at = ?
          WHERE team_id = ? AND key = ?`,
-      ).run(title, description, ts, teamId, key);
+      ).run(title, description, nextOwner, ts, teamId, key);
+      if (nextOwner) ensureMember(teamId, nextOwner);
       writeActivity({
         teamId,
         actor,
         op,
         targetType: 'item',
         targetKey: key,
-        summary: { title, from: check.item.title, description: Boolean(description) },
+        summary: {
+          title,
+          from: check.item.title,
+          description: Boolean(description),
+          owner: nextOwner,
+        },
       });
     }
   } else if (op === 'expand' || op === 'collapse') {
@@ -1185,12 +1209,15 @@ export function applyIntent(
       String(intent.projectKey || '').trim() || hints.projectKey || null;
     const parentLink = parseParentLink(intent.parentLink);
     if (!parentLink.ok) return { ok: false, error: parentLink.error };
+    const owner = readOwner(
+      intent.owner !== undefined ? intent.owner : intent.assignee,
+    );
     db.prepare(
       `INSERT INTO items (
         id, team_id, key, type, title, alias, quarter, estimate,
         target_start, target_end, scheduled, start_date, days, lane,
-        expanded, source, jira_key, project_key, description, parent_link, version, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0, NULL, NULL, 0, 0, 'manual', NULL, ?, ?, ?, 1, ?, ?)`,
+        expanded, source, jira_key, project_key, description, parent_link, owner, version, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0, NULL, NULL, 0, 0, 'manual', NULL, ?, ?, ?, ?, 1, ?, ?)`,
     ).run(
       nanoid(12),
       teamId,
@@ -1204,9 +1231,11 @@ export function applyIntent(
       projectKey,
       clipDescription(intent.description),
       parentLink.value,
+      owner,
       ts,
       ts,
     );
+    if (owner) ensureMember(teamId, owner);
     createdItemKey = key;
     writeActivity({
       teamId,
@@ -1220,6 +1249,7 @@ export function applyIntent(
         quarter: intent.quarter || null,
         projectKey,
         parentLink: parentLink.value,
+        owner,
       },
     });
   } else if (op === 'delete_item') {
@@ -2003,6 +2033,11 @@ const AV_COLORS = [
   '#C97B5A',
 ];
 
+function readOwner(raw: unknown): string | null {
+  const text = String(raw ?? '').trim();
+  return text || null;
+}
+
 function ensureMember(teamId: string, name: string, color = ''): void {
   const trimmed = name.trim();
   if (!trimmed) return;
@@ -2410,6 +2445,10 @@ function applyRefreshFromJira(
           ? targetEnd
           : item.target_end;
       const nextStatus = status !== undefined ? status : item.status;
+      let nextOwner = item.owner || null;
+      if (assignee && !ownerMatchesAssignee(map, item.owner, assignee)) {
+        nextOwner = assignee;
+      }
       let nextStart = item.start_date;
       let nextDays = item.days;
       if (
@@ -2433,13 +2472,15 @@ function applyRefreshFromJira(
         (nextTEnd || null) === (item.target_end || null) &&
         (nextStart || null) === (item.start_date || null) &&
         nextDays === item.days &&
-        (nextStatus || null) === (item.status || null);
+        (nextStatus || null) === (item.status || null) &&
+        (nextOwner || null) === (item.owner || null);
       if (same) continue;
       const result = db
         .prepare(
           `UPDATE items SET
             title = ?, description = ?, target_start = ?, target_end = ?,
-            start_date = ?, days = ?, status = ?, version = version + 1, updated_at = ?
+            start_date = ?, days = ?, status = ?, owner = ?,
+            version = version + 1, updated_at = ?
            WHERE team_id = ? AND key = ? AND version = ?`,
         )
         .run(
@@ -2450,12 +2491,16 @@ function applyRefreshFromJira(
           nextStart,
           nextDays,
           nextStatus,
+          nextOwner,
           ts,
           teamId,
           item.key,
           item.version,
         );
-      if (result.changes) changed += 1;
+      if (result.changes) {
+        changed += 1;
+        if (nextOwner) ensureMember(teamId, nextOwner);
+      }
     } else if (sub) {
       if (sub.updated_at > fetchedAt) continue;
       const nextTitle = summary || sub.title;

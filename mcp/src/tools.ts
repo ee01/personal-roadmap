@@ -27,7 +27,7 @@ export const MCP_TOOLS = [
   {
     name: 'roadmap_get_context',
     description:
-      'Read the bound team planning context: limits, candidate parents, members, versions. Each item has view=gantt|backlog and parentLink (INIT issue key, or null). Optional view filter. Does not write Draft or call the server LLM.',
+      'Read the bound team planning context: limits, candidate parents, members, versions. Each item has view=gantt|backlog, parentLink (INIT issue key, or null), and owner (assignee name, or null). Optional view filter. Does not write Draft or call the server LLM.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -39,7 +39,7 @@ export const MCP_TOOLS = [
   {
     name: 'roadmap_list_items',
     description:
-      'List parent items grouped by Gantt vs Backlog. view=gantt (scheduled on the chart), view=backlog (unscheduled), or view=all (default, returns both arrays). Each item includes parentLink (INIT issue key, or null). Does not write.',
+      'List parent items grouped by Gantt vs Backlog. view=gantt (scheduled on the chart), view=backlog (unscheduled), or view=all (default, returns both arrays). Each item includes parentLink (INIT issue key, or null) and owner (assignee name, or null). Does not write.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -181,7 +181,7 @@ export const MCP_TOOLS = [
   {
     name: 'roadmap_add_item',
     description:
-      'Create one unscheduled Backlog draft. Optional parentLink is the INIT issue key (for example INIT-123) stored on the item and returned by roadmap_list_items and roadmap_get_context. Does not create a Jira issue and does not place the row on the Gantt.',
+      'Create one unscheduled Backlog draft. Optional parentLink is the INIT issue key (for example INIT-123). Optional owner (alias: assignee) is the team member name stored on the item and used as the Jira assignee when the epic is created. Both are returned by roadmap_list_items and roadmap_get_context. Does not create a Jira issue and does not place the row on the Gantt.',
     inputSchema: {
       type: 'object',
       required: ['title'],
@@ -190,6 +190,15 @@ export const MCP_TOOLS = [
         parentLink: {
           type: 'string',
           description: 'INIT (or other parent) issue key, e.g. INIT-123. Empty omits the field.',
+        },
+        owner: {
+          type: 'string',
+          description:
+            'Assignee as a team member name (same as Gantt Owner). Empty omits it. assignee is an alias of this field.',
+        },
+        assignee: {
+          type: 'string',
+          description: 'Alias of owner. Team member name, not a Jira username.',
         },
         type: { type: 'string' },
         quarter: { type: 'string' },
