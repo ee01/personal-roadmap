@@ -1,0 +1,22 @@
+{
+  "name": "@personal-ai/roadmap-planning-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "stdio MCP server for Personal Roadmap Draft planning. Talks only to the Roadmap HTTP API.",
+  "bin": {
+    "roadmap-planning-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "npx --prefix .. vitest run mcp/src/http.test.ts"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

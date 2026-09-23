@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "roadmap-planning": {
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/../mcp/dist/index.js"],
+      "env": {
+        "ROADMAP_BASE_URL": "${ROADMAP_BASE_URL}",
+        "ROADMAP_TEAM_ID": "${ROADMAP_TEAM_ID}",
+        "ROADMAP_EDIT_TOKEN": "${ROADMAP_EDIT_TOKEN}"
+      }
+    }
+  }
+}

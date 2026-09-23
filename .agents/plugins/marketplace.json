@@ -1,0 +1,10 @@
+{
+  "name": "personal-ai-roadmap-plugins",
+  "plugins": [
+    {
+      "name": "roadmap-planning",
+      "source": "./plugin",
+      "description": "Roadmap Draft planning MCP + Skill. Does not create Jira issues."
+    }
+  ]
+}

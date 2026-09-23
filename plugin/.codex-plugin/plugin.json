@@ -1,0 +1,11 @@
+{
+  "name": "roadmap-planning",
+  "version": "1.0.0",
+  "description": "Personal Roadmap Draft planning for Codex: MCP tools + roadmap-planning skill. Does not create Jira issues.",
+  "author": "Personal AI",
+  "license": "UNLICENSED",
+  "interface": {
+    "displayName": "Roadmap Planning"
+  },
+  "skills": ["skills/roadmap-planning"]
+}

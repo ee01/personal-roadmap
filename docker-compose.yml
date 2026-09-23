@@ -1,0 +1,25 @@
+services:
+  roadmap-service:
+    build:
+      context: .
+      extra_hosts:
+        - "registry.npmjs.org:104.16.29.34"
+    container_name: roadmap-service
+    ports:
+      - "3220:3220"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3220/health').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
