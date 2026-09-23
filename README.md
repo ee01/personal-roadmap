@@ -31,13 +31,15 @@ curl http://localhost:3220/health
 
 Memory Service 地址与 Roadmap 地址互不影响，两边服务端都**不需要**登记对方域名。
 
-## 部署到已有环境
+## 部署到 Mac mini
 
 ```bash
 npm run deploy
 ```
 
-这会把本仓库同步到现有主机的 `personal-ai/roadmap-service/`（默认 `rcadmin@10.32.56.212:/Users/rcadmin/personal-ai`），并用那台机器上原来的 compose 重建容器。不会覆盖该目录的父级 `docker-compose.yml`，因此不会动到 memory-service。部署脚本 **不会** 同步 `.env`。改完远端 `.env` 后需单独 rsync，再在远端执行 `docker compose up -d --force-recreate roadmap-service`。
+默认同步到 `rcadmin@10.32.56.212:/Users/rcadmin/personal-roadmap`，用本仓库的 `docker-compose.yml` 重建容器。容器名仍是 `roadmap-service`，端口仍是 `3220`，所以 `roadmap.xmnup.com` 不用改。部署前会删掉同名的旧容器，不会再起第二个。
+
+第一次部署时，如果新目录还没有 `.env` 或 `data/`，脚本会从 `/Users/rcadmin/personal-ai/roadmap-service` 拷过来。之后不再覆盖这两处。脚本不会把 `.env` 从本机传上去。
 
 本机独立部署用上面的 Docker Compose，不依赖 Personal AI 仓库。
 
