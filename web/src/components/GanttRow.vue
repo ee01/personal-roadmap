@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import {
   X,
   DAY_W,
@@ -18,6 +18,7 @@ import { memberChipHtml, openOwnerFloat } from '../composables/useOwnerFloat';
 import type { RoadmapItem, RoadmapSub, TeamMember } from '../types';
 import { useRoadmapState } from '../composables/useRoadmapState';
 import { isDraftItem, itemDisplayKey, jiraBrowseUrl, pendingDepCount, driftedDepCount, depBadgeTip, depHoverTip, depEtaMismatchesJira, trackMarkers, phaseColor, phaseGlyph, tooltipHintLine, clampDescription, DESCRIPTION_MAX_CHARS, shouldWrapAlias, isDoneStatus } from '../composables/useRoadmapContract';
+import { ganttAliasEditDirty } from '../composables/ganttAliasEdit';
 import {
   defaultNewSubSpan,
   dispName,
@@ -94,6 +95,10 @@ const aliasOwnerDirty = ref(false);
 const aliasStyle = ref({ left: '0px', top: '4px' });
 /** Draft bars edit the real title (used by Create Jira); non-drafts edit alias. */
 const aliasEditingTitle = ref(false);
+const aliasBaselineText = ref('');
+const aliasBaselineDesc = ref('');
+/** Input or textarea last focused inside the alias editor, so a blocked outside click can return there. */
+let aliasFocusEl: HTMLElement | null = null;
 
 const assigneeMap = computed(() => teamAssigneeMap(state.snapshot.value));
 const jiraBase = computed(
@@ -441,6 +446,9 @@ function openAlias(sub: RoadmapSub | null) {
   aliasOwnerDirty.value = false;
   aliasDesc.value = editingTitle ? String(target.description || '') : '';
   aliasDescOpen.value = editingTitle && Boolean(String(target.description || '').trim());
+  aliasBaselineText.value = aliasValue.value;
+  aliasBaselineDesc.value = aliasDesc.value;
+  aliasFocusEl = null;
   // 先量后挂：编辑器首次挂载时 aliasStyle 还是默认的 left:0，浏览器 focus() 会把
   // .gantt-scroll 滚到最左侧去「露出」这个元素（任务在远处时视图直接跳回开头）。
   // 这里在 aliasOpen 之前就把真实坐标算好，首帧即落在 bar 上方。
@@ -856,11 +864,67 @@ function onEditorFocusOut() {
   }, 150);
 }
 
+function aliasEditDirty(): boolean {
+  return ganttAliasEditDirty({
+    editingTitle: aliasEditingTitle.value,
+    value: aliasValue.value,
+    baselineValue: aliasBaselineText.value,
+    description: aliasDesc.value,
+    baselineDescription: aliasBaselineDesc.value,
+  });
+}
+
+const aliasHint = computed(() => {
+  const base = aliasEditingTitle.value
+    ? 'Enter 保存 · Esc 取消'
+    : 'Enter 保存 · 清空回车＝恢复原 ticket 名 · Esc 取消';
+  return aliasEditDirty() ? `${base} · 点外部不退出` : base;
+});
+
+function onAliasFocusIn(e: FocusEvent) {
+  const target = e.target as HTMLElement | null;
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+    aliasFocusEl = target;
+  }
+}
+
+function focusAliasField() {
+  const ed = rowRef.value?.querySelector('.alias-editor');
+  if (!ed) return;
+  const active = document.activeElement;
+  if (active && ed.contains(active) && active !== ed) return;
+  const fallback = ed.querySelector('input') as HTMLElement | null;
+  const target = aliasFocusEl && ed.contains(aliasFocusEl) ? aliasFocusEl : fallback;
+  target?.focus({ preventScroll: true });
+}
+
+/** Dirty text stays open until Enter or Esc. A clean editor still closes on an outside click. */
+function onAliasOutsidePointer(e: PointerEvent) {
+  if (!aliasOpen.value || !aliasEditDirty()) return;
+  const target = e.target as Node | null;
+  const ed = rowRef.value?.querySelector('.alias-editor');
+  if (ed && target && ed.contains(target)) return;
+  if (document.querySelector('.owner-float')?.contains(target as Node)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelectorAll('.owner-float').forEach((el) => el.remove());
+  focusAliasField();
+}
+
+watch(aliasOpen, (open) => {
+  if (open) window.addEventListener('pointerdown', onAliasOutsidePointer, true);
+  else window.removeEventListener('pointerdown', onAliasOutsidePointer, true);
+});
+
 function onAliasFocusOut() {
   setTimeout(() => {
     const ed = rowRef.value?.querySelector('.alias-editor');
     if (!ed || !document.body.contains(ed)) return;
     if (ed.contains(document.activeElement) || document.querySelector('.owner-float')) return;
+    if (aliasEditDirty()) {
+      focusAliasField();
+      return;
+    }
     cancelAlias();
   }, 150);
 }
@@ -908,6 +972,10 @@ onMounted(() => {
   nextTick(() => {
     if (rowRef.value) fitLanes(rowRef.value);
   });
+});
+
+onUnmounted(() => {
+  window.removeEventListener('pointerdown', onAliasOutsidePointer, true);
 });
 
 watch(
@@ -1226,6 +1294,7 @@ watch(
       class="alias-editor"
       :style="aliasStyle"
       @pointerdown.stop
+      @focusin="onAliasFocusIn"
       @focusout="onAliasFocusOut"
     >
       <div class="ae-row">
@@ -1267,11 +1336,7 @@ watch(
         type="button"
         @click="suggestAlias"
       >✦ AI 缩写</button>
-      <span class="ae-hint">{{
-        aliasEditingTitle
-          ? 'Enter 保存 · Esc 取消'
-          : 'Enter 保存 · 清空回车＝恢复原 ticket 名 · Esc 取消'
-      }}</span>
+      <span class="ae-hint">{{ aliasHint }}</span>
       </div>
       <textarea
         v-if="aliasEditingTitle && aliasDescOpen"
