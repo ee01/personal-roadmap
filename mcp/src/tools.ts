@@ -20,13 +20,14 @@ export const MCP_TOOL_NAMES = [
   'roadmap_undo_batch',
   'roadmap_delete_item',
   'roadmap_unschedule_item',
+  'roadmap_add_item',
 ] as const;
 
 export const MCP_TOOLS = [
   {
     name: 'roadmap_get_context',
     description:
-      'Read the bound team planning context: limits, candidate parents, members, versions. Each item has view=gantt|backlog. Optional view filter. Does not write Draft or call the server LLM.',
+      'Read the bound team planning context: limits, candidate parents, members, versions. Each item has view=gantt|backlog and parentLink (INIT issue key, or null). Optional view filter. Does not write Draft or call the server LLM.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -38,7 +39,7 @@ export const MCP_TOOLS = [
   {
     name: 'roadmap_list_items',
     description:
-      'List parent items grouped by Gantt vs Backlog. view=gantt (scheduled on the chart), view=backlog (unscheduled), or view=all (default, returns both arrays). Does not write.',
+      'List parent items grouped by Gantt vs Backlog. view=gantt (scheduled on the chart), view=backlog (unscheduled), or view=all (default, returns both arrays). Each item includes parentLink (INIT issue key, or null). Does not write.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -177,6 +178,28 @@ export const MCP_TOOLS = [
       },
     },
   },
+  {
+    name: 'roadmap_add_item',
+    description:
+      'Create one unscheduled Backlog draft. Optional parentLink is the INIT issue key (for example INIT-123) stored on the item and returned by roadmap_list_items and roadmap_get_context. Does not create a Jira issue and does not place the row on the Gantt.',
+    inputSchema: {
+      type: 'object',
+      required: ['title'],
+      properties: {
+        title: { type: 'string' },
+        parentLink: {
+          type: 'string',
+          description: 'INIT (or other parent) issue key, e.g. INIT-123. Empty omits the field.',
+        },
+        type: { type: 'string' },
+        quarter: { type: 'string' },
+        estimate: { type: 'number' },
+        targetStart: { type: 'string' },
+        targetEnd: { type: 'string' },
+        description: { type: 'string' },
+      },
+    },
+  },
 ];
 
 type Client = ReturnType<typeof createRoadmapClient>;
@@ -230,6 +253,8 @@ export async function dispatchTool(
         String(args.itemKey || ''),
         args.baseVersion != null ? Number(args.baseVersion) : undefined,
       );
+    case 'roadmap_add_item':
+      return client.addItem(args);
     default:
       throw new Error(`unknown_tool:${name}`);
   }

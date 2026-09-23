@@ -300,6 +300,21 @@ export function formatEstimate(estimate: number | null | undefined): string {
 /** UI cap for user-entered draft descriptions (Prompt budget). */
 export const DESCRIPTION_MAX_CHARS = 2000;
 
+const PARENT_LINK_KEY = /^([A-Za-z][A-Za-z0-9_]*)-(\d+)$/;
+
+/** Empty is allowed. A browse URL is reduced to its issue key. */
+export function parseParentLinkInput(
+  raw: string,
+): { ok: true; value: string | null } | { ok: false } {
+  const text = String(raw || '').trim();
+  if (!text) return { ok: true, value: null };
+  const fromBrowse = text.match(/\/browse\/([A-Za-z][A-Za-z0-9_]*-\d+)\b/i);
+  const candidate = (fromBrowse?.[1] || text).trim();
+  const match = PARENT_LINK_KEY.exec(candidate);
+  if (!match) return { ok: false };
+  return { ok: true, value: `${match[1].toUpperCase()}-${match[2]}` };
+}
+
 export function clipTxt(text: string | null | undefined, max: number): string {
   const flat = String(text || '').replace(/\s+/g, ' ').trim();
   if (!flat) return '';
@@ -643,6 +658,8 @@ export interface CreateJiraParent {
   /** Target End 落点列；Agent 在共享字段留空时按此分别填写。 */
   suggestedFixVersion?: string | null;
   description?: string | null;
+  /** INIT (or other parent) issue key written into Jira Parent Link on direct create. */
+  parentLink?: string | null;
 }
 
 export interface CreateJiraChild {
@@ -761,6 +778,7 @@ export function buildCreateJiraPayload(
           fixVersion: override || parentSuggested || null,
           suggestedFixVersion: parentSuggested || null,
           description: group.item.description ?? null,
+          parentLink: group.item.parentLink ?? null,
         }
       : null,
     children: group.subs.map((sub) => {

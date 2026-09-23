@@ -6,6 +6,7 @@ import { publicIntentEvent } from '../planning/sanitize.js';
 import { restoreUndoneRow } from '../planning/DraftBatchService.js';
 import { config } from '../config.js';
 import { buildJqlHints } from './JqlIntrospect.js';
+import { parseParentLink } from './parentLink.js';
 import type {
   ActivityRow,
   ActorContext,
@@ -213,6 +214,7 @@ function mapItem(row: ItemRow, subs: SubRow[], markers: MarkerRow[] = []) {
     version: row.version,
     createdAt: row.created_at,
     description: row.description || null,
+    parentLink: row.parent_link || null,
     status: row.status || null,
     subs: subs.map((sub) => ({
       id: sub.id,
@@ -1181,12 +1183,14 @@ export function applyIntent(
       String(intent.type || '').trim() || hints.itemType || 'Epic';
     const projectKey =
       String(intent.projectKey || '').trim() || hints.projectKey || null;
+    const parentLink = parseParentLink(intent.parentLink);
+    if (!parentLink.ok) return { ok: false, error: parentLink.error };
     db.prepare(
       `INSERT INTO items (
         id, team_id, key, type, title, alias, quarter, estimate,
         target_start, target_end, scheduled, start_date, days, lane,
-        expanded, source, jira_key, project_key, description, version, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0, NULL, NULL, 0, 0, 'manual', NULL, ?, ?, 1, ?, ?)`,
+        expanded, source, jira_key, project_key, description, parent_link, version, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0, NULL, NULL, 0, 0, 'manual', NULL, ?, ?, ?, 1, ?, ?)`,
     ).run(
       nanoid(12),
       teamId,
@@ -1199,6 +1203,7 @@ export function applyIntent(
       intent.targetEnd ? String(intent.targetEnd) : null,
       projectKey,
       clipDescription(intent.description),
+      parentLink.value,
       ts,
       ts,
     );
@@ -1209,7 +1214,13 @@ export function applyIntent(
       op,
       targetType: 'item',
       targetKey: key,
-      summary: { title, type, quarter: intent.quarter || null, projectKey },
+      summary: {
+        title,
+        type,
+        quarter: intent.quarter || null,
+        projectKey,
+        parentLink: parentLink.value,
+      },
     });
   } else if (op === 'delete_item') {
     const key = String(intent.itemKey || '');

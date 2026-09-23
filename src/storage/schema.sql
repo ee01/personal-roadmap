@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS items (
   jira_key TEXT,
   project_key TEXT,
   description TEXT,
+  parent_link TEXT,
   status TEXT,
   version INTEGER NOT NULL DEFAULT 1,
   created_at INTEGER NOT NULL,

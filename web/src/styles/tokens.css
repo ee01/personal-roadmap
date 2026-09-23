@@ -702,6 +702,8 @@ body.no-select,body.no-select *{user-select:none!important}
 /* Backlog 卡片 Target 日期角标 */
 .card-target{font-family:var(--mono);font-size:10px;color:var(--fut-deep);background:#EAF3FA;
   border-radius:4px;padding:2px 7px;margin-top:7px;display:inline-block}
+.card-parent{font-family:var(--mono);font-size:10px;color:#6D4FA3;background:#F3EEFA;
+  border-radius:4px;padding:2px 7px;margin-top:7px;margin-right:6px;display:inline-block}
 
 /* 拖放指示 */
 .drop-line{position:absolute;top:0;bottom:0;width:2px;background:var(--cur);z-index:8;display:none;

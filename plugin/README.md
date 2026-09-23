@@ -25,6 +25,6 @@ ROADMAP_EDIT_TOKEN=...
 ## 验收边界
 
 - 干净环境无 `../../memory-service` import
-- 工具列表不含 Jira create；含 `roadmap_list_items` / `roadmap_delete_item` / `roadmap_unschedule_item`
+- 工具列表不含 Jira create；含 `roadmap_list_items` / `roadmap_delete_item` / `roadmap_unschedule_item` / `roadmap_add_item`
 - validate → commit → receipt 可在脱离 monorepo 后走 HTTP API 完成
 - 不承诺官方公开目录上架

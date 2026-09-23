@@ -146,6 +146,7 @@ const fullAgentPrompt = computed(() => {
     currentUser: currentUser.value,
     members: state.snapshot.value?.members || [],
     items: state.snapshot.value?.items || [],
+    parentItems: groups.value.map((group) => group.item),
     drafts,
     suggestedFixVersions: fixVersionByKey.value,
   });
@@ -418,6 +419,7 @@ function promptForGroup(group: DraftGroup): string {
     currentUser: currentUser.value,
     members: state.snapshot.value?.members || [],
     items: state.snapshot.value?.items || [],
+    parentItems: [group.item],
     drafts: group.subs.map((sub) => ({ item: group.item, sub })),
     suggestedFixVersions: fixVersionByKey.value,
   });
@@ -818,6 +820,11 @@ function closeModal() {
               {{ typeBadge(itemType || g.item.type).label }}
             </span>
             <span class="t">{{ g.item.alias || g.item.title }}</span>
+            <span
+              v-if="g.item.parentLink"
+              class="fv-chip desc"
+              :data-tip="`创建时写入 Jira Parent Link||${g.item.parentLink}`"
+            >Parent {{ g.item.parentLink }}</span>
             <span
               v-if="g.item.description"
               class="fv-chip desc"

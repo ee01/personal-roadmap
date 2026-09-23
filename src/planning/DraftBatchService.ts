@@ -539,8 +539,8 @@ export function restoreUndoneRow(input: {
       `INSERT INTO items (
         id, team_id, key, type, title, alias, quarter, estimate,
         target_start, target_end, scheduled, start_date, days, lane,
-        expanded, source, jira_key, project_key, description, version, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+        expanded, source, jira_key, project_key, description, parent_link, version, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
     ).run(
       snap.id,
       snap.team_id,
@@ -561,6 +561,7 @@ export function restoreUndoneRow(input: {
       input.jiraKey,
       snap.project_key,
       snap.description,
+      snap.parent_link ?? null,
       Date.now(),
       Date.now(),
     );

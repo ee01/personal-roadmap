@@ -40,6 +40,7 @@ describe('a database created from schema.sql', () => {
       '015_items_status',
       '016_draft_planning',
       '017_subs_target_dates',
+      '018_items_parent_link',
     ]);
     expect(
       (db.pragma('table_info(subs)') as Array<{ name: string }>).map(
@@ -50,7 +51,7 @@ describe('a database created from schema.sql', () => {
       (db.pragma('table_info(items)') as Array<{ name: string }>).map(
         (row) => row.name,
       ),
-    ).toEqual(expect.arrayContaining(['description', 'status']));
+    ).toEqual(expect.arrayContaining(['description', 'status', 'parent_link']));
     expect(
       (db.pragma('table_info(teams)') as Array<{ name: string }>).map(
         (row) => row.name,

@@ -57,6 +57,7 @@ const INTENT_ERROR_TEXT: Record<string, string> = {
   merge_target_not_full_name: '合并目标必须是 Firstname Lastname',
   member_name_taken: '该成员名已存在，请用 Assignee 映射的「合并」',
   item_not_draft: '已创建 Jira 的条目不能在 Roadmap 改 description',
+  invalid_parent_link: 'Parent Link 需要是 Jira issue key，例如 INIT-123',
   target_start_required: '缺少目标日期',
 };
 

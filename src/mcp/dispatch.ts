@@ -10,6 +10,7 @@ import {
   cancelJob,
   commitPlan,
   createPlanningJob,
+  addPlanningItem,
   deletePlanningItem,
   getBatchPayload,
   jobPayload,
@@ -155,6 +156,8 @@ export function dispatchMcpTool(
         String(args.itemKey || ''),
         args.baseVersion,
       );
+    case 'roadmap_add_item':
+      return addPlanningItem(teamId, actor, args);
     default:
       return { status: 404, body: { error: `unknown_tool:${name}` } };
   }

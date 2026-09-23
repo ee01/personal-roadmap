@@ -634,6 +634,25 @@ describe('update_item title', () => {
 });
 
 describe('draft description', () => {
+  it('stores parentLink on add_item and rejects a value that is not an issue key', () => {
+    const key = expectOk(
+      apply(teamId, {
+        op: 'add_item',
+        title: 'Under an INIT',
+        parentLink: ' https://jira.example.com/browse/init-42 ',
+      }),
+    ).itemKey!;
+    expect(itemOf(getTeamSnapshot(teamId)!, key).parentLink).toBe('INIT-42');
+    const bad = apply(teamId, {
+      op: 'add_item',
+      title: 'Bad parent',
+      parentLink: 'not a key',
+    });
+    expect(bad.ok).toBe(false);
+    if (bad.ok) return;
+    expect(bad.error).toBe('invalid_parent_link');
+  });
+
   it('stores description on add_item and add_sub', () => {
     const key = expectOk(
       apply(teamId, {

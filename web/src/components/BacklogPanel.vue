@@ -12,6 +12,7 @@ import {
   typeBadge,
   tooltipHintLine,
   DESCRIPTION_MAX_CHARS,
+  parseParentLinkInput,
 } from '../composables/useRoadmapContract';
 import { CURQ, fmtMD, esc } from '../composables/useGeometry';
 import type { RoadmapItem } from '../types';
@@ -38,6 +39,7 @@ function itemMatchesQuery(item: RoadmapItem, raw: string): boolean {
     item.alias || '',
     item.type || '',
     item.quarter || '',
+    item.parentLink || '',
     itemDisplayKey(item),
   ]
     .join(' ')
@@ -71,6 +73,7 @@ const form = ref({
   targetStart: '',
   targetEnd: '',
   description: '',
+  parentLink: '',
 });
 
 function openAdd() {
@@ -83,6 +86,7 @@ function openAdd() {
     targetStart: '',
     targetEnd: '',
     description: '',
+    parentLink: '',
   };
   addOpen.value = true;
   nextTick(() => {
@@ -93,6 +97,11 @@ function openAdd() {
 async function submitAdd() {
   const title = form.value.title.trim();
   if (!title || saving.value) return;
+  const parentLink = parseParentLinkInput(form.value.parentLink);
+  if (!parentLink.ok) {
+    state.toast('Parent Link 需要是 Jira issue key，例如 INIT-123');
+    return;
+  }
   const estimate = Number(form.value.estimate);
   saving.value = true;
   try {
@@ -105,6 +114,7 @@ async function submitAdd() {
       targetStart: form.value.targetStart || undefined,
       targetEnd: form.value.targetEnd || undefined,
       description: form.value.description.trim() || undefined,
+      parentLink: parentLink.value || undefined,
     });
     addOpen.value = false;
     state.toast(`<span class="ok">✓</span> 已新建条目 <b>${esc(title)}</b>`);
@@ -136,6 +146,7 @@ function cardTipHead(item: RoadmapItem) {
   const bits = [
     itemDisplayKey(item),
     `预估 ${formatEstimate(item.estimate)}`,
+    item.parentLink ? `Parent ${item.parentLink}` : '',
     item.targetStart || item.targetEnd ? '' : '无 Target 日期',
     isDoneStatus(item) ? item.status : '',
   ].filter(Boolean);
@@ -280,6 +291,13 @@ onBeforeUnmount(() => {
               <span class="card-est">{{ formatEstimate(it.estimate) }}</span>
             </div>
             <div class="card-title">{{ isDoneStatus(it) ? '✓ ' : '' }}{{ it.title }}</div>
+            <span
+              v-if="it.parentLink"
+              class="card-parent"
+              :data-tip="`Parent Link ${it.parentLink}||创建 Jira 时写入该 INIT`"
+            >
+              Parent {{ it.parentLink }}
+            </span>
             <span v-if="it.targetStart || it.targetEnd" class="card-target">
               {{ targetLabel(it) }}
             </span>
@@ -370,6 +388,17 @@ onBeforeUnmount(() => {
           placeholder="背景 / 交付物 / 验收要点。hover 任务条时展示；创建 Jira 时作为 description 的生成依据"
           :disabled="saving"
         />
+        <label class="f-label">Parent Link（INIT，可选）</label>
+        <input
+          v-model="form.parentLink"
+          class="f-input"
+          placeholder="例如 INIT-1234，或 Jira 链接"
+          spellcheck="false"
+          :disabled="saving"
+        />
+        <div class="f-note">
+          对应这条条目要挂上的 Initiative。创建 Jira 时作为上下文；直连创建会写入 Parent Link。
+        </div>
         <div class="f-grid">
           <div>
             <label class="f-label">类型</label>
