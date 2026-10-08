@@ -1,0 +1,4 @@
+interface:
+  display_name: "Personal Roadmap"
+  short_description: "把需求做成 Roadmap Draft"
+  default_prompt: "把下面的需求做成 Personal Roadmap 的 Draft 主任务、子任务和初排甘特。先给预览，不要创建 Jira。"

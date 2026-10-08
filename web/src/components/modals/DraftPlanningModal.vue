@@ -3,6 +3,7 @@ import { reactive } from 'vue';
 import { CURQ } from '../../composables/useGeometry';
 import { useDraftPlanning } from '../../composables/useDraftPlanning';
 import {
+  PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME,
   ROADMAP_PLANNING_GITHUB_REPO,
   ROADMAP_PLANNING_LIVE_SKILL_URL,
   ROADMAP_PLANNING_MARKETPLACE_PATH,
@@ -72,8 +73,15 @@ const quarterOptions = () => {
             打开 Codex / ChatGPT 桌面的 Plugins → 导入 marketplace，仓库填
             <a :href="ROADMAP_PLANNING_GITHUB_REPO" target="_blank" rel="noopener">{{ ROADMAP_PLANNING_GITHUB_REPO }}</a>
             ，Path <code>{{ ROADMAP_PLANNING_MARKETPLACE_PATH }}</code>，Branch
-            <code>{{ ROADMAP_PLANNING_MARKETPLACE_REF }}</code>，再安装
-            <code>roadmap-planning</code>。
+            <code>{{ ROADMAP_PLANNING_MARKETPLACE_REF }}</code>，安装显示名为
+            <code>{{ PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME }}</code>
+            的插件。
+          </p>
+          <p>
+            装好后新开一个对话，输入 <code>@</code> 选择
+            <code>{{ PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME }}</code>
+            ，再粘贴需求。插件详情里有可以直接点的示例提示。Codex 没有单独的安装向导。若列表仍是旧名
+            Roadmap Planning，更新或重装一次。
           </p>
         </div>
         <div class="dp-way">

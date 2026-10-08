@@ -5,6 +5,7 @@ description: >
   用户把本文件的 GitHub / 线上 URL 交给 Agent 即可安装，不必克隆仓库、不必运行本地 node。
   默认远程 MCP：http://roadmap.xmnup.com/mcp
   在用户要「根据需求建 Roadmap Draft / Epic / Ticket 排期」且目标是该团队的 Roadmap 时使用。
+  在 Codex 里，用户 @Personal Roadmap（插件显示名，不是旧名 Roadmap Planning）即表示要走本流程。
   不创建 Jira，不读取 Memory，不签发分享链接。
 ---
 
@@ -47,8 +48,13 @@ Claude / Codex 同样填 **url + headers**，不要配 `command`/`args`。新开
 
 自建 Roadmap 时把 URL 改成你的站点；**不改就用** `http://roadmap.xmnup.com/mcp`。
 
+## 在 Codex 里调用
+
+安装插件后，Codex 不会弹出单独教程。新开一个对话，输入 `@`，选择 **Personal Roadmap**，再粘贴需求。插件详情里的示例提示可以直接点。目录 id `roadmap-planning` 只用于安装源，不要让用户去 mention 这个 id 或旧名 Roadmap Planning。
+
 ## 触发
 
+- 用户在 Codex 里 @Personal Roadmap。
 - 用户要把需求/纪要/Markdown 变成 Roadmap Draft。
 - 用户要复用已有主任务并只加子任务。
 - 用户只要「整理建议 / 预览」，不要直接写入。

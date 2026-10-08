@@ -1,11 +1,23 @@
 {
   "name": "roadmap-planning",
-  "version": "1.0.0",
-  "description": "Personal Roadmap Draft planning for Codex: MCP tools + roadmap-planning skill. Does not create Jira issues.",
+  "version": "1.1.0",
+  "description": "在新对话里 @Personal Roadmap，把需求做成 Draft 主任务和初排甘特。不创建 Jira。",
   "author": "Personal AI",
   "license": "UNLICENSED",
+  "keywords": ["personal roadmap", "draft", "planning"],
   "interface": {
-    "displayName": "Roadmap Planning"
+    "displayName": "Personal Roadmap",
+    "shortDescription": "需求做成 Draft，不建 Jira",
+    "longDescription": "安装后新开一个 Codex 对话，输入 @ 并选择 Personal Roadmap，再粘贴需求、纪要或 Markdown。也可以点插件详情里的示例提示。只生成 Draft 主任务、子任务和初排甘特，不会创建 Jira。若列表仍显示 Roadmap Planning，请更新或重装。",
+    "developerName": "Personal AI",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "http://roadmap.xmnup.com",
+    "defaultPrompt": [
+      "把下面的需求做成 Personal Roadmap 的 Draft 主任务、子任务和初排甘特。先给预览，不要创建 Jira。",
+      "根据这段会议纪要新建 Draft，并排到当前季度。负责人不确定就标 TBD。",
+      "列出还没排期的 Backlog，并说明哪些可以从甘特退回 Backlog。"
+    ]
   },
   "skills": ["skills/roadmap-planning"]
 }

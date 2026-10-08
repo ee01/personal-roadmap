@@ -4,7 +4,7 @@
     {
       "name": "roadmap-planning",
       "source": "./plugin",
-      "description": "Roadmap Draft planning MCP + Skill. Does not create Jira issues."
+      "description": "Personal Roadmap Draft planning. After install, mention @Personal Roadmap in a new Codex chat. Does not create Jira issues."
     }
   ]
 }
