@@ -78,9 +78,13 @@ const quarterOptions = () => {
             的插件。
           </p>
           <p>
-            装好后新开一个对话，输入 <code>@</code> 选择
+            装好后新开一个对话。还没绑定团队时，先选择
+            <code>Roadmap Setup</code>
+            （或在对话里说要 Setup），填入可编辑分享链接里的团队 id 和 token。配好之后，输入
+            <code>@</code>
+            选择
             <code>{{ PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME }}</code>
-            ，再粘贴需求。插件详情里有可以直接点的示例提示。Codex 没有单独的安装向导。若列表仍是旧名
+            ，再粘贴需求。规划、列出、删除和退回 Backlog 在未 Setup 时都会先引导去 Setup。插件详情里有可以直接点的示例提示。若列表仍是旧名
             Roadmap Planning，更新或重装一次。
           </p>
         </div>

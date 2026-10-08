@@ -6,6 +6,7 @@ description: >
   默认远程 MCP：http://roadmap.xmnup.com/mcp
   在用户要「根据需求建 Roadmap Draft / Epic / Ticket 排期」且目标是该团队的 Roadmap 时使用。
   在 Codex 里，用户 @Personal Roadmap（插件显示名，不是旧名 Roadmap Planning）即表示要走本流程。
+  还没有 Setup 团队时，先转去 Roadmap Setup（$roadmap-setup），不要调用 roadmap_*，不要编造 token。
   不创建 Jira，不读取 Memory，不签发分享链接。
 ---
 
@@ -50,7 +51,14 @@ Claude / Codex 同样填 **url + headers**，不要配 `command`/`args`。新开
 
 ## 在 Codex 里调用
 
-安装插件后，Codex 不会弹出单独教程。新开一个对话，输入 `@`，选择 **Personal Roadmap**，再粘贴需求。插件详情里的示例提示可以直接点。目录 id `roadmap-planning` 只用于安装源，不要让用户去 mention 这个 id 或旧名 Roadmap Planning。
+安装插件后，Codex 不会弹出单独教程。新开一个对话：
+
+1. 还没绑定团队时，先 `$roadmap-setup`（显示名 **Roadmap Setup**），或点插件详情里的 Setup 示例。填入团队 id 和可编辑分享 token。
+2. 再输入 `@`，选择 **Personal Roadmap**，粘贴需求。
+
+目录 id `roadmap-planning` 只用于安装源，不要让用户去 mention 这个 id 或旧名 Roadmap Planning。
+
+插件 MCP 会读本机 Setup 写下的凭证。没有凭证时，任何 `roadmap_*` 调用都返回 `roadmap_setup_required`，这时停下来走 Setup，不要改去手写 `config.toml`。用户在 Codex 里信任插件 hook 之后，会话开始和这些工具调用也会先被拦去 Setup。
 
 ## 触发
 
@@ -61,7 +69,9 @@ Claude / Codex 同样填 **url + headers**，不要配 `command`/`args`。新开
 
 ## 步骤
 
-1. 若还没有 `roadmap_*` 工具：按上面把远程 MCP 配好，再继续。缺 team / token 时向用户要，不要编造。
+1. **先确认已经 Setup。** 规划、预览、列出、删除、退回 Backlog、撤销都一样。没有团队凭证就停在这里，转去 [Roadmap Setup](../roadmap-setup/SKILL.md)（Codex 里是 `$roadmap-setup`），不要先做用户原来的请求，不要编造 token。
+   - 工具缺失，或返回 `roadmap_setup_required` / `mcp_auth_required`：同样停下来做 Setup。
+   - 已经 `configured: true` 但站点连不上：告诉用户是网络或地址问题，不要再要一次 token。
 2. 调用 `roadmap_get_context`，核对 contract/schema 与团队父项、成员。
 3. 只用用户授权的文档。链接原文未读取时明确说明「只保存引用」。
 4. 用宿主模型产出 `DraftPlanV1`：两级 parents/children；保留 Overall 背景、里程碑、风险、待确认项、多人 Owner 候选、TBD。
@@ -73,7 +83,7 @@ Claude / Codex 同样填 **url + headers**，不要配 `command`/`args`。新开
 
 ## 列出、单条删除、退回 Backlog
 
-安装后若用户要改已有条目，**不要再说「MCP 目前只有整批撤销，没有单条删除」**。用下面的工具：
+这些也是步骤 1：还没 Setup 就先去 Roadmap Setup，不要调用工具。安装后若用户要改已有条目，**不要再说「MCP 目前只有整批撤销，没有单条删除」**。用下面的工具：
 
 | 要做的事 | 工具 | 说明 |
 |---|---|---|

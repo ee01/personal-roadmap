@@ -19,7 +19,7 @@ X-Team-Id: <地址栏 ?team=>
 X-Share-Token: <可编辑分享链接 token>
 ```
 
-也可用 `Authorization: Bearer <token>`。
+也可用 `Authorization: Bearer <token>`。Codex 插件不要手改 `config.toml`：在对话里运行 **Roadmap Setup**（`$roadmap-setup`），它会把团队 id 和 token 写到本机，插件 MCP 每次调用都会读取。还没 Setup 时，规划或改条目都会先停下来引导去填 token。
 
 Cursor 示例：
 

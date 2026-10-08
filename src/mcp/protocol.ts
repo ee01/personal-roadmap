@@ -59,7 +59,7 @@ export function handleMcpMessage(
           title: 'Roadmap Draft planning',
         },
         instructions:
-          'Bind a team with HTTP headers X-Team-Id and X-Share-Token. Default MCP URL is http://roadmap.xmnup.com/mcp. List Gantt vs Backlog with roadmap_list_items. Permanently delete a Draft with roadmap_delete_item. Move a Gantt bar to Backlog with roadmap_unschedule_item. Does not create Jira issues.',
+          'If the team is not set up, stop and run Roadmap Setup ($roadmap-setup) before any roadmap_* tool. Bind a team with HTTP headers X-Team-Id and X-Share-Token. Default MCP URL is http://roadmap.xmnup.com/mcp. Does not create Jira issues.',
       }),
     };
   }
@@ -75,7 +75,7 @@ export function handleMcpMessage(
         rpc: toolResult(id, 401, {
           error: 'mcp_auth_required',
           message:
-            'Set headers X-Team-Id (Roadmap ?team=) and X-Share-Token (editable share link). Default server http://roadmap.xmnup.com/mcp',
+            '还没有 Setup 团队。在 Codex 里先运行 Roadmap Setup（$roadmap-setup），填入 ?team= 的团队 id 和可编辑分享链接的 token。直接调用 HTTP MCP 时设置请求头 X-Team-Id 与 X-Share-Token。配好之前不要继续写 Roadmap。',
         }),
       };
     }

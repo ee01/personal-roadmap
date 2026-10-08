@@ -28,7 +28,9 @@ const open = ref(false);
         ，Path <code>{{ ROADMAP_PLANNING_MARKETPLACE_PATH }}</code>，Branch
         <code>{{ ROADMAP_PLANNING_MARKETPLACE_REF }}</code>，安装显示名为
         <code>{{ PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME }}</code>
-        的插件。装好后新开对话，输入 <code>@</code> 选择它再粘贴需求（详情里有示例提示；没有单独安装向导；旧名 Roadmap Planning 需更新或重装）；② 把
+        的插件。装好后新开对话：还没绑定团队时先选 <code>Roadmap Setup</code> 填入团队 id 和可编辑 token，之后输入 <code>@</code> 选择
+        <code>{{ PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME }}</code>
+        再粘贴需求。未 Setup 时规划或改条目都会先引导去 Setup（详情里有示例提示；旧名 Roadmap Planning 需更新或重装）；② 把
         <a class="help-install" :href="ROADMAP_PLANNING_SKILL_URL" target="_blank" rel="noopener">GitHub Skill</a>
         或
         <a class="help-install" :href="ROADMAP_PLANNING_LIVE_SKILL_URL" target="_blank" rel="noopener">线上 Skill</a>
