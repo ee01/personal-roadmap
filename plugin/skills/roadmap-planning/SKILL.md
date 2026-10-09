@@ -108,7 +108,7 @@ X-Share-Token = "<edit token>"
 
 ## 步骤
 
-1. **先确认已经绑定团队。** 规划、预览、列出、删除、退回 Backlog、撤销都一样。没有凭证就停在这里，不要先做用户原来的请求，不要编造 token。
+1. **先确认已经绑定团队。** 规划、预览、列出、新建、删除、退回 Backlog、撤销都一样。没有凭证就停在这里，不要先做用户原来的请求，不要编造 token。
    - 装了 Codex 插件，或返回 `roadmap_setup_required`：转去 Roadmap Setup（`$roadmap-setup`），不要改 `config.toml`。
    - 只安装了这份 Skill，工具缺失，或返回 `mcp_auth_required`：按上面「第一次使用：绑定团队」向用户要可编辑分享链接，并写进宿主 MCP。不要让用户去运行 `$roadmap-setup`。
    - 已经配好但站点连不上：告诉用户是网络或地址问题，不要再要一次 token。
@@ -130,7 +130,10 @@ X-Share-Token = "<edit token>"
 | 区分甘特 vs Backlog | `roadmap_list_items` | `view=gantt` 只看已排期；`view=backlog` 只看未排期；默认 `all` 同时返回 `gantt` / `backlog` 两个数组。`roadmap_get_context` 的每条 item 也带 `view` |
 | 永久删除一条 Draft 主任务 | `roadmap_delete_item` | 只删 **没有 Jira key** 的 Draft 父项及其子任务。不删 Jira 票。已写成 Jira 的条目会拒绝 |
 | 从甘特拿掉、放到 Backlog | `roadmap_unschedule_item` | 等同网页右上角 ×「退回 Backlog」。条目还在，只是 `scheduled=false`。Draft 和已有 Jira 的都可以 |
+| 新建一条 Backlog 草稿并填写 Parent Link / Assignee | `roadmap_add_item` | `title` 必填。`parentLink` 可选，是对应 INIT 的 issue key（如 `INIT-123`）。`owner` 或 `assignee` 可选，是团队成员名（不是 Jira 用户名）。不排到甘特，不创建 Jira |
 | 整批撤销刚才 AI 写入的 Draft | `roadmap_undo_batch` | **仍然只做整批**。不要拿它删单条 |
+
+`roadmap_list_items` 和 `roadmap_get_context` 的每条 item 都返回 `parentLink` 和 `owner`（没有则为 `null`，`assignee` 与 `owner` 相同）。非法 Parent Link 会拒绝，不要编造。
 
 `roadmap_get_context` 也可传 `view=gantt\|backlog` 过滤。
 

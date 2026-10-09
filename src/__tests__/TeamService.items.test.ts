@@ -634,6 +634,62 @@ describe('update_item title', () => {
 });
 
 describe('draft description', () => {
+  it('stores parentLink on add_item and rejects a value that is not an issue key', () => {
+    const key = expectOk(
+      apply(teamId, {
+        op: 'add_item',
+        title: 'Under an INIT',
+        parentLink: ' https://jira.example.com/browse/init-42 ',
+      }),
+    ).itemKey!;
+    expect(itemOf(getTeamSnapshot(teamId)!, key).parentLink).toBe('INIT-42');
+    const bad = apply(teamId, {
+      op: 'add_item',
+      title: 'Bad parent',
+      parentLink: 'not a key',
+    });
+    expect(bad.ok).toBe(false);
+    if (bad.ok) return;
+    expect(bad.error).toBe('invalid_parent_link');
+  });
+
+  it('stores owner on add_item and still allows changing it after a Jira key exists', () => {
+    const key = expectOk(
+      apply(teamId, { op: 'add_item', title: 'Owned epic', owner: ' Ada ' }),
+    ).itemKey!;
+    expect(itemOf(getTeamSnapshot(teamId)!, key).owner).toBe('Ada');
+
+    const viaAlias = expectOk(
+      apply(teamId, { op: 'add_item', title: 'Alias field', assignee: 'Bea' }),
+    ).itemKey!;
+    expect(itemOf(getTeamSnapshot(teamId)!, viaAlias).owner).toBe('Bea');
+
+    expectOk(apply(teamId, { op: 'resolve_item', itemKey: key, jiraKey: 'NOVA-900' }));
+    const linked = itemOf(getTeamSnapshot(teamId)!, key);
+    expectOk(
+      apply(teamId, {
+        op: 'update_item',
+        itemKey: key,
+        owner: 'Cara',
+        baseVersion: linked.version,
+      }),
+    );
+    const renamed = itemOf(getTeamSnapshot(teamId)!, key);
+    expect(renamed.owner).toBe('Cara');
+    expect(renamed.jiraKey).toBe('NOVA-900');
+
+    const blocked = apply(teamId, {
+      op: 'update_item',
+      itemKey: key,
+      description: 'should stay on Jira',
+      baseVersion: renamed.version,
+    });
+    expect(blocked.ok).toBe(false);
+    if (blocked.ok) return;
+    expect(blocked.error).toBe('item_not_draft');
+    expect(itemOf(getTeamSnapshot(teamId)!, key).owner).toBe('Cara');
+  });
+
   it('stores description on add_item and add_sub', () => {
     const key = expectOk(
       apply(teamId, {

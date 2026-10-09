@@ -91,6 +91,9 @@ function toPlanningContextItem(item: ItemRow) {
     version: item.version,
     jiraKey: item.jira_key,
     description: item.description,
+    parentLink: item.parent_link || null,
+    owner: item.owner || null,
+    assignee: item.owner || null,
     canDelete: isManualDraft(item),
     canUnschedule: Boolean(item.scheduled),
   };
@@ -203,6 +206,66 @@ export function unschedulePlanningItem(
     };
   }
   return { status: 200, body: { ok: true, itemKey: key, view: 'backlog' } };
+}
+
+export function addPlanningItem(
+  teamId: string,
+  actor: ActorContext,
+  input: Record<string, unknown>,
+): { status: number; body: Record<string, unknown> } {
+  const title = String(input.title || '').trim();
+  if (!title) return { status: 400, body: { error: 'title_required' } };
+  const estimateRaw = input.estimate;
+  const estimate =
+    typeof estimateRaw === 'number'
+      ? estimateRaw
+      : estimateRaw != null && String(estimateRaw).trim() !== '' && Number.isFinite(Number(estimateRaw))
+        ? Number(estimateRaw)
+        : undefined;
+  const result = applyIntent(
+    teamId,
+    {
+      op: 'add_item',
+      title,
+      type: input.type ? String(input.type) : undefined,
+      quarter: input.quarter ? String(input.quarter) : undefined,
+      estimate,
+      targetStart: input.targetStart ? String(input.targetStart) : undefined,
+      targetEnd: input.targetEnd ? String(input.targetEnd) : undefined,
+      description: input.description,
+      parentLink: input.parentLink,
+      owner: input.owner !== undefined ? input.owner : input.assignee,
+    },
+    actor,
+  );
+  if (!result.ok) {
+    return { status: 400, body: { error: result.error } };
+  }
+  const created = getTeamSnapshot(teamId)?.items.find((item) => item.key === result.itemKey);
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      itemKey: result.itemKey,
+      parentLink: created?.parentLink ?? null,
+      owner: created?.owner ?? null,
+      assignee: created?.owner ?? null,
+      item: created
+        ? {
+            key: created.key,
+            title: created.title,
+            type: created.type,
+            view: created.scheduled ? 'gantt' : 'backlog',
+            parentLink: created.parentLink ?? null,
+            owner: created.owner ?? null,
+            assignee: created.owner ?? null,
+            description: created.description ?? null,
+            quarter: created.quarter ?? null,
+            jiraKey: created.jiraKey,
+          }
+        : null,
+    },
+  };
 }
 
 export function submitStructuredPlan(input: {

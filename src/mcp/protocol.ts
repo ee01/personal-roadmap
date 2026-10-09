@@ -59,7 +59,7 @@ export function handleMcpMessage(
           title: 'Roadmap Draft planning',
         },
         instructions:
-          'If the team is not set up, stop before any roadmap_* tool. Ask the user for the editable share link and set HTTP headers X-Team-Id and X-Share-Token on this MCP connection (default URL http://roadmap.xmnup.com/mcp). The Codex plugin uses Roadmap Setup ($roadmap-setup) instead of editing config.toml. Does not create Jira issues.',
+          'If the team is not set up, stop before any roadmap_* tool. Ask the user for the editable share link and set HTTP headers X-Team-Id and X-Share-Token on this MCP connection (default URL http://roadmap.xmnup.com/mcp). The Codex plugin uses Roadmap Setup ($roadmap-setup) instead of editing config.toml. Create a Backlog draft with roadmap_add_item (optional parentLink INIT key, optional owner/assignee team member name). Does not create Jira issues.',
       }),
     };
   }

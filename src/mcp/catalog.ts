@@ -1,6 +1,6 @@
 export const MCP_PROTOCOL_VERSION = '2025-03-26';
 export const MCP_SERVER_NAME = 'roadmap-planning';
-export const MCP_SERVER_VERSION = '1.1.0';
+export const MCP_SERVER_VERSION = '1.2.0';
 
 export const MCP_TOOL_NAMES = [
   'roadmap_get_context',
@@ -15,13 +15,14 @@ export const MCP_TOOL_NAMES = [
   'roadmap_undo_batch',
   'roadmap_delete_item',
   'roadmap_unschedule_item',
+  'roadmap_add_item',
 ] as const;
 
 export const MCP_TOOLS = [
   {
     name: 'roadmap_get_context',
     description:
-      'Read the bound team planning context: limits, candidate parents, members, versions. Each item has view=gantt|backlog (scheduled vs unscheduled). Optional view filter. Does not write Draft or call the server LLM. Team is bound by X-Team-Id / X-Share-Token headers on the MCP HTTP connection.',
+      'Read the bound team planning context: limits, candidate parents, members, versions. Each item has view=gantt|backlog (scheduled vs unscheduled), parentLink (INIT issue key, or null), and owner (assignee name, or null). Optional view filter. Does not write Draft or call the server LLM. Team is bound by X-Team-Id / X-Share-Token headers on the MCP HTTP connection.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -33,7 +34,7 @@ export const MCP_TOOLS = [
   {
     name: 'roadmap_list_items',
     description:
-      'List parent items grouped by Gantt vs Backlog. view=gantt (scheduled on the chart), view=backlog (unscheduled), or view=all (default, returns both arrays). Does not write.',
+      'List parent items grouped by Gantt vs Backlog. view=gantt (scheduled on the chart), view=backlog (unscheduled), or view=all (default, returns both arrays). Each item includes parentLink (INIT issue key, or null) and owner (assignee name, or null). Does not write.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -169,6 +170,37 @@ export const MCP_TOOLS = [
       properties: {
         itemKey: { type: 'string' },
         baseVersion: { type: 'number' },
+      },
+    },
+  },
+  {
+    name: 'roadmap_add_item',
+    description:
+      'Create one unscheduled Backlog draft. Optional parentLink is the INIT issue key (for example INIT-123). Optional owner (alias: assignee) is the team member name stored on the item and used as the Jira assignee when the epic is created. Both are returned by roadmap_list_items and roadmap_get_context. Does not create a Jira issue and does not place the row on the Gantt.',
+    inputSchema: {
+      type: 'object',
+      required: ['title'],
+      properties: {
+        title: { type: 'string' },
+        parentLink: {
+          type: 'string',
+          description: 'INIT (or other parent) issue key, e.g. INIT-123. Empty omits the field.',
+        },
+        owner: {
+          type: 'string',
+          description:
+            'Assignee as a team member name (same as Gantt Owner). Empty omits it. assignee is an alias of this field.',
+        },
+        assignee: {
+          type: 'string',
+          description: 'Alias of owner. Team member name, not a Jira username.',
+        },
+        type: { type: 'string' },
+        quarter: { type: 'string' },
+        estimate: { type: 'number' },
+        targetStart: { type: 'string' },
+        targetEnd: { type: 'string' },
+        description: { type: 'string' },
       },
     },
   },

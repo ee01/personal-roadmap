@@ -109,6 +109,7 @@ describe('remote MCP HTTP', () => {
     expect(String(res.body)).toContain('roadmap_delete_item');
     expect(String(res.body)).toContain('roadmap_list_items');
     expect(String(res.body)).toContain('roadmap_unschedule_item');
+    expect(String(res.body)).toContain('roadmap_add_item');
     expect(String(res.body)).toContain('roadmap-setup');
     expect(String(res.body)).toContain('只安装了这份 Skill');
     expect(String(res.body)).toContain('分享可编辑链接');
@@ -169,5 +170,79 @@ describe('remote MCP HTTP', () => {
     });
     expect(deleted.json().result.isError).toBe(false);
     expect(deleted.json().result.structuredContent.deletedKey).toBe(backlog.itemKey);
+  });
+
+  it('stores parentLink from roadmap_add_item and returns it from list and context', async () => {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'x-team-id': teamId, 'x-share-token': token },
+      payload: {
+        jsonrpc: '2.0',
+        id: 21,
+        method: 'tools/call',
+        params: {
+          name: 'roadmap_add_item',
+          arguments: { title: 'MCP with INIT', parentLink: 'init-77', assignee: 'Ada' },
+        },
+      },
+    });
+    expect(created.json().result.isError).toBe(false);
+    const body = created.json().result.structuredContent;
+    expect(body.parentLink).toBe('INIT-77');
+    expect(body.owner).toBe('Ada');
+    expect(body.assignee).toBe('Ada');
+    const itemKey = body.itemKey as string;
+
+    const listed = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'x-team-id': teamId, 'x-share-token': token },
+      payload: {
+        jsonrpc: '2.0',
+        id: 22,
+        method: 'tools/call',
+        params: { name: 'roadmap_list_items', arguments: { view: 'backlog', itemKeys: [itemKey] } },
+      },
+    });
+    const row = listed.json().result.structuredContent.backlog.find(
+      (item: { key: string }) => item.key === itemKey,
+    );
+    expect(row.parentLink).toBe('INIT-77');
+    expect(row.owner).toBe('Ada');
+
+    const context = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'x-team-id': teamId, 'x-share-token': token },
+      payload: {
+        jsonrpc: '2.0',
+        id: 23,
+        method: 'tools/call',
+        params: { name: 'roadmap_get_context', arguments: { itemKeys: [itemKey] } },
+      },
+    });
+    const ctxItem = context.json().result.structuredContent.context.items.find(
+      (item: { key: string }) => item.key === itemKey,
+    );
+    expect(ctxItem.parentLink).toBe('INIT-77');
+    expect(ctxItem.assignee).toBe('Ada');
+
+    const rejected = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'x-team-id': teamId, 'x-share-token': token },
+      payload: {
+        jsonrpc: '2.0',
+        id: 24,
+        method: 'tools/call',
+        params: {
+          name: 'roadmap_add_item',
+          arguments: { title: 'bad link', parentLink: 'nope' },
+        },
+      },
+    });
+    expect(rejected.json().result.isError).toBe(true);
+    expect(rejected.json().result.structuredContent.error).toBe('invalid_parent_link');
   });
 });

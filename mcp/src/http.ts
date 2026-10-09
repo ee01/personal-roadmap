@@ -104,6 +104,7 @@ export function createRoadmapClient(config: RoadmapClientConfig) {
       request('POST', `/planning/items/${encodeURIComponent(itemKey)}/unschedule`, {
         ...(baseVersion != null ? { baseVersion } : {}),
       }),
+    addItem: (body: Record<string, unknown>) => request('POST', '/planning/items', body),
   };
 }
 

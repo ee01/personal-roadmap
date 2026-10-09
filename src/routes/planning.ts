@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { getTeamSnapshot, validateShareToken } from '../core/TeamService.js';
 import type { ActorContext } from '../types.js';
 import {
+  addPlanningItem,
   cancelJob,
   commitPlan,
   createPlanningJob,
@@ -150,6 +151,23 @@ export async function registerPlanningRoutes(app: FastifyInstance): Promise<void
         { ...access.actor, source: planningSource(request) },
         request.params.itemKey,
         body.baseVersion,
+      );
+      return reply.code(result.status).send(result.body);
+    },
+  );
+
+  app.post<{ Params: { teamId: string } }>(
+    '/api/v1/teams/:teamId/planning/items',
+    async (request, reply) => {
+      const access = requireEdit(request.params.teamId, request);
+      if (!access.ok) return reply.code(access.status).send({ error: access.error });
+      const gate = requireAgentAccess(request);
+      if (!gate.ok) return reply.code(gate.status).send({ error: gate.error });
+      const body = (request.body || {}) as Record<string, unknown>;
+      const result = addPlanningItem(
+        request.params.teamId,
+        { ...access.actor, source: planningSource(request) },
+        body,
       );
       return reply.code(result.status).send(result.body);
     },

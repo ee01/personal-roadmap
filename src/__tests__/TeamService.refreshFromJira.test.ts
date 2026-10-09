@@ -297,6 +297,40 @@ describe('refresh_from_jira assignee + sub', () => {
       true,
     );
   });
+
+  it('mirrors a Jira assignee onto the epic owner', () => {
+    const snapshot = createTeam({
+      name: 'Refresh epic assignee',
+      jql: 'project = NOVA AND issuetype = Epic',
+      actor,
+    });
+    const teamId = snapshot.team.id;
+    expectOk(
+      apply(teamId, {
+        op: 'import',
+        quarters: ['2026-Q3'],
+        items: [{ key: 'NOVA-310', type: 'Epic', title: 'Epic', quarter: '2026-Q3' }],
+      }),
+    );
+    expect(getTeamSnapshot(teamId)!.items.find((i) => i.key === 'NOVA-310')!.owner).toBeNull();
+    expectOk(
+      apply(teamId, {
+        op: 'refresh_from_jira',
+        issues: [
+          {
+            key: 'NOVA-310',
+            fetchedAt: Date.now() + 1000,
+            fields: { assignee: 'Ada Lovelace' },
+          },
+        ],
+      }),
+    );
+    const item = getTeamSnapshot(teamId)!.items.find((i) => i.key === 'NOVA-310')!;
+    expect(item.owner).toBe('Ada Lovelace');
+    expect(getTeamSnapshot(teamId)!.members.some((m) => m.name === 'Ada Lovelace')).toBe(
+      true,
+    );
+  });
 });
 
 describe('refresh_from_jira dep cache', () => {

@@ -295,6 +295,20 @@ const MIGRATIONS: Migration[] = [
       addColumn(database, 'subs', 'target_end', 'TEXT');
     },
   },
+  {
+    id: '018_items_parent_link',
+    up: (database) => {
+      // INIT (or other parent) issue key chosen when a backlog item is created.
+      addColumn(database, 'items', 'parent_link', 'TEXT');
+    },
+  },
+  {
+    id: '019_items_owner',
+    up: (database) => {
+      // Epic assignee (team member name). Editable on draft and Jira-linked rows.
+      addColumn(database, 'items', 'owner', 'TEXT');
+    },
+  },
 ];
 
 function runMigrations(database: Db): void {
