@@ -1,6 +1,6 @@
 {
   "name": "roadmap-planning",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "在新对话里 @Personal Roadmap。还没绑定团队时先走 Roadmap Setup，填入团队 id 和可编辑 token。不创建 Jira。",
   "author": "Personal AI",
   "license": "UNLICENSED",

@@ -49,7 +49,7 @@ describe('Codex plugin manifest', () => {
   });
 
   it('ships Roadmap Setup and gates planning until a team token is stored', () => {
-    expect(manifest.version).toBe('1.2.0');
+    expect(manifest.version).toBe('1.2.1');
     expect(manifest.skills).toEqual(['skills/roadmap-planning', 'skills/roadmap-setup']);
     expect(manifest.interface.longDescription).toContain('Roadmap Setup');
     const setupUi = readFileSync(
@@ -69,6 +69,9 @@ describe('Codex plugin manifest', () => {
     );
     expect(planning).toContain('$roadmap-setup');
     expect(planning).toContain('不要先做用户原来的请求');
+    expect(planning).toContain('只安装了这份 Skill');
+    expect(planning).toContain('分享可编辑链接');
+    expect(planning).toContain('不要运行 `$roadmap-setup`');
     const mcp = JSON.parse(readFileSync(path.join(root, 'plugin/.mcp.json'), 'utf8')) as {
       mcpServers: { 'roadmap-planning': { args: string[] } };
     };

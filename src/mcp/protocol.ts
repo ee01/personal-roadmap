@@ -59,7 +59,7 @@ export function handleMcpMessage(
           title: 'Roadmap Draft planning',
         },
         instructions:
-          'If the team is not set up, stop and run Roadmap Setup ($roadmap-setup) before any roadmap_* tool. Bind a team with HTTP headers X-Team-Id and X-Share-Token. Default MCP URL is http://roadmap.xmnup.com/mcp. Does not create Jira issues.',
+          'If the team is not set up, stop before any roadmap_* tool. Ask the user for the editable share link and set HTTP headers X-Team-Id and X-Share-Token on this MCP connection (default URL http://roadmap.xmnup.com/mcp). The Codex plugin uses Roadmap Setup ($roadmap-setup) instead of editing config.toml. Does not create Jira issues.',
       }),
     };
   }
@@ -75,7 +75,7 @@ export function handleMcpMessage(
         rpc: toolResult(id, 401, {
           error: 'mcp_auth_required',
           message:
-            '还没有 Setup 团队。在 Codex 里先运行 Roadmap Setup（$roadmap-setup），填入 ?team= 的团队 id 和可编辑分享链接的 token。直接调用 HTTP MCP 时设置请求头 X-Team-Id 与 X-Share-Token。配好之前不要继续写 Roadmap。',
+            '还没有绑定团队。请用户从 Roadmap 顶栏复制「分享可编辑链接」（含 team 与 rw_ token），把 X-Team-Id 和 X-Share-Token 写进当前宿主的 MCP 配置后新开会话。若装的是 Codex 插件 Personal Roadmap，改为运行 Roadmap Setup（$roadmap-setup），不要手改 config.toml。配好之前不要继续写 Roadmap。',
         }),
       };
     }

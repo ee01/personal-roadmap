@@ -95,15 +95,9 @@ const quarterOptions = () => {
             <a :href="ROADMAP_PLANNING_SKILL_URL" target="_blank" rel="noopener">GitHub 上的 Skill</a>
             或
             <a :href="ROADMAP_PLANNING_LIVE_SKILL_URL" target="_blank" rel="noopener">线上 Skill</a>
-            交给 Agent，不必下载源码。远程 MCP 默认
+            交给 Agent，不必下载源码。安装 Skill 没有填写 Token 的页面。第一次使用时，Agent 会按这份说明请你粘贴顶栏「分享可编辑链接」，再把团队和 token 写进 Cursor 或 Claude 自己的 MCP 配置（不写进 Skill，不进仓库）。远程 MCP 默认
             <code>{{ ROADMAP_PLANNING_MCP_HTTP_URL }}</code>
-            ，自建站点则改成你的
-            <code>/mcp</code>
-            。首次需要填团队
-            <code>X-Team-Id</code>
-            和可编辑
-            <code>X-Share-Token</code>
-            。
+            。这条和上面的插件不是同一套：插件用 Roadmap Setup，只装 Skill 时不要去找那个命令。
           </p>
         </div>
       </div>

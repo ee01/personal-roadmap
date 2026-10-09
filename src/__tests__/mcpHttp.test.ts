@@ -84,6 +84,7 @@ describe('remote MCP HTTP', () => {
     });
     expect(denied.json().result.isError).toBe(true);
     expect(denied.json().result.structuredContent.error).toBe('mcp_auth_required');
+    expect(denied.json().result.structuredContent.message).toContain('分享可编辑链接');
     expect(denied.json().result.structuredContent.message).toContain('Roadmap Setup');
 
     const ok = await app.inject({
@@ -109,6 +110,8 @@ describe('remote MCP HTTP', () => {
     expect(String(res.body)).toContain('roadmap_list_items');
     expect(String(res.body)).toContain('roadmap_unschedule_item');
     expect(String(res.body)).toContain('roadmap-setup');
+    expect(String(res.body)).toContain('只安装了这份 Skill');
+    expect(String(res.body)).toContain('分享可编辑链接');
   });
 
   it('lists gantt vs backlog, unschedules, and deletes a draft via MCP tools', async () => {

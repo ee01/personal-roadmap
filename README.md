@@ -50,7 +50,7 @@ npm run deploy
 
 ## AI 批量规划 Draft
 
-产品内入口：Backlog「新建条目 → 使用 AI 批量创建」。服务端调用 OpenAI 或 Claude 生成两级 Draft 并初排甘特，**不创建 Jira**。远程 MCP：`GET/POST /mcp`，默认 `http://roadmap.xmnup.com/mcp`。弹窗在「要用自己的 Agent 生成 Draft」处并列 Codex Plugin 导入与把 GitHub/线上 Skill 交给 Agent（不必下载源码）。Codex 插件显示名为 **Personal Roadmap**：装好后新开对话，还没绑定团队时先走 **Roadmap Setup** 填入团队 id 和可编辑 token，再 `@` Personal Roadmap 粘贴需求。未 Setup 时，规划或改条目都会先引导去 Setup。
+产品内入口：Backlog「新建条目 → 使用 AI 批量创建」。服务端调用 OpenAI 或 Claude 生成两级 Draft 并初排甘特，**不创建 Jira**。远程 MCP：`GET/POST /mcp`，默认 `http://roadmap.xmnup.com/mcp`。弹窗在「要用自己的 Agent 生成 Draft」处并列 Codex Plugin 导入与把 GitHub/线上 Skill 交给 Agent（不必下载源码）。Codex 插件显示名为 **Personal Roadmap**：装好后新开对话，还没绑定团队时先走 **Roadmap Setup** 填入团队 id 和可编辑 token，再 `@` Personal Roadmap 粘贴需求。未 Setup 时，规划或改条目都会先引导去 Setup。只安装 Skill 时没有这个命令：Agent 会请用户粘贴可编辑分享链接，并写入 Cursor / Claude 的 MCP 配置。
 
 1. 复制 `.env.example` 后按需填写 `ROADMAP_OPENAI_API_KEY` 或 `ROADMAP_CLAUDE_API_KEY`
 2. `ROADMAP_AI_ENABLED=true` 才打开网页「生成」；关掉时手动创建和 MCP `validate/commit` 仍可用

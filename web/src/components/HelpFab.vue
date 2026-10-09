@@ -36,7 +36,7 @@ const open = ref(false);
         <a class="help-install" :href="ROADMAP_PLANNING_LIVE_SKILL_URL" target="_blank" rel="noopener">线上 Skill</a>
         交给 Agent，远程 MCP 默认
         <a class="help-install" :href="ROADMAP_PLANNING_MCP_HTTP_URL" target="_blank" rel="noopener">{{ ROADMAP_PLANNING_MCP_HTTP_URL }}</a>
-        ，不必下载源码。
+        ，不必下载源码。第一次使用时 Agent 会请你粘贴顶栏「分享可编辑链接」，并写入该工具的 MCP 配置；只装 Skill 时没有 Roadmap Setup。
       </li>
       <li>
         <b>导入 / 创建 Jira / 读取 ETA / 回写 Jira 需要 Personal AI 扩展</b>：未安装时锁定按钮点击可查看安装指引；拖动排期或改 Owner 会先保存在 Roadmap，并出现一行「没有同步到 Jira」提示
