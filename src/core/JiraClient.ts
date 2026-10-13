@@ -119,8 +119,11 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 /**
- * Search Tasks linked to the given parent keys (Epic / Initiative / Task).
- * Paginates like the extension import path (startAt + maxResults).
+ * Search child issues linked to the given parent keys (Epic / Initiative /
+ * Task). Every issue type is imported — an Epic's children are not necessarily
+ * `Task` (e.g. `QA sub-task`, a nested `Epic`, `Story`, `Bug`), so filtering on
+ * `issuetype` silently drops them. Paginates like the extension import path
+ * (startAt + maxResults).
  */
 export async function jiraSearchChildTasks(
   epicKeys: string[],
@@ -146,7 +149,7 @@ export async function jiraSearchChildTasks(
   for (const group of chunk(unique, 40)) {
     const jql =
       `${linkClause(hints.linkField, group)} ` +
-      `AND issuetype = Task AND status not in (Cancelled, Closed) ` +
+      `AND status not in (Cancelled, Closed) ` +
       `ORDER BY key ASC`;
 
     let startAt = 0;

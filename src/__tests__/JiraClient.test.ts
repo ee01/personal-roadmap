@@ -95,6 +95,52 @@ describe('JiraClient', () => {
     ]);
   });
 
+  it('jiraSearchChildTasks queries every issue type under the parent', async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        startAt: 0,
+        maxResults: 100,
+        total: 2,
+        issues: [
+          {
+            key: 'NOVA-10',
+            fields: {
+              summary: 'QA child',
+              issuetype: { name: 'QA sub-task' },
+              assignee: null,
+              customfield_11450: 'NOVA-1',
+            },
+          },
+          {
+            key: 'NOVA-11',
+            fields: {
+              summary: 'Nested epic',
+              issuetype: { name: 'Epic' },
+              assignee: null,
+              customfield_11450: 'NOVA-1',
+            },
+          },
+        ],
+      }),
+    });
+
+    const rows = await jiraSearchChildTasks(['NOVA-1'], {
+      projectKey: 'NOVA',
+      itemType: 'Epic',
+      subType: 'Task',
+      linkField: 'customfield_11450',
+      confident: true,
+    });
+
+    const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0];
+    const jql = JSON.parse(init.body).jql as string;
+    expect(jql).not.toMatch(/issuetype/i);
+    expect(jql).toMatch(/status not in \(Cancelled, Closed\)/i);
+    expect(rows.map((r) => r.key)).toEqual(['NOVA-10', 'NOVA-11']);
+  });
+
   it('throws JiraHttpError on non-2xx', async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: false,
