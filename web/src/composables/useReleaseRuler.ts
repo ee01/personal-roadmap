@@ -118,15 +118,60 @@ export function extractSheetId(v: string): string {
   return m ? m[1] : (v || '').trim();
 }
 
+/**
+ * Google Sheets may return dates using the cell's display format. In the
+ * 2026 release sheet, upcoming dates are displayed as `11/2` (no year), which
+ * JavaScript otherwise interprets as a date in 2001. Use the dominant year
+ * from explicitly dated rows for those yearless month/day values.
+ */
+function explicitDateYear(value: unknown): number | null {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.getFullYear();
+  }
+  const text = String(value ?? '').trim();
+  const iso = text.match(/^(\d{4})-\d{1,2}-\d{1,2}(?:$|[T\s])/);
+  if (iso) return Number(iso[1]);
+  const mdy = text.match(/^\d{1,2}[/-]\d{1,2}[/-](\d{2,4})$/);
+  if (!mdy) return null;
+  const year = Number(mdy[1]);
+  return year < 100 ? (year >= 50 ? 1900 + year : 2000 + year) : year;
+}
+
+function parseReleaseDate(value: unknown, defaultYear: number): Date {
+  if (value instanceof Date) return strip(value);
+  const text = String(value ?? '').trim();
+  const monthDay = text.match(/^(\d{1,2})[/-](\d{1,2})$/);
+  if (monthDay) {
+    return new Date(defaultYear, Number(monthDay[1]) - 1, Number(monthDay[2]));
+  }
+  const mdy = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (mdy) {
+    let year = Number(mdy[3]);
+    if (year < 100) year += year >= 50 ? 1900 : 2000;
+    return new Date(year, Number(mdy[1]) - 1, Number(mdy[2]));
+  }
+  return strip(new Date(text));
+}
+
 export function parseReleaseRows(
   rows: Array<Record<string, unknown>> | null | undefined,
 ): ParsedReleaseSchedule {
-  const phases = (rows || [])
+  const input = rows || [];
+  const yearCounts = new Map<number, number>();
+  for (const row of input) {
+    const year = explicitDateYear(row.Date);
+    if (year !== null) yearCounts.set(year, (yearCounts.get(year) || 0) + 1);
+  }
+  const defaultYear = [...yearCounts.entries()].sort(
+    ([yearA, countA], [yearB, countB]) => countB - countA || yearB - yearA,
+  )[0]?.[0] ?? today.getFullYear();
+
+  const phases = input
     .map((r) => ({
       release: String(r.Release ?? '').trim(),
       phase: String(r.Phase ?? '').trim(),
       kind: phaseKind(r.Phase),
-      date: strip(new Date(String(r.Date ?? ''))),
+      date: parseReleaseDate(r.Date, defaultYear),
     }))
     .filter((p) => p.release && !Number.isNaN(p.date.getTime()));
 
