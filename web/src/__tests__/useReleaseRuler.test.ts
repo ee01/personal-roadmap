@@ -78,6 +78,18 @@ describe('useReleaseRuler', () => {
     expect(segs[2].end.getTime()).toBe(ffOf('26.3.140').getTime());
   });
 
+  it('uses the schedule year for month/day dates without an explicit year', () => {
+    const parsed = parseReleaseRows([
+      { Release: '26.4.210', Phase: 'FF', Date: '11/2' },
+      { Release: '26.4.210', Phase: 'Pro', Date: '2026-11-09' },
+    ]);
+
+    const ff = parsed.phases.find((phase) => phase.kind === 'ff')!;
+    expect(ff.date.getFullYear()).toBe(2026);
+    expect(ff.date.getMonth()).toBe(10);
+    expect(ff.date.getDate()).toBe(2);
+  });
+
   it('makes RIO its own end-owned segment when split is Pro', () => {
     const parsed = parseReleaseRows(rows);
     const proOf = (name: string) =>
