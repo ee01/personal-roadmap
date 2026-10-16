@@ -126,7 +126,7 @@ input,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .card-key{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .bl-add{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;
   font-weight:600;color:var(--cur-deep);background:#FFF4E5;border:1px solid #FFD9A8;
-  border-radius:7px;padding:3px 9px;transition:all .13s}
+  border-radius:7px;padding:3px 9px;transition:all .13s;white-space:nowrap;flex:none}
 .add-tabs{display:flex;gap:6px;margin:10px 0 8px}
 .add-tab{padding:6px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12px;font-weight:600;background:#fff;color:var(--muted)}
 .add-tab.on{border-color:var(--cur);background:#FFF4E5;color:var(--cur-deep)}
@@ -1180,7 +1180,7 @@ textarea.f-input.f-desc{min-height:60px;font-family:var(--sans);font-size:12.5px
 /* Backlog 头部「↻ 拉取」+ 浮层 */
 .bl-sync{position:relative;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border-radius:7px;
   font-size:11.5px;font-weight:600;color:var(--muted);border:1px solid var(--line);background:var(--panel);
-  transition:color .13s,background .13s,border-color .13s;vertical-align:2px}
+  transition:color .13s,background .13s,border-color .13s;vertical-align:2px;white-space:nowrap;flex:none}
 .bl-sync:hover,.bl-sync[aria-expanded="true"]{color:var(--ink);background:var(--bg);border-color:#C9C6BB}
 .bl-sync svg{transition:transform .4s cubic-bezier(.2,.8,.2,1)}
 .bl-sync:hover svg{transform:rotate(-120deg)}

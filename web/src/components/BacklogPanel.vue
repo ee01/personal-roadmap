@@ -468,7 +468,7 @@ onBeforeUnmount(() => {
               stroke-linecap="round"
             />
           </svg>
-          新建条目
+          新建
         </button>
       </div>
     </div>
@@ -607,7 +607,7 @@ onBeforeUnmount(() => {
           >
             从 Jira 拉取
           </button>
-          <br />或点右上角<b>「新建条目」</b>手动添加
+          <br />或点右上角<b>「新建」</b>手动添加
         </template>
       </div>
     </div>
