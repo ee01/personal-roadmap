@@ -30,6 +30,16 @@ export const ROADMAP_CREATE_JIRA_SYSTEM_PROMPT = [
   '4. 若请求附带父 Epic 描述摘录则优先使用；否则先读取父 issue 的 description。',
   '5. 父 issue 也是本批 draft、尚无 description 时：以父标题 + 父条目的用户描述（如有）+ 子标题生成简短 description。',
   '6. 主任务未要求 description 时可省略；带用户描述的 draft 主任务以用户描述为基础润色。子任务不可省略。',
+  '',
+  '【Parent Link 规则 — 必须遵守】',
+  '1. 清单里标了 Parent Link 且状态为「待创建」的主任务，创建时必须把该 key 写入 Jira Parent Link 字段（对应 INIT），不要留空，不要改成别的 issue。',
+  '2. 已有 Jira key 的父任务不要改写它的 Parent Link。',
+  '3. 清单没有 Parent Link 时不要臆造 Initiative。',
+  '',
+  '【主任务 Assignee 规则 — 必须遵守】',
+  '1. 【主任务 Assignee】里列出的待创建主任务，必须把该人写入 Jira assignee。',
+  '2. 没有列出的主任务留空 assignee，不要回落到创建人，也不要臆造。',
+  '3. 已有 Jira key 的父任务不要改写它的 assignee。子任务仍按【Assignee 规则】回落到创建人。',
 ].join('\n');
 
 export function describeFixVersionConstraint(input: {
@@ -60,6 +70,8 @@ export function buildAgentCreatePrompt(input: {
   currentUser: string;
   members: TeamMember[];
   items: RoadmapItem[];
+  /** Draft or existing parents in this create batch, including parents with no children. */
+  parentItems?: RoadmapItem[];
   drafts: Array<{ item: RoadmapItem; sub: RoadmapSub }>;
   /** Per-draft Target End landing (release column), keyed by sub.id / item.key. */
   suggestedFixVersions?: Record<string, string | null | undefined>;
@@ -104,6 +116,33 @@ export function buildAgentCreatePrompt(input: {
   })) {
     const full = effectiveFullName(input.map, pp.name);
     L.push(`- ${pp.name} → ${full || '（未提供实名，按此名检索确认）'}`);
+  }
+  const parentRows = new Map<string, RoadmapItem>();
+  for (const item of input.parentItems || []) parentRows.set(item.key, item);
+  for (const draft of input.drafts) parentRows.set(draft.item.key, draft.item);
+  const linkedParents = [...parentRows.values()].filter((item) =>
+    String(item.parentLink || '').trim(),
+  );
+  if (linkedParents.length) {
+    L.push('', '【Parent Link（INIT）】');
+    for (const item of linkedParents) {
+      const state = item.jiraKey
+        ? `已有 Jira ${item.jiraKey}，不要改写其 Parent Link`
+        : '待创建，必须写入 Jira Parent Link';
+      L.push(`- ${item.key} ${item.title} → ${String(item.parentLink).trim()}（${state}）`);
+    }
+  }
+  const assignedParents = [...parentRows.values()].filter(
+    (item) => !item.jiraKey && String(item.owner || '').trim(),
+  );
+  if (assignedParents.length) {
+    L.push('', '【主任务 Assignee】');
+    for (const item of assignedParents) {
+      const full = effectiveFullName(input.map, item.owner);
+      L.push(
+        `- ${item.key} ${item.title} → ${full || String(item.owner).trim()}（待创建，必须写入 Jira assignee）`,
+      );
+    }
   }
   L.push('', '【任务清单】');
   input.drafts.forEach(({ item, sub }, i) => {

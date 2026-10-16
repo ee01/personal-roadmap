@@ -34,6 +34,7 @@ import {
   buildAgentCreatePrompt,
   dispName,
   resolveAssignee,
+  resolveItemAssignee,
   teamAssigneeMap,
   type ResolvedAssignee,
 } from '../../composables/useAssigneeMap';
@@ -108,6 +109,11 @@ const groups = computed(
 const assigneeChips = computed(() => {
   const seen = new Map<string, ResolvedAssignee>();
   for (const g of groups.value) {
+    if (isDraftItem(g.item) && g.item.owner) {
+      const r = resolveSub({ owner: g.item.owner, createdBy: '' });
+      const k = r.name.toLowerCase();
+      if (k && !seen.has(k)) seen.set(k, r);
+    }
     for (const sub of g.subs) {
       const r = resolveSub(sub);
       const k = r.name.toLowerCase();
@@ -146,6 +152,7 @@ const fullAgentPrompt = computed(() => {
     currentUser: currentUser.value,
     members: state.snapshot.value?.members || [],
     items: state.snapshot.value?.items || [],
+    parentItems: groups.value.map((group) => group.item),
     drafts,
     suggestedFixVersions: fixVersionByKey.value,
   });
@@ -418,6 +425,7 @@ function promptForGroup(group: DraftGroup): string {
     currentUser: currentUser.value,
     members: state.snapshot.value?.members || [],
     items: state.snapshot.value?.items || [],
+    parentItems: [group.item],
     drafts: group.subs.map((sub) => ({ item: group.item, sub })),
     suggestedFixVersions: fixVersionByKey.value,
   });
@@ -517,6 +525,10 @@ async function start(opts?: { groupKey?: string }) {
         fixVersionOverride: override,
         fixVersionByKey: fixVersionByKey.value,
         assigneeByDraftId: assigneeByDraftId.value,
+        parentAssignee: resolveItemAssignee({
+          map: assigneeMap.value,
+          owner: group.item.owner,
+        }),
       };
       const createPayload = buildCreateJiraPayload(group, baseFields);
       const result = agentMode.value
@@ -592,7 +604,7 @@ async function start(opts?: { groupKey?: string }) {
     }
 
     try {
-      if (teamId) state.snapshot.value = await state.api.fetchTeam(teamId);
+      if (teamId) state.commitSnapshot(await state.api.fetchTeam(teamId));
     } catch {
       /* SSE will catch up */
     }
@@ -818,6 +830,16 @@ function closeModal() {
               {{ typeBadge(itemType || g.item.type).label }}
             </span>
             <span class="t">{{ g.item.alias || g.item.title }}</span>
+            <span
+              v-if="g.item.parentLink"
+              class="fv-chip desc"
+              :data-tip="`创建时写入 Jira Parent Link||${g.item.parentLink}`"
+            >Parent {{ g.item.parentLink }}</span>
+            <span
+              v-if="isDraftItem(g.item) && g.item.owner"
+              class="fv-chip"
+              :data-tip="`创建时写入 Jira assignee||${showName(g.item.owner)}`"
+            >{{ showName(g.item.owner) }}</span>
             <span
               v-if="g.item.description"
               class="fv-chip desc"

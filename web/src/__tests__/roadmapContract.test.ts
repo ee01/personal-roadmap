@@ -38,6 +38,7 @@ import {
   typeBadge,
   clampDescription,
   DESCRIPTION_MAX_CHARS,
+  parseParentLinkInput,
 } from '../composables/useRoadmapContract';
 import {
   buildAgentCreatePrompt,
@@ -491,6 +492,8 @@ describe('create-jira payload', () => {
         fixVersion: null,
         suggestedFixVersion: null,
         description: null,
+        parentLink: null,
+        assignee: null,
       },
       children: [
         {
@@ -569,6 +572,20 @@ describe('create-jira payload', () => {
     const payload = buildCreateJiraPayload(group, fields);
     expect(payload.parent?.description).toBe('parent notes');
     expect(payload.children[0].description).toBe('child notes');
+  });
+
+  it('forwards the stored Parent Link onto the draft parent', () => {
+    const group = buildDraftGroups([
+      item({
+        key: 'LOCAL-ab12cd34',
+        source: 'manual',
+        jiraKey: null,
+        title: 'Manual epic',
+        parentLink: 'INIT-42',
+        subs: [sub({ id: 'd1', title: 'first child' })],
+      }),
+    ])[0];
+    expect(buildCreateJiraPayload(group, fields).parent?.parentLink).toBe('INIT-42');
   });
 });
 
@@ -818,6 +835,82 @@ describe('draft description contract', () => {
     expect(ROADMAP_CREATE_JIRA_SYSTEM_PROMPT).toContain(
       '带用户描述的 draft 主任务以用户描述为基础润色',
     );
+  });
+
+  it('puts a stored Parent Link into the Agent prompt as create context', () => {
+    const parent = item({
+      key: 'LOCAL-ab12cd34',
+      source: 'manual',
+      jiraKey: null,
+      title: 'Manual epic',
+      parentLink: 'INIT-42',
+    });
+    const prompt = buildAgentCreatePrompt({
+      userPrompt: 'create',
+      projectKey: 'NOVA',
+      itemType: 'Epic',
+      subType: 'Task',
+      fixVersion: '',
+      sprint: '',
+      map: {},
+      currentUser: 'Tester',
+      members: [],
+      items: [parent],
+      parentItems: [parent],
+      drafts: [],
+    });
+    expect(ROADMAP_CREATE_JIRA_SYSTEM_PROMPT).toContain('Parent Link');
+    expect(prompt).toContain('INIT-42');
+    expect(prompt).toContain('待创建，必须写入 Jira Parent Link');
+  });
+
+  it('puts a stored epic assignee into the Agent prompt and the direct-create payload', () => {
+    const parent = item({
+      key: 'LOCAL-ab12cd34',
+      source: 'manual',
+      jiraKey: null,
+      title: 'Manual epic',
+      owner: 'Ada Lovelace',
+    });
+    const prompt = buildAgentCreatePrompt({
+      userPrompt: 'create',
+      projectKey: 'NOVA',
+      itemType: 'Epic',
+      subType: 'Task',
+      fixVersion: '',
+      sprint: '',
+      map: {},
+      currentUser: 'Tester',
+      members: [],
+      items: [parent],
+      parentItems: [parent],
+      drafts: [],
+    });
+    expect(prompt).toContain('【主任务 Assignee】');
+    expect(prompt).toContain('Ada Lovelace');
+    expect(prompt).toContain('必须写入 Jira assignee');
+    expect(prompt).not.toContain('创建人回落');
+    const group = buildDraftGroups([parent])[0];
+    expect(
+      buildCreateJiraPayload(group, {
+        teamId: 'T1',
+        token: null,
+        projectKey: 'NOVA',
+        issueType: 'Epic',
+        subType: 'Task',
+        parentAssignee: 'ada.lovelace',
+      }).parent?.assignee,
+    ).toBe('ada.lovelace');
+  });
+
+  it('accepts an INIT key or browse URL and rejects free text', () => {
+    expect(parseParentLinkInput('')).toEqual({ ok: true, value: null });
+    expect(parseParentLinkInput(' init-7 ')).toEqual({ ok: true, value: 'INIT-7' });
+    expect(parseParentLinkInput('https://jira.example.com/browse/INIT-9')).toEqual({
+      ok: true,
+      value: 'INIT-9',
+    });
+    expect(parseParentLinkInput('initiative')).toEqual({ ok: false });
   });
 
   it('system prompt treats a missing fixVersion as omit-and-continue, not a hard gate', () => {

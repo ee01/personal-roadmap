@@ -68,6 +68,7 @@ export function collectPeople(input: {
   add(input.currentUser, '成员');
   for (const m of input.members) add(m.name, '成员');
   for (const it of input.items) {
+    if (it.owner) add(it.owner, '成员');
     for (const s of it.subs || []) {
       if (s.owner) add(s.owner, '成员');
       if (s.createdBy) add(s.createdBy, '创建过任务');
@@ -134,6 +135,17 @@ export function defaultNewSubSpan(tlEnd?: Date | string | null): {
     if (fmtISO(start) > fmtISO(lastStart)) start = lastStart;
   }
   return { start: fmtISO(start), days };
+}
+
+/** Jira username for an epic assignee. Empty owner stays empty — no creator fallback. */
+export function resolveItemAssignee(input: {
+  map: AssigneeMap | null | undefined;
+  owner: string | null | undefined;
+}): string | null {
+  const name = String(input.owner || '').trim();
+  if (!name) return null;
+  const full = effectiveFullName(input.map, name);
+  return full ? jiraUsernameFromFull(full) : null;
 }
 
 export function teamAssigneeMap(

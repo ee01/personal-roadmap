@@ -57,6 +57,7 @@ const INTENT_ERROR_TEXT: Record<string, string> = {
   merge_target_not_full_name: '合并目标必须是 Firstname Lastname',
   member_name_taken: '该成员名已存在，请用 Assignee 映射的「合并」',
   item_not_draft: '已创建 Jira 的条目不能在 Roadmap 改 description',
+  invalid_parent_link: 'Parent Link 需要是 Jira issue key，例如 INIT-123',
   target_start_required: '缺少目标日期',
 };
 
@@ -65,11 +66,56 @@ export function intentErrorText(error?: string | null): string {
   return INTENT_ERROR_TEXT[key] || `操作失败：${key || 'unknown'}`;
 }
 
+export type OptimisticRemoval = {
+  id: number;
+  kind: 'delete' | 'unschedule';
+  itemKey: string;
+};
+
+/**
+ * Project in-flight Gantt→Backlog and Backlog deletes onto a server snapshot.
+ * Unschedule clears the bar the same way the server does (scheduled off, dates
+ * cleared) without mutating the caller's items. Delete drops the row.
+ * Already-applied ops are left untouched so a later server snapshot wins.
+ */
+export function applyOptimisticRemovals(
+  snap: TeamSnapshot,
+  ops: ReadonlyArray<Pick<OptimisticRemoval, 'kind' | 'itemKey'>>,
+): TeamSnapshot {
+  if (!ops.length) return snap;
+  let items = snap.items;
+  for (const op of ops) {
+    if (op.kind === 'delete') {
+      const next = items.filter((item) => item.key !== op.itemKey);
+      if (next.length !== items.length) items = next;
+      continue;
+    }
+    let changed = false;
+    const next = items.map((item) => {
+      if (item.key !== op.itemKey || !item.scheduled) return item;
+      changed = true;
+      return {
+        ...item,
+        scheduled: false,
+        start: null,
+        days: null,
+        expanded: false,
+      };
+    });
+    if (changed) items = next;
+  }
+  return items === snap.items ? snap : { ...snap, items };
+}
+
 export function createRoadmapState() {
   const api = useRoadmapApi();
 
   const teams = ref<TeamSummary[]>([]);
   const snapshot = shallowRef<TeamSnapshot | null>(null);
+  /** Last snapshot received from the server. In-flight removals are projected on top. */
+  const baseSnapshot = shallowRef<TeamSnapshot | null>(null);
+  const optimisticOps: OptimisticRemoval[] = [];
+  let optimisticSeq = 0;
   const loading = ref(true);
   const activity = ref<ActivityEntry[]>([]);
   const activityOpen = ref(false);
@@ -175,8 +221,21 @@ export function createRoadmapState() {
     };
   }
 
+  function publishSnapshot() {
+    const base = baseSnapshot.value;
+    snapshot.value = base
+      ? overlayExpand(applyOptimisticRemovals(base, optimisticOps))
+      : null;
+  }
+
   function commitSnapshot(snap: TeamSnapshot) {
-    snapshot.value = overlayExpand(snap);
+    baseSnapshot.value = snap;
+    publishSnapshot();
+  }
+
+  function dropOptimistic(id: number) {
+    const index = optimisticOps.findIndex((op) => op.id === id);
+    if (index >= 0) optimisticOps.splice(index, 1);
   }
 
   function setItemExpanded(key: string, open: boolean) {
@@ -184,9 +243,7 @@ export function createRoadmapState() {
     if (open) next.add(key);
     else next.delete(key);
     expandedKeys.value = next;
-    if (snapshot.value) {
-      snapshot.value = overlayExpand(snapshot.value);
-    }
+    publishSnapshot();
     syncUrl();
   }
 
@@ -296,7 +353,7 @@ export function createRoadmapState() {
     const next = new Set(expandedKeys.value);
     for (const key of keys) next.add(key);
     expandedKeys.value = next;
-    if (snapshot.value) snapshot.value = overlayExpand(snapshot.value);
+    publishSnapshot();
     view.value = 'gantt';
     const first = snapshot.value?.items.find((item) => keys.includes(item.key));
     if (first?.quarter) focusQuarter.value = first.quarter;
@@ -326,6 +383,33 @@ export function createRoadmapState() {
       } else {
         toast(intentErrorText(e.body?.error));
       }
+      throw err;
+    }
+  }
+
+  /**
+   * Remove a Gantt bar (back to Backlog) or a Backlog row as soon as the user
+   * clicks. The projection stays on top of any snapshot that arrives while the
+   * intent is in flight, so a slower response or SSE echo cannot paint the row
+   * back. On failure the projection is dropped and the latest server snapshot
+   * — including the 409 refresh inside applySnapshotFromIntent — puts the item
+   * back; that path also toasts the error.
+   */
+  async function applyOptimisticRemoval(
+    removal: Pick<OptimisticRemoval, 'kind' | 'itemKey'>,
+    intent: Record<string, unknown>,
+  ) {
+    if (!teamId.value || !editable.value || !baseSnapshot.value) return;
+    const id = ++optimisticSeq;
+    optimisticOps.push({ id, ...removal });
+    publishSnapshot();
+    try {
+      await applySnapshotFromIntent(intent);
+      dropOptimistic(id);
+      publishSnapshot();
+    } catch (err) {
+      dropOptimistic(id);
+      publishSnapshot();
       throw err;
     }
   }
@@ -489,7 +573,7 @@ export function createRoadmapState() {
         }
         if (teamId.value) {
           api.fetchTeam(teamId.value).then((snap) => {
-            snapshot.value = snap;
+            commitSnapshot(snap);
           }).catch(() => undefined);
         }
       }
@@ -573,6 +657,7 @@ export function createRoadmapState() {
     loadTeams,
     selectTeam,
     applySnapshotFromIntent,
+    applyOptimisticRemoval,
     applyPlanningReceipt,
     deferSubsToNextMonday,
     ensureActorName,

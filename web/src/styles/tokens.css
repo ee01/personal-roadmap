@@ -648,8 +648,9 @@ body.no-select,body.no-select *{user-select:none!important}
 .owner-item .own-av{width:20px;height:20px;font-size:8.5px}
 .owner-item:hover,.owner-item.act{background:#FFF4E5}
 .owner-none{padding:8px 10px;font-size:11.5px;color:var(--muted)}
-.sbar-owner{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:17px;height:17px;
+.sbar-owner,.bar-owner{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:17px;height:17px;
   font-size:8px;border:1.5px solid rgba(255,255,255,.7);pointer-events:none}
+.bar-owner{right:8px}
 .sbar.draft .sbar-owner{border-color:#fff}
 .creator-tag{position:absolute;right:calc(100% + 9px);top:50%;transform:translateY(-50%);
   font-size:10px;color:#9AA3AD;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none}
@@ -703,6 +704,15 @@ body.no-select,body.no-select *{user-select:none!important}
 /* Backlog 卡片 Target 日期角标 */
 .card-target{font-family:var(--mono);font-size:10px;color:var(--fut-deep);background:#EAF3FA;
   border-radius:4px;padding:2px 7px;margin-top:7px;display:inline-block}
+.card-parent{font-family:var(--mono);font-size:10px;color:#6D4FA3;background:#F3EEFA;
+  border-radius:4px;padding:2px 7px;margin-top:7px;margin-right:6px;display:inline-block}
+.card-owner{font-size:10px;color:var(--ink);background:#F4F6F8;
+  border-radius:4px;padding:2px 7px;margin-top:7px;margin-right:6px;display:inline-flex;align-items:center;gap:5px}
+.assignee-pick{display:flex;align-items:center;gap:8px}
+.assignee-pick .who{font-size:13px}
+.assignee-pick .who.muted{color:var(--muted)}
+.assignee-clear{border:none;background:none;color:var(--muted);font-size:12px;cursor:pointer;padding:0}
+.assignee-clear:hover{color:var(--ink)}
 
 /* 拖放指示 */
 .drop-line{position:absolute;top:0;bottom:0;width:2px;background:var(--cur);z-index:8;display:none;

@@ -68,6 +68,6 @@ stdout 只输出 MCP 帧；诊断在 stderr。
 | `roadmap_undo_batch` | 整批撤销仍为 Draft 的本批；已有 Jira key 的行留下。不是单条删除 |
 | `roadmap_delete_item` | 永久删除一条无 Jira key 的 Draft 主任务（含子任务）。不删 Jira |
 | `roadmap_unschedule_item` | 把甘特条目退回 Backlog，不删除 |
-| `roadmap_add_item` | 新建一条未排期 Backlog 草稿；可选 `parentLink`（INIT key）和 `owner` / `assignee`（团队成员名）。不创建 Jira |
+| `roadmap_add_item` | 新建一条未排期 Backlog 草稿；可选 `parentLink`（INIT key）和 `owner` / `assignee`（团队成员名）。查询走 `roadmap_list_items` / `roadmap_get_context` 的 `parentLink`。不创建 Jira |
 
 没有 Jira create、没有分享 token 签发。契约版本 `1.0.0` / schema `1`。

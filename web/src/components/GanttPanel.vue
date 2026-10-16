@@ -784,13 +784,20 @@ function cardDragStart(e: PointerEvent, it: RoadmapItem) {
 
 async function unscheduleItem(it: RoadmapItem) {
   if (!state.editable.value) return;
-  await state.applySnapshotFromIntent({
-    op: 'unschedule',
-    itemKey: it.key,
-    baseVersion: it.version,
-  });
   state.popKeys.value = [it.key];
-  state.toast(`${it.key} 已退回 Backlog`);
+  try {
+    await state.applyOptimisticRemoval(
+      { kind: 'unschedule', itemKey: it.key },
+      {
+        op: 'unschedule',
+        itemKey: it.key,
+        baseVersion: it.version,
+      },
+    );
+    state.toast(`${it.key} 已退回 Backlog`);
+  } catch {
+    state.popKeys.value = state.popKeys.value.filter((key) => key !== it.key);
+  }
 }
 
 function setExpanded(it: RoadmapItem, open: boolean) {
@@ -889,29 +896,7 @@ function onDeferCommitted(payload: { subIds: string[]; itemKeys: string[] }) {
   }
 }
 
-async function onUpdateSub(intent: Record<string, unknown>) {
-  const subId = String(intent.subId || '');
-  const item = state.scheduledItems.value.find((row) =>
-    row.subs.some((s) => s.id === subId),
-  );
-  const sub = item?.subs.find((s) => s.id === subId);
-  const nextOwner =
-    intent.owner === undefined ? undefined : (intent.owner as string | null);
-  const ownerChanging =
-    Boolean(sub) &&
-    nextOwner !== undefined &&
-    (nextOwner || null) !== (sub?.owner || null);
-  const jiraKey = sub?.key || null;
-
-  if (ownerChanging && jiraKey && nextOwner === null) {
-    if (!window.confirm('清空 Owner 会同时从 Jira 去掉 assignee，确定吗？')) {
-      return;
-    }
-  }
-
-  await state.applySnapshotFromIntent(intent);
-
-  if (!ownerChanging || !jiraKey) return;
+async function writeAssigneeToJira(jiraKey: string, nextOwner: string | null) {
   if (!state.hasExtension.value) {
     gate.showWriteNotice();
     return;
@@ -935,6 +920,55 @@ async function onUpdateSub(intent: Record<string, unknown>) {
     const msg = err instanceof Error ? err.message : String(err);
     state.toast(`未回写 assignee：${msg}`, 3200);
   }
+}
+
+async function onUpdateSub(intent: Record<string, unknown>) {
+  const subId = String(intent.subId || '');
+  const item = state.scheduledItems.value.find((row) =>
+    row.subs.some((s) => s.id === subId),
+  );
+  const sub = item?.subs.find((s) => s.id === subId);
+  const nextOwner =
+    intent.owner === undefined ? undefined : (intent.owner as string | null);
+  const ownerChanging =
+    Boolean(sub) &&
+    nextOwner !== undefined &&
+    (nextOwner || null) !== (sub?.owner || null);
+  const jiraKey = sub?.key || null;
+
+  if (ownerChanging && jiraKey && nextOwner === null) {
+    if (!window.confirm('清空 Owner 会同时从 Jira 去掉 assignee，确定吗？')) {
+      return;
+    }
+  }
+
+  await state.applySnapshotFromIntent(intent);
+
+  if (!ownerChanging || !jiraKey) return;
+  await writeAssigneeToJira(jiraKey, nextOwner ?? null);
+}
+
+async function onSetAlias(intent: Record<string, unknown>) {
+  const itemKey = String(intent.itemKey || '');
+  const item = state.scheduledItems.value.find((row) => row.key === itemKey);
+  const nextOwner =
+    intent.owner === undefined ? undefined : (intent.owner as string | null);
+  const ownerChanging =
+    Boolean(item) &&
+    nextOwner !== undefined &&
+    (nextOwner || null) !== (item?.owner || null);
+  const jiraKey = item?.jiraKey || null;
+
+  if (ownerChanging && jiraKey && nextOwner === null) {
+    if (!window.confirm('清空 Assignee 会同时从 Jira 去掉 assignee，确定吗？')) {
+      return;
+    }
+  }
+
+  await state.applySnapshotFromIntent(intent);
+
+  if (!ownerChanging || !jiraKey) return;
+  await writeAssigneeToJira(jiraKey, nextOwner ?? null);
 }
 
 function openCleanup() {
@@ -1335,7 +1369,7 @@ onUnmounted(() => {
             :apply-marker-intent="applyMarkerIntent"
             @unschedule="unscheduleItem(it)"
             @commit="(p) => commitBar(it, p.sub, p)"
-            @set-alias="(p) => state.applySnapshotFromIntent(p)"
+            @set-alias="(p) => onSetAlias(p)"
             @add-sub="(p) => onAddSub(it, p)"
             @delete-sub="(p) => state.applySnapshotFromIntent(p)"
             @update-sub="(p) => onUpdateSub(p)"

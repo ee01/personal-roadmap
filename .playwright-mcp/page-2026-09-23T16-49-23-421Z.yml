@@ -1,0 +1,471 @@
+- generic [ref=f1e3]:
+  - banner [ref=f1e4]:
+    - generic [ref=f1e5]: Personal Roadmap
+    - generic [ref=f1e7]:
+      - button "Verify Gantt" [ref=f1e8] [cursor=pointer]
+      - generic:
+        - button "✓ Verify Gantt":
+          - generic: ✓
+          - generic: Verify Gantt
+        - button "＋ 新建团队…":
+          - generic: ＋
+          - text: 新建团队…
+    - generic [ref=f1e12]: project = NOVA
+    - button [ref=f1e13] [cursor=pointer]
+    - generic [ref=f1e17] [cursor=pointer]:
+      - generic [ref=f1e18]: 00:47
+      - generic [ref=f1e19]: Verify 把 Jira bar beta 创建为 NOVA-900
+    - generic [ref=f1e20]:
+      - generic [ref=f1e186]: V
+      - generic [ref=f1e22]: LIVE
+    - generic [ref=f1e24]:
+      - button [ref=f1e25] [cursor=pointer]
+      - button [ref=f1e29] [cursor=pointer]
+  - generic [ref=f1e34]:
+    - generic [ref=f1e35] [cursor=pointer]:
+      - checkbox "覆盖已有数据" [ref=f1e36]
+      - text: 覆盖已有数据
+    - button "导入 Backlog" [ref=f1e37] [cursor=pointer]
+  - generic [ref=f1e41]:
+    - complementary [ref=f1e42]:
+      - generic [ref=f1e43]:
+        - generic [ref=f1e44]:
+          - text: Backlog
+          - generic [ref=f1e45]: "0"
+          - button "新建条目" [ref=f1e46] [cursor=pointer]
+        - searchbox "搜索标题 / Key / 备注…" [ref=f1e50]
+      - generic [ref=f1e51]: 尚未导入数据请在上方勾选 Quarter 后点击「导入」
+    - generic:
+      - generic:
+        - generic:
+          - generic: 新建 Backlog 条目
+          - generic:
+            - button "手动创建"
+            - button "使用 AI 批量创建"
+          - generic: 手动条目不需要 Jira，排期后会以 DRAFT 状态参与规划；之后可在时间轴上一键创建为 Jira issue。
+        - generic:
+          - generic: 标题 *
+          - textbox "例如：Nova 26.4 权限模型重构"
+          - generic: 描述（可选）
+          - textbox "背景 / 交付物 / 验收要点。hover 任务条时展示；创建 Jira 时作为 description 的生成依据"
+          - generic: Parent Link（INIT，可选）
+          - textbox "例如 INIT-1234，或 Jira 链接"
+          - generic: 对应这条条目要挂上的 Initiative。创建 Jira 时作为上下文；直连创建会写入 Parent Link。
+          - generic: Assignee（可选）
+          - generic:
+            - button
+            - generic: 不指定
+          - generic: 团队成员名。创建 Jira 时按映射写入 assignee；排到甘特后双击这条 Epic（不论是否 Draft）也可以改。
+          - generic:
+            - generic:
+              - generic: 类型
+              - textbox "Epic"
+            - generic:
+              - generic: Quarter
+              - combobox:
+                - option "不指定"
+                - option "2026-Q3" [selected]
+          - generic:
+            - generic:
+              - generic: 预估（周）
+              - spinbutton "可留空"
+            - generic:
+              - generic: Target 开始
+              - textbox
+            - generic:
+              - generic: Target 结束
+              - textbox
+        - generic:
+          - button "取消"
+          - button "创建条目" [disabled]
+    - generic [ref=f1e53]:
+      - generic [ref=f1e54]:
+        - generic [ref=f1e55]:
+          - button "任务" [ref=f1e56] [cursor=pointer]
+          - button "人员" [ref=f1e57] [cursor=pointer]
+        - generic [ref=f1e58]:
+          - generic [ref=f1e59]: 过去
+          - generic [ref=f1e61]: 当前月
+          - generic [ref=f1e63]: 未来
+          - generic [ref=f1e65]: 草稿任务（未创建）
+        - button "导入 Task" [ref=f1e67] [cursor=pointer]
+        - button "创建 Jira 1" [ref=f1e71] [cursor=pointer]:
+          - text: 创建 Jira
+          - generic [ref=f1e75]: "1"
+      - generic [ref=f1e77]:
+        - generic [ref=f1e78]:
+          - generic [ref=f1e79]:
+            - generic [ref=f1e80]: 2026-06
+            - generic [ref=f1e81]: 2026-Q2
+          - generic [ref=f1e82]:
+            - generic [ref=f1e83]: 2026-07
+            - generic [ref=f1e84]: 2026-Q3
+          - generic [ref=f1e85]:
+            - generic [ref=f1e86]: 2026-08
+            - generic [ref=f1e87]: 2026-Q3
+          - generic [ref=f1e88]:
+            - generic [ref=f1e89]: 2026-09
+            - generic [ref=f1e90]: 2026-Q3
+          - generic [ref=f1e91]:
+            - generic [ref=f1e92]: 2026-10
+            - generic [ref=f1e93]: 2026-Q4
+          - generic [ref=f1e94]:
+            - generic [ref=f1e95]: 2026-11
+            - generic [ref=f1e96]: 2026-Q4
+          - generic [ref=f1e97]:
+            - generic [ref=f1e98]: 2026-12
+            - generic [ref=f1e99]: 2026-Q4
+        - generic [ref=f1e100]:
+          - generic: 今天
+          - generic [ref=f1e101]:
+            - generic [ref=f1e102]:
+              - generic [ref=f1e103]:
+                - generic: Draft bar alpha
+                - button "×" [ref=f1e106] [cursor=pointer]
+              - button [ref=f1e107] [cursor=pointer]
+              - button [ref=f1e110] [cursor=pointer]
+            - generic [ref=f1e191]:
+              - generic [ref=f1e192]:
+                - button [ref=f1e193] [cursor=pointer]
+                - textbox "输入任务名（创建 Jira 时使用）" [ref=f1e197]: Draft bar alpha
+                - button "≡ 描述" [ref=f1e198] [cursor=pointer]
+                - generic [ref=f1e199]: Enter 保存 · Esc 取消
+              - textbox "描述（可选）：背景 / 交付物 / 验收要点。Enter 保存，Shift+Enter 换行" [active] [ref=f1e200]
+          - generic [ref=f1e114]:
+            - generic [ref=f1e115]:
+              - generic: Jira bar beta x
+              - link [ref=f1e116] [cursor=pointer]:
+                - /url: https://jira.ringcentral.com/browse/NOVA-900
+              - button "×" [ref=f1e121] [cursor=pointer]
+            - button [ref=f1e122] [cursor=pointer]
+            - button [ref=f1e125] [cursor=pointer]
+  - complementary [ref=f1e128]:
+    - generic [ref=f1e129]:
+      - generic [ref=f1e130]:
+        - text: 活动日志
+        - generic [ref=f1e131]: Verify Gantt
+      - button "×" [ref=f1e132] [cursor=pointer]
+    - generic [ref=f1e133]:
+      - generic [ref=f1e187]:
+        - generic [ref=f1e188]: 09/24 00:48
+        - generic [ref=f1e189]: Verify
+        - generic [ref=f1e190]: Verify 把 LOCAL-jiV1AdEa 备注名为 Jira bar beta x
+      - generic [ref=f1e134]:
+        - generic [ref=f1e135]: 09/24 00:47
+        - generic [ref=f1e136]: Verify
+        - generic [ref=f1e137]: Verify 把 Jira bar beta 创建为 NOVA-900
+      - generic [ref=f1e138]:
+        - generic [ref=f1e139]: 09/24 00:47
+        - generic [ref=f1e140]: Verify
+        - generic [ref=f1e141]: Verify 把 Jira bar beta 排进了 Gantt
+      - generic [ref=f1e142]:
+        - generic [ref=f1e143]: 09/24 00:47
+        - generic [ref=f1e144]: Verify
+        - generic [ref=f1e145]: Verify 新建了Epic 条目 Jira bar beta
+      - generic [ref=f1e146]:
+        - generic [ref=f1e147]: 09/24 00:47
+        - generic [ref=f1e148]: Verify
+        - generic [ref=f1e149]: Verify 把 Draft bar alpha 排进了 Gantt
+      - generic [ref=f1e150]:
+        - generic [ref=f1e151]: 09/24 00:47
+        - generic [ref=f1e152]: Verify
+        - generic [ref=f1e153]: Verify 新建了Epic 条目 Draft bar alpha
+      - generic [ref=f1e154]:
+        - generic [ref=f1e155]: 09/24 00:47
+        - generic [ref=f1e156]: Verify
+        - generic [ref=f1e157]: Verify 创建了团队 Verify Gantt
+  - button "?" [ref=f1e158] [cursor=pointer]
+  - generic:
+    - heading "使用说明" [level=4]
+    - list:
+      - listitem: 使用 AI 批量创建：新建条目弹窗可粘贴需求，由 Roadmap 服务端生成 Draft 主任务/子任务并初排甘特；不创建 Jira。默认只预览，勾选「直接创建 Draft」才一次写入。无扩展也能用。创建 Jira 仍走原弹窗，且需要扩展。
+      - listitem:
+        - text: 用自己的 Agent 生成 Draft有两条路（都不会创建 Jira）：① Codex Plugin 导入 marketplace，仓库
+        - link "https://github.com/ee01/personal-roadmap":
+          - /url: https://github.com/ee01/personal-roadmap
+        - text: ，Path
+        - code: .
+        - text: ，Branch
+        - code: main
+        - text: ，再装
+        - code: roadmap-planning
+        - text: ；② 把
+        - link "GitHub Skill":
+          - /url: https://github.com/ee01/personal-roadmap/blob/main/plugin/skills/roadmap-planning/SKILL.md
+        - text: 或
+        - link "线上 Skill":
+          - /url: http://roadmap.xmnup.com/skills/roadmap-planning/SKILL.md
+        - text: 交给 Agent，远程 MCP 默认
+        - link "http://roadmap.xmnup.com/mcp":
+          - /url: http://roadmap.xmnup.com/mcp
+        - text: ，不必下载源码。
+      - listitem:
+        - text: 导入 / 创建 Jira / 读取 ETA / 回写 Jira 需要 Personal AI 扩展：未安装时锁定按钮点击可查看安装指引；拖动排期或改 Owner 会先保存在 Roadmap，并出现一行「没有同步到 Jira」提示
+        - link "前往安装 ↗":
+          - /url: https://chromewebstore.google.com/detail/personal-ai/kefnadjndpllbibeklhajjddgmlbafel
+      - listitem: Bar 可拖动 / 左右把手伸缩 / 上下换行，按天吸附
+      - listitem: 单击 bar 展开/收起；草稿双击改任务名（可折叠填描述，Shift+Enter 展开；创建 Jira 用），已创建的双击改备注名。主任务（不论是否 Draft）和子任务都可以在这里改 Assignee / Owner
+      - listitem: 已导入 / 草稿子任务均可 × 从 Roadmap 移除（可再导入）
+      - listitem: 有 Jira key 时：hover 左上 ↗ 或 ⌘/Ctrl+单击 打开 Jira
+      - listitem: 添加任务：左侧头像点选，或标题里输入 @ 指定 Owner（可选）；默认从今天起两周；描述可选，不挡 Enter 秒建
+      - listitem: 创建 Jira 可配置 Assignee 映射（系统名 → Firstname Lastname）
+      - listitem: 悬浮：bar 左侧 ＋ 添加任务，右侧 ◆＋ 阶段节点/外部依赖，右上角 × 退回 Backlog
+      - listitem: 阶段节点与有 ETA 的依赖落在标记轨；缺 ETA 时红色 🔗 角标持续提醒。绑定了 Jira 的依赖：浮层里点 key 打开 Jira，点「未刷新」旁的 ↻ 刷新 status / Target End；hover 只读，单击才确认是否把 Target End 写成 ETA
+      - listitem: 装了扩展时，打开 Roadmap 会静默刷新甘特上非草稿票的 summary / description / Target / assignee，以及依赖 ticket 的 status / Target End（10 分钟内不重复；依赖 ETA 不会被自动改写）
+      - listitem: 装了扩展时，非草稿主/子任务拖动会回写 Jira Target，主任务改 Assignee、子任务改 Owner 都会回写 assignee（需映射；清空会确认）。未装扩展时这两类改动只留在 Roadmap
+      - listitem: 人员视图：按人查看任务（近 2 周 / 全部）；双击改名、添加/移除空闲成员。任务条左侧色条 + 前缀 chip标识所属主任务（条太窄只留色条）
+      - listitem: 时间轴缩放：触控板双指捏合或 ⌘+滚轮在甘特任意位置缩放，光标下的日期钉住；顶部时间标尺上双指上下滑动同样缩放；双击标尺复位 100%，再双击 = 整条时间轴收进视口
+      - listitem: 聚焦当前任务（人员视图）：单击任务条标记「正在做」（可多选）；点另一人则换人重选。「其余延至下周 →」把其余未完成、下周前开始的任务滑到下周一开始（长度不变，受 Epic 结束日钳制；hover 预览落点）。Esc / 点空白退出
+      - listitem: 人员视图时间窗平移：近 2 周模式下双指左右滑动整窗平移，或点两端「更早 / 更晚」；平移后可回到今天
+      - listitem: 创建 Jira 后草稿名保留为备注名：回传 key 时把原草稿标题存为备注名。编辑备注名时清空后回车 = 恢复原 ticket 名
+      - listitem: 清理过期：过期 Epic 回退 Backlog；过期子任务标记清理（可再拖回还原）
+      - listitem: 发布时间表标尺：✎ 弹窗可配置 Google Sheet（Release / Phase / Date）；可用 Release 过滤去掉小版本；保存后主标尺换成发布 Sprint，工具栏可临时切回月份
+      - listitem: 顶栏只列出本机已知团队（创建 / 分享链接 / 地址栏打开过的）；只读团队带眼睛图标。可分享可编辑链接或只读链接（无 token）
+      - listitem: 颜色按「当前月」区分过去 / 当前 / 未来
+  - generic:
+    - generic: 描述（可选）
+    - generic: 创建 Jira 时与父 Epic 描述一起交给 AI 综合生成最终 description；hover 任务条可见
+  - generic:
+    - generic:
+      - generic:
+        - generic: 新建团队
+        - generic: 输入团队名称和数据源 JQL。JQL 中的 "Target Delivery Quarter" in (...) 子句会在导入时被替换为你勾选的 quarters。
+      - generic:
+        - generic: 团队名称
+        - textbox "例如：Nova Brandy"
+        - generic: 数据源 JQL
+        - textbox
+        - generic: 创建后可勾选 Quarter 并导入数据到 Backlog。
+      - generic:
+        - button "取消"
+        - button "创建"
+  - generic:
+    - generic:
+      - generic:
+        - generic: 编辑团队 JQL
+        - generic: 修改仅影响之后的导入；已导入数据与排期不受影响。若 JQL 含 "Target Delivery Quarter" in (...)，导入时会用勾选的 quarters 替换该子句；不含该字段时不显示 quarters 勾选，直接按原 JQL 导入。
+      - generic:
+        - generic: 数据源 JQL
+        - textbox
+        - generic:
+          - generic:
+            - generic: 发布时间表标尺NEW
+            - generic: 悬停查看示例表格
+          - generic: 团队若维护了发布时间表（Google Sheet 二维表，三列 Release / Phase / Date，第一行为表头），填入表格地址后， 甘特图时间标尺将按发布 Sprint展示；留空则使用默认月份标尺。
+          - generic: Google Sheet 地址（或 spreadsheetId）
+          - textbox "https://docs.google.com/spreadsheets/d/1sWRtByTquVLKeyv…/edit"
+          - generic:
+            - generic:
+              - generic: Sheet 名称
+              - textbox "2026 phases": Sheet1
+            - generic:
+              - generic: 数据范围
+              - textbox "A1:C500"
+          - generic: 标尺阶段勾选 = 在标尺上展示 · 🏁 = 作为 release 结束分割节点
+          - generic: 填入表格地址后自动读取，这里会列出表中出现的阶段供勾选。 未加载就直接保存也可以：保存时会自动读取，并按默认 —— FF 作结束分界（无 FF 则取周期内最早的阶段）、 全部阶段都展示。
+          - generic: Release 过滤小版本多时只保留关键 release，标尺更干净
+          - generic: 读取数据后可配置：例如只保留 26.3.320 这类尾号 0 的大版本， 过滤 26.3.325 这类小版本。
+          - generic:
+            - button "重新读取" [disabled]
+      - generic:
+        - button "取消"
+        - button "保存"
+  - generic:
+    - table:
+      - rowgroup:
+        - row "A B C":
+          - columnheader
+          - columnheader "A"
+          - columnheader "B"
+          - columnheader "C"
+        - row "1 Release Phase Date":
+          - cell "1"
+          - cell "Release"
+          - cell "Phase"
+          - cell "Date"
+        - row "2 26.3.130 FF 2026-07-27":
+          - cell "2"
+          - cell "26.3.130"
+          - cell "FF"
+          - cell "2026-07-27"
+        - row "3 26.3.130 Re 2026-07-30":
+          - cell "3"
+          - cell "26.3.130"
+          - cell "Re"
+          - cell "2026-07-30"
+        - row "4 26.3.130 Stage 2026-07-31":
+          - cell "4"
+          - cell "26.3.130"
+          - cell "Stage"
+          - cell "2026-07-31"
+        - row "5 26.3.130 Pro 2026-08-05":
+          - cell "5"
+          - cell "26.3.130"
+          - cell "Pro"
+          - cell "2026-08-05"
+        - row "6 26.3.130 Multi-region 2026-08-07":
+          - cell "6"
+          - cell "26.3.130"
+          - cell "Multi-region"
+          - cell "2026-08-07"
+    - generic: 三列固定表头 Release / Phase / Date，同一 release 每个阶段一行。Date 为日期（UTC ISO 亦可）。RIO 热修可只有 Pro。
+  - generic:
+    - generic:
+      - generic:
+        - generic: 导入预览
+        - generic: 增量模式：按当前 JQL 拉取，已存在的 issue 不受影响。
+      - generic:
+        - generic: 实际执行的 JQL
+        - generic: project = NOVA
+      - generic:
+        - button "取消"
+        - button "确认导入"
+  - generic:
+    - generic:
+      - generic:
+        - generic: 清理过期任务
+        - generic: 过期 = 结束日期早于今天。Epic 回退 Backlog 并保留子任务记录。
+      - generic: 将要执行
+      - generic:
+        - button "取消"
+        - button "确认清理"
+  - generic:
+    - generic:
+      - generic:
+        - generic: 创建 Jira 直连 API
+        - generic: Prompt 留空：按下方字段直连 Jira API 创建。填写 Prompt：交给 Agent 执行器创建（可用技能、自动填当前 Sprint 等动态字段）——已填字段作为约束带给 Agent，未填字段由 Agent 决定。Jira 里还没有对应 fixVersion 时会留空该字段继续创建，不会因此整行拒绝。失败行可改字段后按 Epic 重试，已成功的 ticket 不会再创建。Prompt 草稿保存在本机；执行创建时同步为团队配置，协作者也能看到。
+      - generic:
+        - generic: 未能从 JQL 识别issue 类型，请手动填写
+        - generic: 创建 Prompt（可选）
+        - textbox "例：创建 Task 类型 ticket，Sprint 填当前 sprint，fixVersion 按发布时间表，Team 与父 Epic 保持一致"
+        - generic:
+          - generic:
+            - generic: Project Key
+            - textbox "如 NOVA"
+          - generic:
+            - generic: 主任务类型
+            - textbox "如 Epic"
+          - generic:
+            - generic: 子任务类型
+            - textbox "如 Task"
+        - generic:
+          - generic:
+            - generic: fixVersion
+            - textbox "如 26.3.220"
+            - generic: 配置发布时间表（JQL ✎ 弹窗）后可按 Target End 落点列自动填写
+          - generic:
+            - generic: Sprint
+            - textbox "直连 v1 不支持，留空跳过"
+            - generic: 直连 API 需要 Sprint ID，v1 不填此字段；要自动填当前 Sprint 请改用 Prompt
+        - generic: Assignee
+        - generic:
+          - button "配置映射…"
+        - generic: Owner 按映射转成 firstname.lastname 填入 assignee；未映射的任务将留空 assignee
+        - generic: 待创建任务 （1）
+        - generic:
+          - generic:
+            - generic: EPIC
+            - generic: Draft bar alpha
+            - generic: 待创建
+      - generic:
+        - button "需要 Personal AI 扩展 · 查看安装指引"
+        - button "取消"
+        - button "开始创建"
+  - generic:
+    - generic:
+      - generic:
+        - generic: Assignee 映射
+        - generic:
+          - text: 系统名（成员名 / 创建者用户名）→ Jira 实名 Firstname Lastname。输入时可从已有实名人员中选择并
+          - strong: 合并为同一人
+          - text: ；保存后全团队共享；直连 API 会转成
+          - code: firstname.lastname
+          - text: 填 assignee。
+      - generic:
+        - generic:
+          - button "✦ 自动填充空缺"
+          - generic: 两个词以上的系统名会自动推断；选建议项会合并人员
+        - generic:
+          - generic:
+            - generic: V
+            - generic:
+              - generic: Verify
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: 未映射
+      - generic:
+        - button "取消"
+        - button "保存映射"
+  - generic:
+    - generic:
+      - generic:
+        - generic: 请输入你的名字
+        - generic: 未检测到 Personal AI 扩展时需要手动填写；已安装扩展会自动读取 Glip 身份。名称会保存在本浏览器中。
+      - generic:
+        - generic: 显示名称
+        - textbox "例如：Esone Qiu"
+      - generic:
+        - button "继续"
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic: 「创建 Jira」需要 Personal AI 扩展
+          - generic: 把草稿任务写回 Jira，需要扩展用你自己的 Jira 账号创建 issue，这样 reporter 才是你本人。
+      - generic:
+        - generic: 安装后解锁
+        - generic:
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 导入 Backlog
+              - generic: 按 JQL + Quarter 把 Jira issue 拉进 Backlog
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 导入 Task
+              - generic: 拉取主任务名下的 Task，按 Jira Key 去重落位
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 创建 Jira
+              - generic: 草稿任务一键写回 Jira（直连 API 或 Agent 执行器）
+            - generic: 当前操作
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 读取 ETA
+              - generic: 外部依赖自动读取 Target End，缺 ETA 的红色提醒随之消失
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 回写 Jira
+              - generic: 拖动排期写回 Target Start/End，改 Owner 写回 assignee
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 自动识别身份
+              - generic: 免去手动填名字，协作日志直接署你的实名
+        - generic: 三步搞定
+        - list:
+          - listitem:
+            - generic: "1"
+            - generic:
+              - text: 打开 Chrome 应用商店安装 Personal AI
+              - generic: 点「添加至 Chrome」，约 10 秒
+          - listitem:
+            - generic: "2"
+            - generic:
+              - text: 把扩展固定到工具栏，登录一次
+              - generic: 扩展用你当前浏览器的 Jira 登录态发请求，账号密码不会离开本机
+          - listitem:
+            - generic: "3"
+            - generic:
+              - text: 回到本页刷新
+              - generic: 检测到扩展后，锁定的按钮会自动解锁
+        - generic: 没有扩展也能用：拖拽排期、草稿任务、人员视图、阶段节点 / 外部依赖、分享只读或可编辑链接都不受影响。
+      - generic:
+        - button "稍后再说"
+        - button "已安装好了 · 刷新页面"
+        - button "前往 Chrome 应用商店"

@@ -31,7 +31,7 @@ export function openOwnerFloat(
   members: TeamMember[],
   currentName: string | null | undefined,
   onPick: (member: TeamMember | null) => void,
-  opts: { allowClear?: boolean; assigneeMap?: AssigneeMap } = {},
+  opts: { allowClear?: boolean; assigneeMap?: AssigneeMap; clearLabel?: string } = {},
 ): void {
   document.querySelectorAll('.owner-float').forEach((el) => el.remove());
   const pop = document.createElement('div');
@@ -82,7 +82,7 @@ export function openOwnerFloat(
     idx = clamp(idx, 0, Math.max(0, list.length - 1));
     const clearRow =
       opts.allowClear && currentName && !q
-        ? `<div class="owner-item" data-clear><span class="own-av" style="background:#C6CDD4">–</span>移除 Owner</div>`
+        ? `<div class="owner-item" data-clear><span class="own-av" style="background:#C6CDD4">–</span>${escapeHtml(opts.clearLabel || '移除 Owner')}</div>`
         : '';
     listEl.innerHTML =
       clearRow +
