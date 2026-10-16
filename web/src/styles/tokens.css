@@ -105,16 +105,6 @@ input,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .bl-title{display:flex;align-items:baseline;gap:8px;font-weight:700;font-size:14px}
 .bl-count{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--bg);
   border-radius:99px;padding:1px 9px}
-.bl-search{position:relative;display:flex;align-items:center;margin-top:8px}
-.bl-search-ico{position:absolute;left:10px;color:var(--muted);pointer-events:none}
-.bl-search-input{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:7px 28px 7px 30px;
-  font-size:12px;background:var(--bg);outline:none;transition:border-color .13s,background .13s}
-.bl-search-input::placeholder{color:var(--muted)}
-.bl-search-input:focus{border-color:var(--cur);background:var(--panel)}
-.bl-search-input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
-.bl-search-clear{position:absolute;right:6px;width:20px;height:20px;border-radius:50%;
-  color:var(--muted);font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center}
-.bl-search-clear:hover{background:var(--line2);color:var(--ink)}
 .bl-empty-link{margin-top:8px;font-size:12px;font-weight:600;color:var(--cur-deep);
   text-decoration:underline;text-underline-offset:2px}
 .bl-body{flex:1;overflow-y:auto;padding:10px 12px 24px}
@@ -1104,6 +1094,24 @@ textarea.f-input.f-desc{min-height:60px;font-family:var(--sans);font-size:12.5px
 .ms-mode button.on{background:var(--panel);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(32,36,42,.1)}
 .ms-stat{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
 .ms-stat .late{color:var(--danger);font-weight:600}
+/* 全局文本过滤：紧跟 MILESTONE，与之 AND，同时作用于 Backlog + 甘特 */
+.fb-search{position:relative;display:flex;align-items:center;flex:0 1 260px;min-width:160px}
+.fb-search-ico{position:absolute;left:10px;color:var(--muted);pointer-events:none}
+.fb-search-input{width:100%;height:32px;border:1.5px solid var(--line);border-radius:9px;padding:0 28px 0 30px;
+  background:var(--bg);font-size:12.5px;color:var(--ink);outline:none;
+  transition:border-color .15s var(--ms-ease),background .15s var(--ms-ease)}
+.fb-search-input::placeholder{color:var(--muted)}
+.fb-search-input:hover{border-color:#C9C6BB}
+.fb-search-input:focus{border-color:var(--cur);background:var(--panel)}
+.fb-search.on .fb-search-input{border-color:var(--cur);background:var(--panel)}
+.fb-search-input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.fb-search-kbd{position:absolute;right:8px;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+  border:1px solid var(--line);border-radius:4px;padding:0 5px;line-height:16px;pointer-events:none}
+.fb-search-input:focus + .fb-search-kbd{display:none}
+.fb-search-clear{position:absolute;right:6px;width:20px;height:20px;border-radius:50%;color:var(--muted);
+  font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center}
+.fb-search-clear:hover{background:var(--line2);color:var(--ink)}
+.fb-search-clear:focus-visible{outline:2px solid var(--cur);outline-offset:1px}
 
 /* 选择浮层：搜索 → 迷你时间轴 → 按类别分组的列表 → 描述详情（渐进披露） */
 .ms-pop{position:fixed;z-index:60;width:400px;max-height:min(620px,calc(100vh - 120px));display:flex;flex-direction:column;

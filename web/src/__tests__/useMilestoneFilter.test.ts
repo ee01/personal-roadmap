@@ -203,6 +203,45 @@ describe('milestone filter state', () => {
     expect(state.msStats.value).toEqual({ hits: 2, scheduled: 1, late: 1 });
   });
 
+  it('global text filter matches items and subtasks, ANDed with milestones', () => {
+    const state = mount(
+      [
+        item({ key: 'A', title: 'Voice pipeline', ms: ['LBL-291'] }),
+        item({
+          key: 'B',
+          title: 'Billing',
+          jiraKey: 'NOVA-2',
+          ms: ['LBL-291'],
+          subs: [{ id: 's1', key: 'NOVA-9', title: 'Voice settings page', temp: false, createdBy: 'me', version: 1 }],
+        }),
+        item({ key: 'C', title: 'Voice export', jiraKey: 'NOVA-3', ms: [], scheduled: false, start: null, days: null }),
+      ],
+      dict,
+    );
+    const keys = () => state.snapshot.value!.items.filter((i) => state.viewMatch(i)).map((i) => i.key);
+
+    expect(state.filterActive.value).toBe(false);
+    expect(keys()).toEqual(['A', 'B', 'C']);
+
+    state.setSearchQuery('  voice ');
+    expect(state.searchActive.value).toBe(true);
+    expect(state.filterActive.value).toBe(true);
+    // B 命中子任务标题，C 在 Backlog 也照样参与
+    expect(keys()).toEqual(['A', 'B', 'C']);
+
+    state.setSearchQuery('voice nova-9');
+    expect(keys()).toEqual(['B']);
+
+    state.setSearchQuery('voice');
+    state.setMsSel(['LBL-291']);
+    expect(keys()).toEqual(['A', 'B']);
+    expect(state.msStats.value.hits).toBe(2);
+
+    state.setSearchQuery('');
+    state.setMsSel([]);
+    expect(state.filterActive.value).toBe(false);
+  });
+
   it('hasMsData hides the filter row until labels or mirrored items exist', () => {
     const empty = mount([item({ key: 'A' })], []);
     expect(empty.hasMsData.value).toBe(false);

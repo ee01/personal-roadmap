@@ -37,7 +37,7 @@ import {
 } from './useGeometry';
 import { useRoadmapApi } from './useRoadmapApi';
 import { bridgeFetchCustomLabelValues } from './useExtensionBridge';
-import { isDoneStatus } from './useRoadmapContract';
+import { isDoneStatus, itemDisplayKey } from './useRoadmapContract';
 
 export const ROADMAP_STATE_KEY: InjectionKey<ReturnType<typeof createRoadmapState>> =
   Symbol('roadmap-state');
@@ -232,9 +232,46 @@ export function createRoadmapState() {
     return worst;
   }
 
+  // ---------- 全局文本过滤 ----------
+  // 与 milestone 过滤 AND，同时作用于 Backlog 与甘特；仅本次会话，切换团队清空。
+  const searchQuery = ref('');
+  const searchActive = computed(() => searchQuery.value.trim().length > 0);
+  /** 任一视图过滤生效（milestone 或文本）；甘特据此决定是否淡化 / 隐藏未匹配行。 */
+  const filterActive = computed(() => msActive.value || searchActive.value);
+
+  function textMatch(item: RoadmapItem): boolean {
+    const tokens = searchQuery.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return true;
+    const haystack = [
+      item.title,
+      item.key,
+      item.jiraKey || '',
+      item.alias || '',
+      item.type || '',
+      item.quarter || '',
+      item.parentLink || '',
+      item.owner || '',
+      itemDisplayKey(item),
+      // 甘特上展开的子任务也能被搜到（命中子任务即保留其父条目）
+      ...(item.subs || []).flatMap((sub) => [sub.title, sub.key || '', sub.alias || '', sub.owner || '']),
+    ]
+      .join(' ')
+      .toLowerCase();
+    return tokens.every((token) => haystack.includes(token));
+  }
+
+  /** Backlog / 甘特共用的最终谓词：milestone（OR）AND 文本。 */
+  function viewMatch(item: RoadmapItem): boolean {
+    return msMatch(item) && textMatch(item);
+  }
+
+  function setSearchQuery(q: string) {
+    searchQuery.value = q;
+  }
+
   const msStats = computed(() => {
     const items = snapshot.value?.items || [];
-    const hits = items.filter((i) => msMatch(i));
+    const hits = items.filter((i) => viewMatch(i));
     const late = hits.filter((i) => msLateOf(i) !== null).length;
     const scheduled = hits.filter((i) => i.scheduled).length;
     return { hits: hits.length, scheduled, late };
@@ -472,6 +509,7 @@ export function createRoadmapState() {
       view.value = readUrlParams().view || 'gantt';
       resWin.value = readUrlParams().w || '2w';
       msSel.value = loadMsSel(id);
+      searchQuery.value = '';
       activity.value = (await api.fetchActivity(id)).filter(
         (entry) => !entry.teamId || entry.teamId === id,
       );
@@ -804,6 +842,12 @@ export function createRoadmapState() {
     msMatch,
     msLateOf,
     msStats,
+    searchQuery,
+    searchActive,
+    filterActive,
+    textMatch,
+    viewMatch,
+    setSearchQuery,
     msDictSyncing,
     msDictUpdatedAt,
     msDictStale,

@@ -24,7 +24,6 @@ import DraftPlanningModal from './modals/DraftPlanningModal.vue';
 
 const state = useRoadmapState();
 const gate = useExtensionGate();
-const searchQuery = ref('');
 const addMode = ref<'manual' | 'ai'>('manual');
 
 const jiraBase = computed(
@@ -66,30 +65,11 @@ function openAssignee(chip: HTMLElement) {
   );
 }
 
-function itemMatchesQuery(item: RoadmapItem, raw: string): boolean {
-  const q = raw.trim().toLowerCase();
-  if (!q) return true;
-  const haystack = [
-    item.title,
-    item.key,
-    item.jiraKey || '',
-    item.alias || '',
-    item.type || '',
-    item.quarter || '',
-    item.parentLink || '',
-    item.owner || '',
-    itemDisplayKey(item),
-  ]
-    .join(' ')
-    .toLowerCase();
-  return q.split(/\s+/).filter(Boolean).every((token) => haystack.includes(token));
-}
-
+/** 过滤状态在顶部过滤行（milestone + 文本），Backlog 与甘特共用同一个谓词。 */
 const filteredBacklog = computed(() =>
-  state.backlogItems.value.filter(
-    (it) => itemMatchesQuery(it, searchQuery.value) && state.msMatch(it),
-  ),
+  state.backlogItems.value.filter((it) => state.viewMatch(it)),
 );
+const searchText = computed(() => state.searchQuery.value.trim());
 
 const groups = computed(() => buildBacklogGroups(filteredBacklog.value));
 
@@ -296,7 +276,7 @@ async function submitAdd() {
     addOpen.value = false;
     state.toast(`<span class="ok">✓</span> 已新建条目 <b>${esc(title)}</b>`);
     // 新条目排在列表首位，滚回顶部才看得见
-    searchQuery.value = '';
+    state.setSearchQuery('');
     await nextTick();
     bodyEl.value?.scrollTo({ top: 0, behavior: 'smooth' });
   } catch {
@@ -397,11 +377,11 @@ function onCardPointerDown(e: PointerEvent, item: RoadmapItem) {
 }
 
 function clearSearch() {
-  searchQuery.value = '';
+  state.setSearchQuery('');
 }
 
 function onPlanningCommitted() {
-  searchQuery.value = '';
+  state.setSearchQuery('');
   addOpen.value = false;
 }
 
@@ -428,7 +408,7 @@ onBeforeUnmount(() => {
           class="bl-count"
           :class="{ 'ms-on': state.msActive.value }"
         >
-          <template v-if="searchQuery.trim() || state.msActive.value">
+          <template v-if="state.filterActive.value">
             {{ filteredBacklog.length }}/{{ state.backlogItems.value.length }}
           </template>
           <template v-else>
@@ -489,35 +469,6 @@ onBeforeUnmount(() => {
             />
           </svg>
           新建条目
-        </button>
-      </div>
-      <div class="bl-search">
-        <svg class="bl-search-ico" width="12" height="12" viewBox="0 0 14 14" aria-hidden="true">
-          <circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6" />
-          <path
-            d="M9.2 9.2L12 12"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linecap="round"
-          />
-        </svg>
-        <input
-          v-model="searchQuery"
-          class="bl-search-input"
-          type="search"
-          placeholder="搜索标题 / Key / 备注…"
-          spellcheck="false"
-          @keydown.esc="clearSearch"
-        />
-        <button
-          v-if="searchQuery"
-          class="bl-search-clear"
-          type="button"
-          data-tip="清空搜索"
-          @click="clearSearch"
-        >
-          ×
         </button>
       </div>
     </div>
@@ -632,14 +583,14 @@ onBeforeUnmount(() => {
         class="bl-empty"
       >
         Backlog 中没有属于<br /><b>{{ msSelNames() }}</b><br />的未排期条目<template
-          v-if="searchQuery.trim()"
-        >（且匹配「{{ searchQuery.trim() }}」）</template><br />
+          v-if="searchText"
+        >（且匹配「{{ searchText }}」）</template><br />
         <button class="bl-empty-link" type="button" @click="state.setMsSel([])">
           清除 milestone 过滤
         </button>
       </div>
-      <div v-else-if="searchQuery.trim() && state.backlogItems.value.length" class="bl-empty">
-        没有匹配「{{ searchQuery.trim() }}」的条目<br />
+      <div v-else-if="searchText && state.backlogItems.value.length" class="bl-empty">
+        没有匹配「{{ searchText }}」的条目<br />
         <button class="bl-empty-link" type="button" @click="clearSearch">清除搜索</button>
       </div>
       <div v-else class="bl-empty">

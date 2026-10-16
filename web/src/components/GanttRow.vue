@@ -124,9 +124,9 @@ const dispKey = computed(() => itemDisplayKey(props.item));
 const wrapMode = computed(() => shouldWrapAlias(props.item.alias));
 const barW = computed(() => (props.item.days || 0) * DAY_W.value - 2);
 
-/* ---------- Milestone 过滤：未匹配行淡化 / 隐藏 ---------- */
+/* ---------- 视图过滤（milestone + 文本）：未匹配行淡化 / 隐藏 ---------- */
 const msRowCls = computed(() => {
-  if (!state.msActive.value || state.msMatch(props.item)) return '';
+  if (!state.filterActive.value || state.viewMatch(props.item)) return '';
   return state.msMode.value === 'hide' ? 'ms-hide' : 'ms-dim';
 });
 

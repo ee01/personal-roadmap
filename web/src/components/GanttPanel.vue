@@ -109,11 +109,16 @@ function msSelNames(): string {
 /** 隐藏模式下全部行都被过滤掉时，给出明确的空态而非空白画布。 */
 const msHideEmpty = computed(
   () =>
-    state.msActive.value &&
+    state.filterActive.value &&
     state.msMode.value === 'hide' &&
     state.scheduledItems.value.length > 0 &&
-    !state.scheduledItems.value.some((i) => state.msMatch(i)),
+    !state.scheduledItems.value.some((i) => state.viewMatch(i)),
 );
+
+function clearViewFilters() {
+  state.setMsSel([]);
+  state.setSearchQuery('');
+}
 
 /* ---------- 时间轴缩放 ----------
    触控板双指捏合（浏览器映射为 ctrlKey+wheel）/ ⌘+滚轮：甘特任意位置缩放，光标下的
@@ -1406,11 +1411,11 @@ onUnmounted(() => {
             时间轴还是空的<br />把左侧 <b>Backlog</b> 的卡片拖进来开始排期
           </div>
           <div v-else-if="msHideEmpty" class="g-empty ms-empty">
-            时间轴上没有属于 <b>{{ msSelNames() }}</b> 的条目<br />
+            时间轴上没有<template v-if="state.msActive.value">属于 <b>{{ msSelNames() }}</b> </template><template
+              v-if="state.searchActive.value"
+            >{{ state.msActive.value ? '且' : '' }}匹配「<b>{{ state.searchQuery.value.trim() }}</b>」</template>的条目<br />
             可从左侧 Backlog 拖入，或<br />
-            <button type="button" @click="state.setMsSel([])">
-              清除 milestone 过滤
-            </button>
+            <button type="button" @click="clearViewFilters">清除过滤</button>
           </div>
           <GanttRow
             v-for="it in state.scheduledItems.value"
