@@ -10,6 +10,35 @@ import type {
 // imports this module directly, while Vite resolves the `.js` specifier to the
 // TypeScript source during the web build.
 import { addD, fmtISO, fmtMD, parseDate, qCmp } from './useGeometry.js';
+import type { JiraRefreshIssue } from './useExtensionBridge';
+
+/**
+ * Map extension refresh results onto `refresh_from_jira` intent issues.
+ * Every `JiraRefreshIssue` field must survive this mapping — a dropped field
+ * here silently stops mirroring (customLabels went missing exactly this way).
+ */
+export function refreshIssuesToIntent(
+  issues: JiraRefreshIssue[],
+): Array<{
+  key: string;
+  fetchedAt: number;
+  fields: Record<string, unknown>;
+}> {
+  return issues.map((issue) => ({
+    key: issue.key,
+    fetchedAt: issue.fetchedAt,
+    fields: {
+      summary: issue.summary,
+      description: issue.description,
+      targetStart: issue.targetStart,
+      targetEnd: issue.targetEnd,
+      assignee: issue.assignee,
+      status: issue.status,
+      originalEstimateDays: issue.originalEstimateDays,
+      customLabels: issue.customLabels,
+    },
+  }));
+}
 
 /** ticker 忽略的低信息量操作（含已废弃的 expand/collapse） */
 export const TICKER_NOISE_OPS = new Set([

@@ -18,6 +18,7 @@ import {
   depBadgeTip,
   depHoverTip,
   depStatusChipLabel,
+  refreshIssuesToIntent,
   depStatusIsStale,
   driftedDepCount,
   epicColor,
@@ -180,6 +181,41 @@ describe('display helpers', () => {
       epicShort({ alias: null, title: 'A title so long it needs truncation applied' })
         .length,
     ).toBeLessThan('A title so long it needs truncation applied'.length);
+  });
+});
+
+describe('refresh intent mapping', () => {
+  it('forwards every extension refresh field, including customLabels', () => {
+    const mapped = refreshIssuesToIntent([
+      {
+        key: 'NOVA-1',
+        summary: 's',
+        description: 'd',
+        targetStart: '2026-10-01',
+        targetEnd: '2026-10-14',
+        assignee: 'Kevin Liu',
+        status: 'In Progress',
+        originalEstimateDays: 3,
+        customLabels: [{ labelKey: 'LBL-288', valueKey: 'LBL-291' }],
+        fetchedAt: 1234,
+      },
+    ]);
+    expect(mapped).toEqual([
+      {
+        key: 'NOVA-1',
+        fetchedAt: 1234,
+        fields: {
+          summary: 's',
+          description: 'd',
+          targetStart: '2026-10-01',
+          targetEnd: '2026-10-14',
+          assignee: 'Kevin Liu',
+          status: 'In Progress',
+          originalEstimateDays: 3,
+          customLabels: [{ labelKey: 'LBL-288', valueKey: 'LBL-291' }],
+        },
+      },
+    ]);
   });
 });
 

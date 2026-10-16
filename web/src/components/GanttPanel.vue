@@ -55,6 +55,7 @@ import {
   collectUnsyncedTargetRefs,
   epicColor,
   epicShort,
+  refreshIssuesToIntent,
 } from '../composables/useRoadmapContract';
 
 const state = useRoadmapState();
@@ -626,19 +627,7 @@ async function silentRefreshFromJira() {
     await state.applySnapshotFromIntent({
       op: 'refresh_from_jira',
       ignoreTtl: hasUnmirroredJiraStatus(),
-      issues: issues.map((issue) => ({
-        key: issue.key,
-        fetchedAt: issue.fetchedAt,
-        fields: {
-          summary: issue.summary,
-          description: issue.description,
-          targetStart: issue.targetStart,
-          targetEnd: issue.targetEnd,
-          assignee: issue.assignee,
-          status: issue.status,
-          originalEstimateDays: issue.originalEstimateDays,
-        },
-      })),
+      issues: refreshIssuesToIntent(issues),
     });
     flushUnsyncedTargetDates();
     // 静默刷新带回了 customfield_33875；字典里还没有的新 milestone 立刻补拉
