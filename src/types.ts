@@ -134,6 +134,10 @@ export interface ItemRow {
   jira_key: string | null;
   project_key: string | null;
   description: string | null;
+  /** Jira issue key of the parent (typically an INIT). Null when unset. */
+  parent_link: string | null;
+  /** Team member name used as the Jira assignee. Null when unset. */
+  owner: string | null;
   /** Mirrored Jira workflow status (e.g. 'Closed', 'Resolved'); null until first Jira refresh. */
   status: string | null;
   version: number;
@@ -247,6 +251,10 @@ export interface TeamSnapshot {
     createdAt: number;
     /** Draft user text, or Jira description mirror for non-draft rows. */
     description?: string | null;
+    /** Parent Link issue key (typically an INIT). Null when unset. */
+    parentLink?: string | null;
+    /** Team member name; the Jira assignee for this epic. Null when unset. */
+    owner?: string | null;
     /** Mirrored Jira workflow status (e.g. 'Closed', 'Resolved'); null until first Jira refresh. */
     status?: string | null;
     subs: Array<{

@@ -1,4 +1,8 @@
 /** Public GitHub copies; the repo may be private — UI copy should mention the live skill URL. */
+
+/** Label shown in Codex and used for the @ mention. Install slug stays roadmap-planning. */
+export const PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME = 'Personal Roadmap';
+
 export const ROADMAP_PLANNING_GITHUB_REPO = 'https://github.com/ee01/personal-roadmap';
 export const ROADMAP_PLANNING_MARKETPLACE_PATH = '.';
 export const ROADMAP_PLANNING_MARKETPLACE_REF = 'main';

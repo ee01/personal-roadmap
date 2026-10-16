@@ -3,6 +3,7 @@ import { reactive } from 'vue';
 import { CURQ } from '../../composables/useGeometry';
 import { useDraftPlanning } from '../../composables/useDraftPlanning';
 import {
+  PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME,
   ROADMAP_PLANNING_GITHUB_REPO,
   ROADMAP_PLANNING_LIVE_SKILL_URL,
   ROADMAP_PLANNING_MARKETPLACE_PATH,
@@ -72,8 +73,19 @@ const quarterOptions = () => {
             打开 Codex / ChatGPT 桌面的 Plugins → 导入 marketplace，仓库填
             <a :href="ROADMAP_PLANNING_GITHUB_REPO" target="_blank" rel="noopener">{{ ROADMAP_PLANNING_GITHUB_REPO }}</a>
             ，Path <code>{{ ROADMAP_PLANNING_MARKETPLACE_PATH }}</code>，Branch
-            <code>{{ ROADMAP_PLANNING_MARKETPLACE_REF }}</code>，再安装
-            <code>roadmap-planning</code>。
+            <code>{{ ROADMAP_PLANNING_MARKETPLACE_REF }}</code>，安装显示名为
+            <code>{{ PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME }}</code>
+            的插件。
+          </p>
+          <p>
+            装好后新开一个对话。还没绑定团队时，先选择
+            <code>Roadmap Setup</code>
+            （或在对话里说要 Setup），填入可编辑分享链接里的团队 id 和 token。配好之后，输入
+            <code>@</code>
+            选择
+            <code>{{ PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME }}</code>
+            ，再粘贴需求。规划、列出、删除和退回 Backlog 在未 Setup 时都会先引导去 Setup。插件详情里有可以直接点的示例提示。若列表仍是旧名
+            Roadmap Planning，更新或重装一次。
           </p>
         </div>
         <div class="dp-way">
@@ -83,15 +95,9 @@ const quarterOptions = () => {
             <a :href="ROADMAP_PLANNING_SKILL_URL" target="_blank" rel="noopener">GitHub 上的 Skill</a>
             或
             <a :href="ROADMAP_PLANNING_LIVE_SKILL_URL" target="_blank" rel="noopener">线上 Skill</a>
-            交给 Agent，不必下载源码。远程 MCP 默认
+            交给 Agent，不必下载源码。安装 Skill 没有填写 Token 的页面。第一次使用时，Agent 会按这份说明请你粘贴顶栏「分享可编辑链接」，再把团队和 token 写进 Cursor 或 Claude 自己的 MCP 配置（不写进 Skill，不进仓库）。远程 MCP 默认
             <code>{{ ROADMAP_PLANNING_MCP_HTTP_URL }}</code>
-            ，自建站点则改成你的
-            <code>/mcp</code>
-            。首次需要填团队
-            <code>X-Team-Id</code>
-            和可编辑
-            <code>X-Share-Token</code>
-            。
+            。这条和上面的插件不是同一套：插件用 Roadmap Setup，只装 Skill 时不要去找那个命令。
           </p>
         </div>
       </div>

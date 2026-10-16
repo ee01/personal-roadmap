@@ -72,7 +72,7 @@ describe('items migrations on an existing database', () => {
   it('adds the missing columns and backfills the legacy rows', () => {
     const db = getDb();
     expect(columns(db)).toEqual(
-      expect.arrayContaining(['source', 'jira_key', 'project_key']),
+      expect.arrayContaining(['source', 'jira_key', 'project_key', 'parent_link', 'owner']),
     );
     expect(migrationIds(db)).toEqual([
       '001_initial',
@@ -92,6 +92,8 @@ describe('items migrations on an existing database', () => {
       '015_items_status',
       '016_draft_planning',
       '017_subs_target_dates',
+      '018_items_parent_link',
+      '019_items_owner',
     ]);
     const row = db
       .prepare(`SELECT source, jira_key, project_key FROM items WHERE id = 'i1'`)
@@ -123,7 +125,7 @@ describe('items migrations on an existing database', () => {
   it('is safe to re-run on an already migrated database', () => {
     closeDb();
     const db = getDb();
-    expect(migrationIds(db)).toHaveLength(17);
+    expect(migrationIds(db)).toHaveLength(19);
     expect(
       db.prepare(`SELECT COUNT(*) AS n FROM items`).get() as { n: number },
     ).toEqual({ n: 1 });

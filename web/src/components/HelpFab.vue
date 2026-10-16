@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { EXTENSION_STORE_URL } from '../composables/useExtensionGate';
 import {
+  PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME,
   ROADMAP_PLANNING_GITHUB_REPO,
   ROADMAP_PLANNING_LIVE_SKILL_URL,
   ROADMAP_PLANNING_MARKETPLACE_PATH,
@@ -25,13 +26,17 @@ const open = ref(false);
         <b>用自己的 Agent 生成 Draft</b>有两条路（都不会创建 Jira）：① Codex Plugin 导入 marketplace，仓库
         <a class="help-install" :href="ROADMAP_PLANNING_GITHUB_REPO" target="_blank" rel="noopener">{{ ROADMAP_PLANNING_GITHUB_REPO }}</a>
         ，Path <code>{{ ROADMAP_PLANNING_MARKETPLACE_PATH }}</code>，Branch
-        <code>{{ ROADMAP_PLANNING_MARKETPLACE_REF }}</code>，再装 <code>roadmap-planning</code>；② 把
+        <code>{{ ROADMAP_PLANNING_MARKETPLACE_REF }}</code>，安装显示名为
+        <code>{{ PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME }}</code>
+        的插件。装好后新开对话：还没绑定团队时先选 <code>Roadmap Setup</code> 填入团队 id 和可编辑 token，之后输入 <code>@</code> 选择
+        <code>{{ PERSONAL_ROADMAP_PLUGIN_DISPLAY_NAME }}</code>
+        再粘贴需求。未 Setup 时规划或改条目都会先引导去 Setup（详情里有示例提示；旧名 Roadmap Planning 需更新或重装）；② 把
         <a class="help-install" :href="ROADMAP_PLANNING_SKILL_URL" target="_blank" rel="noopener">GitHub Skill</a>
         或
         <a class="help-install" :href="ROADMAP_PLANNING_LIVE_SKILL_URL" target="_blank" rel="noopener">线上 Skill</a>
         交给 Agent，远程 MCP 默认
         <a class="help-install" :href="ROADMAP_PLANNING_MCP_HTTP_URL" target="_blank" rel="noopener">{{ ROADMAP_PLANNING_MCP_HTTP_URL }}</a>
-        ，不必下载源码。
+        ，不必下载源码。第一次使用时 Agent 会请你粘贴顶栏「分享可编辑链接」，并写入该工具的 MCP 配置；只装 Skill 时没有 Roadmap Setup。
       </li>
       <li>
         <b>导入 / 创建 Jira / 读取 ETA / 回写 Jira 需要 Personal AI 扩展</b>：未安装时锁定按钮点击可查看安装指引；拖动排期或改 Owner 会先保存在 Roadmap，并出现一行「没有同步到 Jira」提示

@@ -19,7 +19,7 @@ X-Team-Id: <地址栏 ?team=>
 X-Share-Token: <可编辑分享链接 token>
 ```
 
-也可用 `Authorization: Bearer <token>`。
+也可用 `Authorization: Bearer <token>`。只安装 Skill 时，Agent 按 `SKILL.md` 在对话里向用户要顶栏「分享可编辑链接」，再写入上面的 headers；不要寻找 `$roadmap-setup`。Codex 插件不要手改 `config.toml`：在对话里运行 **Roadmap Setup**（`$roadmap-setup`），它会把团队 id 和 token 写到本机，插件 MCP 每次调用都会读取。还没 Setup 时，规划或改条目都会先停下来引导去填 token。
 
 Cursor 示例：
 
@@ -56,8 +56,8 @@ stdout 只输出 MCP 帧；诊断在 stderr。
 
 | 工具 | 副作用 |
 |---|---|
-| `roadmap_get_context` | 读上下文与 capabilities；每条 item 带 `view=gantt\|backlog`，可按 view 过滤 |
-| `roadmap_list_items` | 分组列出甘特 / Backlog 父项（`view=gantt\|backlog\|all`） |
+| `roadmap_get_context` | 读上下文与 capabilities；每条 item 带 `view=gantt\|backlog`、`parentLink`、`owner`，可按 view 过滤 |
+| `roadmap_list_items` | 分组列出甘特 / Backlog 父项（`view=gantt\|backlog\|all`），每条含 `parentLink` 与 `owner` |
 | `roadmap_validate_plan` | 保存待提交计划，不写 Draft，不花服务端 LLM |
 | `roadmap_revise_plan` | 改计划再校验 |
 | `roadmap_generate_plan` | 显式委托服务端 LLM，默认 `autoCommit=false` |
@@ -68,5 +68,6 @@ stdout 只输出 MCP 帧；诊断在 stderr。
 | `roadmap_undo_batch` | 整批撤销仍为 Draft 的本批；已有 Jira key 的行留下。不是单条删除 |
 | `roadmap_delete_item` | 永久删除一条无 Jira key 的 Draft 主任务（含子任务）。不删 Jira |
 | `roadmap_unschedule_item` | 把甘特条目退回 Backlog，不删除 |
+| `roadmap_add_item` | 新建一条未排期 Backlog 草稿；可选 `parentLink`（INIT key）和 `owner` / `assignee`（团队成员名）。不创建 Jira |
 
 没有 Jira create、没有分享 token 签发。契约版本 `1.0.0` / schema `1`。

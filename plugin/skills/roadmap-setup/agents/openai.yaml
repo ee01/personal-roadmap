@@ -1,0 +1,7 @@
+interface:
+  display_name: "Roadmap Setup"
+  short_description: "填入团队和可编辑 token"
+  default_prompt: "做 Personal Roadmap 的 Setup：我来填团队 id 和可编辑分享 token。"
+
+policy:
+  allow_implicit_invocation: true
