@@ -18,7 +18,8 @@
 一个过滤状态加一个谓词 `msMatch(item)`，Backlog、甘特（以及之后的人员视图）都从这里读：
 
 - 问的是同一个问题："这个 milestone 下的条目都排到哪儿了？"。两边各做一套过滤，选择会不一致，用户还得选两次。
-- 过滤入口放在横跨两栏的 QUARTERS 行，用位置本身告诉用户"这个过滤对两边都生效"。
+- 过滤入口放在横跨两栏的顶部行（原 QUARTERS 行），用位置本身告诉用户"这个过滤对两边都生效"。这一行只放「看什么」的视图过滤。
+- Quarter 勾选 + 导入属于「拉什么数据」，是团队 JQL 的参数，移到 Backlog 标题旁的「↻ 拉取」浮层（Quarter、JQL 摘要 + 编辑入口、拉取按钮）。结果落在 Backlog，入口就放在 Backlog。
 - 两边的**呈现方式**不同：
   - **Backlog**：只列出匹配的条目，和搜索框是 AND 关系，计数显示为 `2/5`。
   - **甘特**：默认把没匹配的行**淡化**，保留排期上下文，方便看出是谁在挤占时间；可以切换为**隐藏**。另外，每个选中的 milestone 画一条带日期的旗标竖线；已排期条目的结束日如果晚于它所属的 milestone，在 bar 末端标出"晚于 X Nd"。
@@ -34,8 +35,8 @@
 
 前端 `web/src/`
 5. `useRoadmapState`：加 `msSel` 和 `msMode`，并导出 `msMatch` 与 `msLateOf`。
-6. `ImportBar.vue`：加入 MilestoneFilter（触发按钮、已选 token、淡化/隐藏开关、统计）以及选择浮层（搜索、迷你时间轴、按日期分组的列表、描述详情）。
-7. `BacklogPanel.vue`：过滤列表，卡片上显示 milestone 标签；Target End 晚于 milestone 时标红。
+6. `ImportBar.vue` 改为 FilterBar，加入 MilestoneFilter（触发按钮、已选 token、淡化/隐藏开关、统计）以及选择浮层（搜索、迷你时间轴、按日期分组的列表、描述详情）。
+7. `BacklogPanel.vue`：标题旁加「拉取」按钮和浮层（承接原 ImportBar 的 Quarter 与导入逻辑）；过滤列表，卡片上显示 milestone 标签；Target End 晚于 milestone 时标红。
 8. `GanttPanel.vue` / `GanttRow.vue`：给行加 dim/hide 类，画 milestone 旗标线，显示"晚于"徽标。
 9. `ResourceView.vue`（第二期）：把不属于所选 milestone 的 Epic 下的任务压暗。
 

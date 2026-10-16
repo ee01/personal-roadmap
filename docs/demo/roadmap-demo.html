@@ -997,9 +997,46 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
 .ext-sim .sim-dot{width:6px;height:6px;border-radius:50%;background:#C6B79B}
 .ext-sim.on .sim-dot{background:#4FA95F}
 
+/* ============ 从 Jira 拉取（Backlog 头部入口 + 浮层） ============ */
+.bl-sync{position:relative;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border-radius:7px;
+  font-size:11.5px;font-weight:600;color:var(--muted);border:1px solid var(--line);background:var(--panel);
+  transition:color .13s,background .13s,border-color .13s}
+.bl-sync:hover,.bl-sync[aria-expanded="true"]{color:var(--ink);background:var(--bg);border-color:#C9C6BB}
+.bl-sync:focus-visible,.sp-link:focus-visible,.chip:focus-visible{outline:2px solid var(--cur);outline-offset:2px}
+.bl-sync svg{transition:transform .4s cubic-bezier(.2,.8,.2,1)}
+.bl-sync:hover svg{transform:rotate(-120deg)}
+.bl-sync.spin svg{animation:spSpin .8s linear infinite}
+@keyframes spSpin{to{transform:rotate(-360deg)}}
+.bl-sync-dot{position:absolute;top:-3px;right:-3px;width:7px;height:7px;border-radius:50%;background:var(--cur);
+  box-shadow:0 0 0 2px var(--panel);display:none}
+.bl-sync.pending .bl-sync-dot{display:block}
+.bl-sync.empty{color:var(--cur-deep);background:#FFF4E5;border-color:#FFD9A8}
+.sync-pop{position:fixed;z-index:60;width:360px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--sh-lg);opacity:0;transform:translateY(-6px) scale(.985);transform-origin:top left;pointer-events:none;
+  transition:opacity .18s cubic-bezier(.2,.8,.2,1),transform .22s cubic-bezier(.2,.8,.2,1)}
+.sync-pop.show{opacity:1;transform:none;pointer-events:auto}
+.sp-head{padding:14px 16px 4px}
+.sp-title{font-weight:700;font-size:13.5px}
+.sp-sub{font-size:11.5px;color:var(--muted);margin-top:3px}
+.sp-sub b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.sp-sec{padding:12px 16px 4px}
+.sp-lbl{font-size:10.5px;font-weight:600;color:var(--muted);letter-spacing:.06em;margin-bottom:8px;flex:none}
+.sync-pop .chip{padding:5px 10px;font-size:11.5px}
+.chip .got{font-size:9px;font-family:var(--sans);font-weight:600;color:var(--muted);letter-spacing:.03em}
+.sp-src{display:flex;align-items:center;gap:8px;margin:8px 16px 0;padding:8px 10px;border-radius:9px;background:var(--bg)}
+.sp-src .sp-lbl{margin:0}
+.sp-jql{flex:1;min-width:0;font-family:var(--mono);font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-link{font-size:11.5px;font-weight:600;color:var(--fut-deep);flex:none;border-radius:5px;padding:1px 4px}
+.sp-link:hover{text-decoration:underline}
+.sp-foot{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-top:12px;border-top:1px solid var(--line2)}
+.sp-foot .btn{margin-left:auto}
+.sp-foot .btn[disabled]{background:var(--line2);color:var(--muted);box-shadow:none;transform:none;cursor:default}
+@media (prefers-reduced-motion:reduce){ .sync-pop,.bl-sync svg{transition:none!important;animation:none!important} }
+
 /* ============ Milestone 过滤（Custom Labels · 统一作用于 Backlog + 甘特） ============ */
 :root{ --ms:#6D4FA3; --ms-soft:#F3EEFA; --ms-line:#D9CCEE; --ease:cubic-bezier(.2,.8,.2,1) }
-.ms-filter{margin-left:auto;display:flex;align-items:center;gap:8px;min-width:0}
+.ms-filter{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.ms-filter .ms-stat{margin-left:auto}
 .ms-trigger{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 10px 0 11px;border-radius:9px;
   border:1.5px solid var(--line);background:var(--bg);font-size:12.5px;font-weight:600;white-space:nowrap;
   transition:border-color .15s var(--ease),background .15s var(--ease)}
@@ -1032,7 +1069,7 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
 /* 选择浮层：搜索 → 迷你时间轴 → 按日期排序的列表 → 描述详情（渐进披露） */
 .ms-pop{position:fixed;z-index:60;width:400px;max-height:min(620px,calc(100vh - 120px));display:flex;flex-direction:column;
   background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh-lg);
-  opacity:0;transform:translateY(-6px) scale(.985);transform-origin:top right;pointer-events:none;
+  opacity:0;transform:translateY(-6px) scale(.985);transform-origin:top left;pointer-events:none;
   transition:opacity .18s var(--ease),transform .22s var(--ease)}
 .ms-pop.show{opacity:1;transform:none;pointer-events:auto}
 .ms-pop-head{padding:12px 12px 0}
@@ -1159,18 +1196,9 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
   <span class="demo-tag">STATIC DEMO</span>
 </header>
 
-<!-- ===================== Quarter 导入栏 ===================== -->
-<div class="import-bar">
-  <span class="ib-label">QUARTERS</span>
-  <div class="chips" id="chips"></div>
-  <div class="import-actions" id="importActions" style="display:none">
-    <label class="ow-label"><input type="checkbox" id="owCheck">覆盖已有数据</label>
-    <button class="btn btn-primary" id="importBtn">
-      <svg class="ico" width="13" height="13" viewBox="0 0 14 14"><path d="M7 1v8M3.5 6L7 9.5 10.5 6M2 12.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <svg class="lock" width="12" height="13" viewBox="0 0 14 15"><rect x="2.4" y="6.2" width="9.2" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M4.7 6.2V4.4a2.3 2.3 0 014.6 0v1.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-      导入 <span id="importBtnN"></span>
-    </button>
-  </div>
+<!-- ===================== 视图过滤栏（原 Quarter 导入栏）=====================
+     这一行横跨 Backlog 与甘特，只放「影响看什么」的过滤；「拉什么数据」的 Quarter 导入移到 Backlog 头部 -->
+<div class="import-bar filter-bar">
   <!-- Milestone 过滤：放在横跨两栏的这一行，表达「一个过滤，同时作用于 Backlog 与甘特」 -->
   <div class="ms-filter" id="msFilter">
     <span class="ib-label">MILESTONE</span>
@@ -1188,11 +1216,40 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
 </div>
 <div class="ms-pop" id="msPop" role="dialog" aria-label="按 Milestone 过滤"></div>
 
+<!-- 从 Jira 拉取：Quarter 是「数据源 JQL 的参数」，和 JQL、导入动作放在一起；锚定在 Backlog——结果落在哪，入口就在哪 -->
+<div class="sync-pop" id="syncPop" role="dialog" aria-labelledby="spTitle">
+  <div class="sp-head">
+    <div class="sp-title" id="spTitle">从 Jira 拉取到 Backlog</div>
+    <div class="sp-sub" id="spSub"></div>
+  </div>
+  <div class="sp-sec">
+    <div class="sp-lbl">QUARTERS</div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="sp-src">
+    <span class="sp-lbl">JQL</span>
+    <span class="sp-jql" id="spJql"></span>
+    <button class="sp-link" id="spEditJql" type="button">编辑</button>
+  </div>
+  <div class="sp-foot" id="importActions">
+    <label class="ow-label"><input type="checkbox" id="owCheck">覆盖已有数据</label>
+    <button class="btn btn-primary" id="importBtn">
+      <svg class="ico" width="13" height="13" viewBox="0 0 14 14"><path d="M7 1v8M3.5 6L7 9.5 10.5 6M2 12.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="lock" width="12" height="13" viewBox="0 0 14 15"><rect x="2.4" y="6.2" width="9.2" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M4.7 6.2V4.4a2.3 2.3 0 014.6 0v1.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span id="importBtnLabel">拉取</span> <span id="importBtnN"></span>
+    </button>
+  </div>
+</div>
+
 <!-- ===================== 主区 ===================== -->
 <div class="layout">
   <aside class="backlog">
     <div class="bl-head">
       <div class="bl-title">Backlog <span class="bl-count" id="blCount">0</span>
+        <button class="bl-sync" id="blSyncBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="syncPop">
+          <svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true"><path d="M11.6 5.2A4.9 4.9 0 003 4.4M2.4 8.8A4.9 4.9 0 0011 9.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M3 1.9v2.6h2.6M11 12.1V9.5H8.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="blSyncText">拉取</span><span class="bl-sync-dot" id="blSyncDot"></span>
+        </button>
         <button class="bl-add" id="blAddBtn" data-tip="手动新建一个 Backlog 条目（不需要 Jira）">
           <svg width="11" height="11" viewBox="0 0 14 14"><path d="M7 2.5v9M2.5 7h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           新建条目
@@ -1552,7 +1609,8 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
 <div class="help-pop" id="helpPop">
   <h4>Demo 说明</h4>
   <ul>
-    <li><b>Milestone 过滤（新）</b>：顶部 QUARTERS 行右侧「MILESTONE」多选，数据来自 Jira Custom Labels（<code>customfield_33875</code> → LBL-288 AIR 2.0 Milestones）。<b>一个过滤同时作用于 Backlog 与甘特</b>：Backlog 只列匹配条目；甘特中未匹配行可<b>淡化 / 隐藏</b>，选中的 milestone 画紫色旗标线，晚于 milestone 的条目在 bar 末端标出天数。日期解析自 LBL description 首行「Milestone: 11/30/26」，识别不到时展示原描述</li>
+    <li><b>从 Jira 拉取（调整位置）</b>：Quarter 勾选 + 导入从顶部移到 <b>Backlog 标题旁「↻ 拉取」</b>。浮层里是 Quarter、团队 JQL（可直接跳到编辑）和拉取按钮；结果落在 Backlog，入口就在 Backlog。有勾选但未拉取的 quarter 时按钮亮橙点；没有可拉取的内容时按钮显示「已是最新」</li>
+    <li><b>Milestone 过滤（新）</b>：顶部过滤行（原 QUARTERS 行）「MILESTONE」多选，数据来自 Jira Custom Labels（<code>customfield_33875</code> → LBL-288 AIR 2.0 Milestones）。<b>一个过滤同时作用于 Backlog 与甘特</b>：Backlog 只列匹配条目；甘特中未匹配行可<b>淡化 / 隐藏</b>，选中的 milestone 画紫色旗标线，晚于 milestone 的条目在 bar 末端标出天数。日期解析自 LBL description 首行「Milestone: 11/30/26」，识别不到时展示原描述</li>
     <li><b>Jira 查询 / 创建（直连 API 与 Agent 执行器双路径）/ AI 缩写 / 协作同步均为模拟</b></li>
     <li><b>需要 Jira 权限的操作要装 Personal AI 扩展</b>：锁定按钮点击弹出安装引导；拖动排期 / 改 Owner 会先保存在 Roadmap，并出现一行「没有同步到 Jira」+「安装插件开启同步」。打开页拉取在未安装时保持静默（顶栏 <b>扩展未安装 / 已安装</b> 可切换）<a class="help-install" href="https://chromewebstore.google.com/detail/personal-ai/kefnadjndpllbibeklhajjddgmlbafel" target="_blank" rel="noopener">前往安装 ↗</a></li>
     <li><b>创建 Jira 双路径</b>：Prompt <b>留空</b>＝按下方字段直连 Jira API（串行）；<b>填写</b>＝按 Epic 最多 <b>2 路并行</b>交给所选 <b>Agent 执行器</b>（每路只含该组 draft；部分成功也会回写已有 key）。此时下方字段占位变「自动」，已填的值作为约束带给 Agent；执行器无配置时展示引导入口。<b>fixVersion</b>：按各任务 Target End 在发布时间表上的<strong>落点列</strong>匹配（半开区间，压在分割竖线上属于下一列——和 hover「可赶 Sprint」不是同一口径）。同一列直接填入共享字段；跨列时共享字段<strong>留空</strong>，交给 Agent 按行 `suggestedFixVersion` 判断，列表内仍逐行显示绿色 chip；输入固定值可覆盖全部。<b>Jira 尚无此版本时留空 fixVersion 继续创建</b>（行上显示 warning），不会因此拒绝整行。<b>失败行展示完整原因</b>，可改字段后点重试，已成功的 ticket 不会再创建</li>
@@ -2199,7 +2257,8 @@ function renderChips(){
     const ghost = latestChecked ? qCmp(q, latestChecked) > 0 : q !== CURQ;
     const c = document.createElement('button');
     c.className = 'chip' + (on?' on':'') + (ghost?' ghost':'');
-    c.innerHTML = `<span class="box"><svg width="9" height="9" viewBox="0 0 10 10"><path d="M1.5 5.5L4 8l4.5-6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>${q}${q===CURQ?'<span class="now-tag">当前</span>':''}`;
+    c.innerHTML = `<span class="box"><svg width="9" height="9" viewBox="0 0 10 10"><path d="M1.5 5.5L4 8l4.5-6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>${q}${q===CURQ?'<span class="now-tag">当前</span>':''}${t.imported.includes(q)?'<span class="got">已拉取</span>':''}`;
+    c.setAttribute('aria-pressed', on);
     if (ghost && !on) c.dataset.tip = '自动追加：勾选的最晚 quarter 的下一个';
     c.onclick = () => {
       if (on) t.checked = t.checked.filter(x => x!==q);
@@ -2215,11 +2274,51 @@ function syncImportActions(){
   const pend = pendingQs(t);
   const ow = $('#owCheck').checked;
   const show = t.checked.length > 0 && (pend.length > 0 || ow);
-  $('#importActions').style.display = t.checked.length ? 'flex' : 'none';
-  $('#importBtn').style.display = show ? 'inline-flex' : 'none';
   const qs = ow ? t.checked : pend;
-  $('#importBtnN').textContent = qs.length ? qs.join(' / ') : '';
+  /* 没有要拉的 quarter 时不隐藏按钮，而是给出「已是最新」的明确结论（即时反馈） */
+  $('#importBtn').disabled = !show;
+  $('#importBtnLabel').textContent = show ? (ow ? '重新拉取' : '拉取') : (t.checked.length ? '已是最新' : '先选择 quarter');
+  $('#importBtnN').textContent = show && qs.length ? qs.join(' / ') : '';
+  $('#spSub').innerHTML = t.imported.length
+    ? `Backlog 已包含 <b>${t.imported.join(' / ')}</b> · 已存在的 issue 不会重复导入`
+    : '尚未拉取任何 quarter · 勾选后按团队 JQL 导入';
+  $('#spJql').textContent = t.jql;
+  $('#spJql').dataset.tip = '数据源 JQL||' + t.jql;
+  const btn = $('#blSyncBtn');
+  btn.classList.toggle('empty', !t.imported.length);
+  /* 有「勾选但未拉取」的 quarter（例如下个季度已开始）时亮点：未完成任务提示 */
+  btn.classList.toggle('pending', t.imported.length > 0 && pend.length > 0);
+  $('#blSyncText').textContent = t.imported.length ? '拉取' : '从 Jira 拉取';
+  btn.dataset.tip = t.imported.length
+    ? `从 Jira 拉取||已拉取 ${t.imported.join(' / ')}${pend.length ? ` · 待拉取 ${pend.join(' / ')}` : ''}`
+    : '从 Jira 拉取||按团队 JQL + 勾选的 quarter 导入到 Backlog';
 }
+/* ---------- 拉取浮层 ---------- */
+function placeSyncPop(){
+  const r = $('#blSyncBtn').getBoundingClientRect(), pop = $('#syncPop');
+  pop.style.top = r.bottom + 8 + 'px';
+  pop.style.left = clamp(r.left - 12, 12, innerWidth - 372) + 'px';
+}
+function openSyncPop(){
+  renderChips(); placeSyncPop();
+  $('#syncPop').classList.add('show');
+  $('#blSyncBtn').setAttribute('aria-expanded', 'true');
+  requestAnimationFrame(() => { const b = $('#importBtn'); (b.disabled ? $('#chips .chip') : b).focus(); });
+}
+function closeSyncPop(refocus){
+  $('#syncPop').classList.remove('show');
+  $('#blSyncBtn').setAttribute('aria-expanded', 'false');
+  if (refocus) $('#blSyncBtn').focus();
+}
+$('#blSyncBtn').onclick = () => $('#syncPop').classList.contains('show') ? closeSyncPop() : openSyncPop();
+$('#syncPop').addEventListener('keydown', e => { if (e.key === 'Escape'){ e.stopPropagation(); closeSyncPop(true); } });
+document.addEventListener('pointerdown', e => {
+  if (!$('#syncPop').classList.contains('show')) return;
+  if (e.target.closest('#syncPop, #blSyncBtn')) return;
+  closeSyncPop();
+}, true);
+addEventListener('resize', () => { if ($('#syncPop').classList.contains('show')) placeSyncPop(); });
+$('#spEditJql').onclick = () => { closeSyncPop(); $('#jqlEditBtn').click(); };
 $('#owCheck').onchange = syncImportActions;
 
 /* ---------- 导入 ---------- */
@@ -2233,6 +2332,7 @@ function effectiveJql(jql, quarters){
   return html;
 }
 $('#importBtn').onclick = () => {
+  closeSyncPop();
   if (!extGate('import')) return;
   const t = team();
   const ow = $('#owCheck').checked;
@@ -2305,8 +2405,10 @@ function renderBacklog(newKeys){
     } else {
       body.innerHTML = t.imported.length
         ? `<div class="bl-empty">Backlog 已清空<br>所有 issue 均已排期 🎉</div>`
-        : `<div class="bl-empty">尚未导入数据<br>请在上方勾选 Quarter 后点击<br><b>「导入」</b><br>
+        : `<div class="bl-empty">尚未导入数据<br>
+           <button class="bl-empty-link" id="blEmptySync">从 Jira 拉取</button><br>
            或点右上角<b>「新建条目」</b>手动添加</div>`;
+      const es = $('#blEmptySync'); if (es) es.onclick = e => { e.stopPropagation(); openSyncPop(); };
     }
     return;
   }
