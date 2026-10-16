@@ -12,6 +12,8 @@ export type ImportItemPayload = {
   estimate?: number;
   targetStart?: string;
   targetEnd?: string;
+  /** Jira Custom Labels (`customfield_33875`) mirrored from the issue. */
+  customLabels?: Array<{ labelKey: string; valueKey: string }>;
 };
 
 export type AgentExecutorOption = {
@@ -30,7 +32,8 @@ type BridgeResultType =
   | 'pai-roadmap-import-tasks-result'
   | 'pai-roadmap-update-target-dates-result'
   | 'pai-roadmap-update-assignee-result'
-  | 'pai-roadmap-refresh-jira-result';
+  | 'pai-roadmap-refresh-jira-result'
+  | 'pai-roadmap-custom-labels-result';
 
 const ACK_TIMEOUT_MS = 4_000;
 /** Must cover one Epic Agent run (content script polls up to 30 min). */
@@ -316,6 +319,8 @@ export type JiraRefreshIssue = {
   assignee: string | null;
   status: string | null;
   originalEstimateDays?: number | null;
+  /** Jira Custom Labels (`customfield_33875`) mirrored from the issue. */
+  customLabels?: Array<{ labelKey: string; valueKey: string }>;
   fetchedAt: number;
 };
 
@@ -363,4 +368,40 @@ export async function bridgeUpdateAssignee(
   );
   await Promise.race([acked, pending]);
   await pending;
+}
+
+export type CustomLabelValueFetch = {
+  key: string;
+  name: string;
+  description: string | null;
+  dueDate: string | null;
+  targetEnd: string | null;
+  labelKey: string | null;
+  labelName: string | null;
+  status: string | null;
+};
+
+/**
+ * Fetch Custom Label value details (name / description / dates / parent Label)
+ * for the given value keys with the user's Jira session. Returns only what Jira
+ * gave us; the server resolves and caches the milestone date.
+ */
+export async function bridgeFetchCustomLabelValues(
+  valueKeys: string[],
+): Promise<CustomLabelValueFetch[]> {
+  const id = requestId();
+  const pending = waitForBridgeResult<{
+    ok: true;
+    values: CustomLabelValueFetch[];
+  }>('pai-roadmap-custom-labels-result', id, 60_000);
+  const acked = waitForBridgeAck('pai-roadmap-custom-labels-ack', id);
+  pending.catch(() => undefined);
+  acked.catch(() => undefined);
+  window.postMessage(
+    { type: 'pai-roadmap-custom-labels', requestId: id, keys: valueKeys },
+    '*',
+  );
+  await Promise.race([acked, pending]);
+  const result = await pending;
+  return Array.isArray(result.values) ? result.values : [];
 }

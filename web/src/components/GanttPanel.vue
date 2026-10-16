@@ -34,7 +34,7 @@ import {
   type ParsedReleaseSchedule,
   type ReleaseSheetConfig,
 } from '../composables/useReleaseRuler';
-import type { RoadmapItem, RoadmapSub, RulerMode } from '../types';
+import type { MilestoneValue, RoadmapItem, RoadmapSub, RulerMode } from '../types';
 import GanttRow from './GanttRow.vue';
 import ResourceView from './ResourceView.vue';
 import {
@@ -69,6 +69,49 @@ let silentRefreshInFlight = false;
 
 const tl = computed<Timeline>(() =>
   computeTL(state.snapshot.value?.team.checkedQuarters || []),
+);
+
+/* ---------- Milestone 旗标线：选中的 milestone 作为截止线画在甘特上 ----------
+   同一天的合并为一条；带日期的旗标钉在 milestone 当天的结束边界。 */
+const msLines = computed(() => {
+  if (!state.msActive.value) return [] as Array<{ date: Date; list: MilestoneValue[] }>;
+  const byDate = new Map<string, { date: Date; list: MilestoneValue[] }>();
+  for (const ms of state.milestones.value) {
+    if (!state.msSel.value.includes(ms.key) || !ms.milestoneDate) continue;
+    const date = parseDate(ms.milestoneDate);
+    if (date < tl.value.start || date > tl.value.end) continue;
+    const entry = byDate.get(ms.milestoneDate) || { date, list: [] };
+    entry.list.push(ms);
+    byDate.set(ms.milestoneDate, entry);
+  }
+  return [...byDate.values()];
+});
+
+function msFlagTip(line: { date: Date; list: MilestoneValue[] }): string {
+  const n = diffD(today, line.date);
+  const rel = n === 0 ? '今天' : n > 0 ? `${n} 天后` : `${-n} 天前`;
+  return `Milestone · ${fmtMD(line.date)} · ${rel}||${line.list
+    .map((m) => m.name)
+    .join(' / ')}||日期解析自 LBL description 首行`;
+}
+
+function msShortName(name: string): string {
+  return name.length > 22 ? `${name.slice(0, 21)}…` : name;
+}
+
+function msSelNames(): string {
+  return state.msSel.value
+    .map((k) => state.milestones.value.find((m) => m.key === k)?.name || k)
+    .join(' / ');
+}
+
+/** 隐藏模式下全部行都被过滤掉时，给出明确的空态而非空白画布。 */
+const msHideEmpty = computed(
+  () =>
+    state.msActive.value &&
+    state.msMode.value === 'hide' &&
+    state.scheduledItems.value.length > 0 &&
+    !state.scheduledItems.value.some((i) => state.msMatch(i)),
 );
 
 /* ---------- 时间轴缩放 ----------
@@ -598,6 +641,8 @@ async function silentRefreshFromJira() {
       })),
     });
     flushUnsyncedTargetDates();
+    // 静默刷新带回了 customfield_33875；字典里还没有的新 milestone 立刻补拉
+    void state.syncMilestoneDictionary();
   } catch (err) {
     console.debug('[roadmap] silent jira refresh skipped', err);
   } finally {
@@ -1353,8 +1398,30 @@ onUnmounted(() => {
             class="today-line"
             :style="{ left: `${X(tl, today) + DAY_W / 2}px` }"
           />
+          <div
+            v-for="line in msLines"
+            :key="`ms-${line.date.getTime()}`"
+            class="ms-line"
+            :style="{ left: `${X(tl, line.date) + DAY_W - 1}px` }"
+          >
+            <span class="ms-flag" :data-tip="msFlagTip(line)">
+              {{
+                line.list.length > 1
+                  ? `${line.list.length} 个 milestone`
+                  : msShortName(line.list[0].name)
+              }}
+              <span class="d">{{ fmtMD(line.date) }}</span>
+            </span>
+          </div>
           <div v-if="!state.scheduledItems.value.length" class="g-empty">
             时间轴还是空的<br />把左侧 <b>Backlog</b> 的卡片拖进来开始排期
+          </div>
+          <div v-else-if="msHideEmpty" class="g-empty ms-empty">
+            时间轴上没有属于 <b>{{ msSelNames() }}</b> 的条目<br />
+            可从左侧 Backlog 拖入，或<br />
+            <button type="button" @click="state.setMsSel([])">
+              清除 milestone 过滤
+            </button>
           </div>
           <GanttRow
             v-for="it in state.scheduledItems.value"

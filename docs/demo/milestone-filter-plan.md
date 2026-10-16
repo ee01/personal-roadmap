@@ -1,5 +1,16 @@
 ## Milestone 过滤：调研结论与实现计划
 
+> **已实现**（2026-10）：按最终确认的方案落地——零配置。拉取 / 静默刷新时把条目上的
+> `customfield_33875` 一并带回，Filter 列表只显示本团队 ticket 上实际出现过的值，浮层按
+> Label 类别分组（单类别不显示标题），浮层底部显示「更新于 · ↻」。下面第 3 节是最初的落地
+> 改动清单，保留作对照；与实现的差异：`milestoneLabelKey` 团队配置已去掉，`GET
+> /teams/:id/milestones` 变为 `GET/POST /teams/:id/custom-labels`（POST 由扩展拉取后回写
+> 缓存），items 接口增加 `ms[]`（value key 列表），字典内嵌在 snapshot 的
+> `team.customLabels` 里。扩展侧（personal-ai `contentScriptRoadmap.ts`）在 import /
+> refresh 两条链路里携带并解析该字段，并新增 `pai-roadmap-custom-labels` 桥接消息拉取
+> value 详情；日期解析规则（Due Date → Target End → description 正则）在服务端
+> `src/core/customLabels.ts` 统一实现。
+
 ### 1. 调研结论（Jira Custom Labels）
 
 | 项 | 结论 | 证据 |

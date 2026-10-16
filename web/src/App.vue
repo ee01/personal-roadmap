@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { provideRoadmapState } from './composables/useRoadmapState';
 import TopBar from './components/TopBar.vue';
-import ImportBar from './components/ImportBar.vue';
+import FilterBar from './components/FilterBar.vue';
 import BacklogPanel from './components/BacklogPanel.vue';
 import GanttPanel from './components/GanttPanel.vue';
 import ActivityDrawer from './components/ActivityDrawer.vue';
@@ -11,7 +11,6 @@ import ToastLayer from './components/ToastLayer.vue';
 import JiraWriteNotice from './components/JiraWriteNotice.vue';
 import TeamModal from './components/modals/TeamModal.vue';
 import JqlModal from './components/modals/JqlModal.vue';
-import ImportModal from './components/modals/ImportModal.vue';
 import CleanupModal from './components/modals/CleanupModal.vue';
 import AiCreateModal from './components/modals/AiCreateModal.vue';
 import AssigneeMapModal from './components/modals/AssigneeMapModal.vue';
@@ -24,7 +23,7 @@ const state = provideRoadmapState();
 <template>
   <div class="app-shell">
     <TopBar />
-    <ImportBar />
+    <FilterBar />
     <div v-if="state.loading.value" class="loading-screen">加载中…</div>
     <div v-else-if="!state.snapshot.value" class="loading-screen">
       <p>尚无团队</p>
@@ -43,7 +42,6 @@ const state = provideRoadmapState();
     <ToastLayer />
     <TeamModal />
     <JqlModal />
-    <ImportModal />
     <CleanupModal />
     <AiCreateModal />
     <AssigneeMapModal />

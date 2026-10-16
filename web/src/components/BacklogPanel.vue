@@ -14,13 +14,16 @@ import {
   DESCRIPTION_MAX_CHARS,
   parseParentLinkInput,
 } from '../composables/useRoadmapContract';
-import { CURQ, fmtMD, esc, initials } from '../composables/useGeometry';
+import { CURQ, chipList, diffD, esc, fmtMD, initials, jqlHasTargetDeliveryQuarter, parseDate, qCmp, today } from '../composables/useGeometry';
 import { memberChipHtml, openOwnerFloat } from '../composables/useOwnerFloat';
 import { dispName, teamAssigneeMap } from '../composables/useAssigneeMap';
-import type { RoadmapItem, TeamMember } from '../types';
+import { bridgeImportJql } from '../composables/useExtensionBridge';
+import { extensionLockTip, useExtensionGate } from '../composables/useExtensionGate';
+import type { MilestoneValue, RoadmapItem, TeamMember } from '../types';
 import DraftPlanningModal from './modals/DraftPlanningModal.vue';
 
 const state = useRoadmapState();
+const gate = useExtensionGate();
 const searchQuery = ref('');
 const addMode = ref<'manual' | 'ai'>('manual');
 
@@ -83,10 +86,146 @@ function itemMatchesQuery(item: RoadmapItem, raw: string): boolean {
 }
 
 const filteredBacklog = computed(() =>
-  state.backlogItems.value.filter((it) => itemMatchesQuery(it, searchQuery.value)),
+  state.backlogItems.value.filter(
+    (it) => itemMatchesQuery(it, searchQuery.value) && state.msMatch(it),
+  ),
 );
 
 const groups = computed(() => buildBacklogGroups(filteredBacklog.value));
+
+/* ---------- 从 Jira 拉取（Backlog 头部入口 + 浮层） ----------
+   Quarter 是「数据源 JQL 的参数」，和 JQL、导入动作放在一起；锄定在 Backlog——
+   结果落在哪，入口就在哪。 */
+const team = computed(() => state.snapshot.value?.team);
+const overwrite = state.importOverwrite;
+const hasQuarterField = computed(() =>
+  jqlHasTargetDeliveryQuarter(team.value?.jql || ''),
+);
+const chips = computed(() => chipList(team.value?.checkedQuarters || [CURQ]));
+const pending = computed(() =>
+  state.pendingImportQuarters(
+    team.value?.checkedQuarters || [],
+    team.value?.importedQuarters || [],
+  ),
+);
+const syncOpen = ref(false);
+const syncShown = ref(false);
+const importing = ref(false);
+const syncBtnEl = ref<HTMLElement | null>(null);
+const syncPopEl = ref<HTMLElement | null>(null);
+
+const showPullBtn = computed(() => {
+  if (!hasQuarterField.value) return Boolean(team.value?.jql?.trim());
+  if (!team.value?.checkedQuarters.length) return false;
+  return pending.value.length > 0 || overwrite.value;
+});
+
+const pullBtnLabel = computed(() => {
+  if (!hasQuarterField.value) return '拉取';
+  if (!showPullBtn.value) {
+    return team.value?.checkedQuarters.length ? '已是最新' : '先选择 quarter';
+  }
+  return overwrite.value ? '重新拉取' : '拉取';
+});
+
+const pullQs = computed(() => {
+  if (!team.value || !hasQuarterField.value) return [] as string[];
+  return overwrite.value ? team.value.checkedQuarters : pending.value;
+});
+
+const syncSub = computed(() => {
+  const imported = team.value?.importedQuarters || [];
+  if (!imported.length) return '尚未拉取任何 quarter · 勾选后按团队 JQL 导入';
+  const pend = pending.value;
+  return `已拉取 ${imported.join(' / ')}${
+    pend.length ? ` · 待拉取 ${pend.join(' / ')}` : ''
+  }`;
+});
+
+async function toggleQuarter(q: string) {
+  if (!team.value || !state.editable.value) return;
+  const checked = [...team.value.checkedQuarters];
+  const on = checked.includes(q);
+  const next = on ? checked.filter((x) => x !== q) : [...checked, q].sort(qCmp);
+  await state.applySnapshotFromIntent({
+    op: 'set_quarters',
+    checkedQuarters: next,
+  });
+}
+
+function openSyncPop() {
+  syncOpen.value = true;
+  requestAnimationFrame(() => {
+    placeSyncPop();
+    syncShown.value = true;
+  });
+}
+
+function closeSyncPop(refocus?: boolean) {
+  syncOpen.value = false;
+  syncShown.value = false;
+  if (refocus) syncBtnEl.value?.focus();
+}
+
+function placeSyncPop() {
+  const pop = syncPopEl.value;
+  if (!pop || !syncBtnEl.value) return;
+  const r = syncBtnEl.value.getBoundingClientRect();
+  pop.style.top = `${r.bottom + 8}px`;
+  pop.style.left = `${Math.max(12, Math.min(r.left - 12, window.innerWidth - 372))}px`;
+}
+
+function onSyncOutsidePointerDown(ev: PointerEvent) {
+  if (!syncOpen.value) return;
+  const target = ev.target as HTMLElement | null;
+  if (target?.closest('.sync-pop, .bl-sync, .bl-empty-link')) return;
+  closeSyncPop();
+}
+
+function onSyncResize() {
+  if (syncOpen.value) placeSyncPop();
+}
+
+function onSyncKeydown(ev: KeyboardEvent) {
+  if (!syncOpen.value) return;
+  if (ev.key === 'Escape') {
+    ev.stopPropagation();
+    closeSyncPop(true);
+  }
+}
+
+async function runPull() {
+  if (!team.value || !state.editable.value || importing.value) return;
+  if (!state.hasExtension.value) {
+    gate.openGate('import');
+    return;
+  }
+  if (hasQuarterField.value && !pullQs.value.length) return;
+  importing.value = true;
+  try {
+    const items = await bridgeImportJql(team.value.jql, pullQs.value);
+    if (!items.length) {
+      state.toast('Jira 未返回任何 issue，请检查 JQL / Quarter / Token');
+      return;
+    }
+    await state.applySnapshotFromIntent({
+      op: 'import',
+      quarters: pullQs.value,
+      overwrite: overwrite.value,
+      checkedQuarters: team.value.checkedQuarters,
+      items,
+    });
+    closeSyncPop();
+    state.toast(`<span class="ok">✓</span> 已拉取 <b>${items.length}</b> 个 issue → Backlog`);
+    // 拉取时强制刷新 milestone 字典（名称 / 日期 / 描述可能变了）
+    void state.syncMilestoneDictionary({ force: true });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : '拉取失败';
+    state.toast(`拉取失败：${message}`);
+  } finally {
+    importing.value = false;
+  }
+}
 
 const imported = computed(
   () => (state.snapshot.value?.team.importedQuarters.length || 0) > 0,
@@ -180,6 +319,54 @@ async function removeItem(item: RoadmapItem) {
   }
 }
 
+/* ---------- Milestone 标签（卡片上） ----------
+   命中的排在前面；最多展示 2 个，其余折叠为 +N。Target End 晚于 milestone
+   时标红「晚 Nd」——拖入时间轴前就值得留意。 */
+function msShort(ms: MilestoneValue): string {
+  return ms.name.length > 22 ? `${ms.name.slice(0, 21)}…` : ms.name;
+}
+
+function itemMsList(item: RoadmapItem): MilestoneValue[] {
+  return (item.ms || [])
+    .map((key) => state.milestones.value.find((m) => m.key === key))
+    .filter((m): m is MilestoneValue => Boolean(m));
+}
+
+function sortedCardMs(item: RoadmapItem): MilestoneValue[] {
+  const sel = state.msSel.value;
+  return [...itemMsList(item)].sort(
+    (a, b) =>
+      Number(sel.includes(b.key)) - Number(sel.includes(a.key)),
+  );
+}
+
+function cardMsLate(item: RoadmapItem, ms: MilestoneValue): number {
+  if (!item.targetEnd || !ms.milestoneDate) return 0;
+  return Math.max(0, diffD(parseDate(ms.milestoneDate), parseDate(item.targetEnd)));
+}
+
+function cardMsTip(item: RoadmapItem, ms: MilestoneValue): string {
+  const late = cardMsLate(item, ms);
+  const date = ms.milestoneDate ? parseDate(ms.milestoneDate) : null;
+  const rel =
+    late > 0
+      ? `Jira Target End ${fmtMD(item.targetEnd!)} 晚于 milestone ${late} 天，拖入时间轴前就值得留意`
+      : date
+        ? diffD(today, date) >= 0
+          ? `Milestone ${fmtMD(date)} · ${diffD(today, date)} 天后`
+          : `Milestone ${fmtMD(date)} · ${-diffD(today, date)} 天前`
+        : '日期未写在 description 首行，详见 milestone 描述';
+  return `${esc(ms.key)} · ${
+    ms.milestoneDate ? `Milestone ${fmtMD(ms.milestoneDate)}` : '日期未识别'
+  }||${esc(ms.name)}||${rel}`;
+}
+
+function msSelNames(): string {
+  return state.msSel.value
+    .map((k) => state.milestones.value.find((m) => m.key === k)?.name || k)
+    .join(' / ');
+}
+
 function cardTipHead(item: RoadmapItem) {
   const bits = [
     itemDisplayKey(item),
@@ -220,9 +407,15 @@ function onPlanningCommitted() {
 
 onMounted(() => {
   window.addEventListener('roadmap-planning-committed', onPlanningCommitted);
+  document.addEventListener('pointerdown', onSyncOutsidePointerDown, true);
+  document.addEventListener('keydown', onSyncKeydown, true);
+  window.addEventListener('resize', onSyncResize);
 });
 onBeforeUnmount(() => {
   window.removeEventListener('roadmap-planning-committed', onPlanningCommitted);
+  document.removeEventListener('pointerdown', onSyncOutsidePointerDown, true);
+  document.removeEventListener('keydown', onSyncKeydown, true);
+  window.removeEventListener('resize', onSyncResize);
 });
 </script>
 
@@ -231,14 +424,55 @@ onBeforeUnmount(() => {
     <div class="bl-head">
       <div class="bl-title">
         Backlog
-        <span class="bl-count">
-          <template v-if="searchQuery.trim()">
+        <span
+          class="bl-count"
+          :class="{ 'ms-on': state.msActive.value }"
+        >
+          <template v-if="searchQuery.trim() || state.msActive.value">
             {{ filteredBacklog.length }}/{{ state.backlogItems.value.length }}
           </template>
           <template v-else>
             {{ state.backlogItems.value.length }}
           </template>
         </span>
+        <button
+          v-if="state.editable.value"
+          ref="syncBtnEl"
+          class="bl-sync"
+          :class="{ pending: pending.length > 0, empty: !imported, spin: importing }"
+          type="button"
+          aria-haspopup="dialog"
+          :aria-expanded="syncOpen"
+          aria-controls="syncPop"
+          :data-tip="
+            imported
+              ? `从 Jira 拉取||已拉取 ${(team?.importedQuarters || []).join(' / ')}${
+                  pending.length ? ` · 待拉取 ${pending.join(' / ')}` : ''
+                }`
+              : '从 Jira 拉取||按团队 JQL + 勾选的 quarter 导入到 Backlog'
+          "
+          @click="syncOpen ? closeSyncPop() : openSyncPop()"
+        >
+          <svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true">
+            <path
+              d="M11.6 5.2A4.9 4.9 0 003 4.4M2.4 8.8A4.9 4.9 0 0011 9.6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+            <path
+              d="M3 1.9v2.6h2.6M11 12.1V9.5H8.4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span>{{ imported ? '拉取' : '从 Jira 拉取' }}</span>
+          <span class="bl-sync-dot" />
+        </button>
         <button
           v-if="state.editable.value"
           class="bl-add"
@@ -350,6 +584,30 @@ onBeforeUnmount(() => {
             <span v-if="it.targetStart || it.targetEnd" class="card-target">
               {{ targetLabel(it) }}
             </span>
+            <div v-if="itemMsList(it).length" class="card-ms">
+              <template v-for="ms in sortedCardMs(it).slice(0, 2)" :key="ms.key">
+                <span
+                  class="ms-chip"
+                  :class="{
+                    hit: state.msSel.value.includes(ms.key),
+                    late: cardMsLate(it, ms) > 0,
+                  }"
+                  :data-tip="cardMsTip(it, ms)"
+                >
+                  <i />
+                  {{ msShort(ms) }}
+                  <em>
+                    {{ ms.milestoneDate ? fmtMD(ms.milestoneDate) : '日期?' }}
+                    <template v-if="cardMsLate(it, ms) > 0">
+                      · 晚 {{ cardMsLate(it, ms) }}d
+                    </template>
+                  </em>
+                </span>
+              </template>
+              <span v-if="itemMsList(it).length > 2" class="ms-chip more">
+                +{{ itemMsList(it).length - 2 }}
+              </span>
+            </div>
             <span
               v-if="it.subs.length"
               class="card-subs"
@@ -369,6 +627,17 @@ onBeforeUnmount(() => {
           </div>
         </template>
       </template>
+      <div
+        v-else-if="state.msActive.value && state.backlogItems.value.length"
+        class="bl-empty"
+      >
+        Backlog 中没有属于<br /><b>{{ msSelNames() }}</b><br />的未排期条目<template
+          v-if="searchQuery.trim()"
+        >（且匹配「{{ searchQuery.trim() }}」）</template><br />
+        <button class="bl-empty-link" type="button" @click="state.setMsSel([])">
+          清除 milestone 过滤
+        </button>
+      </div>
       <div v-else-if="searchQuery.trim() && state.backlogItems.value.length" class="bl-empty">
         没有匹配「{{ searchQuery.trim() }}」的条目<br />
         <button class="bl-empty-link" type="button" @click="clearSearch">清除搜索</button>
@@ -378,11 +647,119 @@ onBeforeUnmount(() => {
           Backlog 已清空<br />所有 issue 均已排期 🎉
         </template>
         <template v-else>
-          尚未导入数据<br />请在上方勾选 Quarter 后点击<br /><b>「导入」</b>
+          尚未导入数据<br />
+          <button
+            v-if="state.editable.value"
+            class="bl-empty-link"
+            type="button"
+            @click.stop="openSyncPop"
+          >
+            从 Jira 拉取
+          </button>
+          <br />或点右上角<b>「新建条目」</b>手动添加
         </template>
       </div>
     </div>
   </aside>
+
+  <!-- 从 Jira 拉取浮层：Quarter 勾选 + 团队 JQL（可直接跳编辑）+ 拉取按钮 -->
+  <div
+    v-if="syncOpen"
+    ref="syncPopEl"
+    class="sync-pop"
+    :class="{ show: syncShown }"
+    role="dialog"
+    aria-labelledby="spTitle"
+  >
+    <div class="sp-head">
+      <div class="sp-title" id="spTitle">从 Jira 拉取到 Backlog</div>
+      <div class="sp-sub">
+        <template v-if="hasQuarterField">{{ syncSub }}</template>
+        <template v-else>按团队 JQL 导入到 Backlog</template>
+      </div>
+    </div>
+    <div v-if="hasQuarterField" class="sp-sec">
+      <div class="sp-lbl">QUARTERS</div>
+      <div class="chips">
+        <button
+          v-for="q in chips"
+          :key="q"
+          class="chip"
+          :class="{
+            on: team?.checkedQuarters.includes(q),
+            ghost:
+              (team?.checkedQuarters.length
+                ? qCmp(
+                    q,
+                    team.checkedQuarters.reduce((a, b) => (qCmp(a, b) > 0 ? a : b)),
+                  )
+                : q !== CURQ
+                  ? 1
+                  : -1) > 0 && !team?.checkedQuarters.includes(q),
+          }"
+          :disabled="!state.editable.value"
+          @click="toggleQuarter(q)"
+        >
+          <span class="box">
+            <svg width="9" height="9" viewBox="0 0 10 10">
+              <path
+                d="M1.5 5.5L4 8l4.5-6"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          {{ q }}
+          <span v-if="q === CURQ" class="now-tag">当前</span>
+          <span v-if="team?.importedQuarters.includes(q)" class="got">已拉取</span>
+        </button>
+      </div>
+    </div>
+    <div class="sp-src">
+      <span class="sp-lbl">JQL</span>
+      <span class="sp-jql">{{ team?.jql }}</span>
+      <button class="sp-link" type="button" @click="closeSyncPop(); state.modals.value.jql = true">
+        编辑
+      </button>
+    </div>
+    <div class="sp-foot">
+      <label class="ow-label">
+        <input v-model="overwrite" type="checkbox" :disabled="!state.editable.value" />
+        覆盖已有数据
+      </label>
+      <button
+        class="btn btn-primary"
+        :class="{ locked: !state.hasExtension.value }"
+        :disabled="
+          !state.editable.value ||
+          importing ||
+          !showPullBtn ||
+          (hasQuarterField && !pullQs.length)
+        "
+        :data-tip="!state.hasExtension.value ? extensionLockTip('import') : undefined"
+        @click="runPull"
+      >
+        <span v-if="importing" class="mini-spin" />
+        <svg v-else class="ico" width="13" height="13" viewBox="0 0 14 14">
+          <path
+            d="M7 1v8M3.5 6L7 9.5 10.5 6M2 12.5h10"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        {{ importing ? '查询 Jira…' : pullBtnLabel }}
+        <span v-if="!importing && hasQuarterField && showPullBtn && pullQs.length">
+          {{ pullQs.length }}
+        </span>
+      </button>
+    </div>
+  </div>
 
   <div
     class="modal-back"

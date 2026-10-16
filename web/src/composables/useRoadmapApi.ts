@@ -1,5 +1,10 @@
 import { ref, computed } from 'vue';
-import type { ActivityEntry, TeamSnapshot, TeamSummary } from '../types';
+import type {
+  ActivityEntry,
+  MilestoneValue,
+  TeamSnapshot,
+  TeamSummary,
+} from '../types';
 import type { ActorSource } from '../types';
 
 const CLIENT_ID_KEY = 'roadmap-client-id';
@@ -344,6 +349,34 @@ export function useRoadmapApi() {
     });
   }
 
+  /** Cache Custom Label value details the extension fetched from Jira. */
+  async function upsertCustomLabelValues(
+    teamId: string,
+    values: Array<{
+      key: string;
+      name: string;
+      description: string | null;
+      dueDate: string | null;
+      targetEnd: string | null;
+      labelKey: string | null;
+      labelName: string | null;
+      status: string | null;
+    }>,
+  ) {
+    return apiFetch<{ ok: true; values: MilestoneValue[] }>(
+      `/api/v1/teams/${teamId}/custom-labels`,
+      {
+        teamId,
+        method: 'POST',
+        body: JSON.stringify({
+          ...actorPayload.value,
+          shareToken: getShareToken(teamId),
+          values,
+        }),
+      },
+    );
+  }
+
   async function fetchActivity(teamId: string, limit = 100) {
     const data = await apiFetch<{ items: ActivityEntry[] }>(
       `/api/v1/teams/${teamId}/activity?limit=${limit}`,
@@ -538,6 +571,7 @@ export function useRoadmapApi() {
     deferSubs,
     importTasks,
     syncTarget,
+    upsertCustomLabelValues,
     fetchPlanningCapabilities,
     fetchPlanningContext,
     submitPlanningJob,

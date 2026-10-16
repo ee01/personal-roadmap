@@ -23,6 +23,27 @@ export interface ReleaseSheetConfig {
   fetchedAt: string | null;
 }
 
+/** A `LabelKey:ValueKey` pair mirrored from a Jira issue's Custom Labels field. */
+export interface CustomLabelPair {
+  labelKey: string;
+  valueKey: string;
+}
+
+export type MilestoneDateSource = 'duedate' | 'targetEnd' | 'description';
+
+/** Team-scoped cache of one Custom Label value (LBL sub-task). */
+export interface CustomLabelValue {
+  key: string;
+  labelKey: string | null;
+  labelName: string | null;
+  name: string;
+  description: string | null;
+  milestoneDate: string | null;
+  dateSource: MilestoneDateSource | null;
+  status: string | null;
+  fetchedAt: number;
+}
+
 export type IntentOp =
   | 'create_team'
   | 'update_jql'
@@ -140,6 +161,8 @@ export interface ItemRow {
   owner: string | null;
   /** Mirrored Jira workflow status (e.g. 'Closed', 'Resolved'); null until first Jira refresh. */
   status: string | null;
+  /** Value keys of the Jira Custom Labels (`customfield_33875`) on this issue. */
+  custom_labels_json: string;
   version: number;
   created_at: number;
   updated_at: number;
@@ -227,6 +250,8 @@ export interface TeamSnapshot {
     jiraBaseUrl?: string;
     /** Epoch ms of last successful `refresh_from_jira`; used for 10-minute TTL. */
     jiraRefreshedAt?: number | null;
+    /** Team-scoped Custom Label value cache (milestone dictionary). */
+    customLabels?: CustomLabelValue[];
   };
   items: Array<{
     key: string;
@@ -257,6 +282,8 @@ export interface TeamSnapshot {
     owner?: string | null;
     /** Mirrored Jira workflow status (e.g. 'Closed', 'Resolved'); null until first Jira refresh. */
     status?: string | null;
+    /** Value keys of the Jira Custom Labels on this issue (milestone filter). */
+    ms: string[];
     subs: Array<{
       id: string;
       key?: string | null;

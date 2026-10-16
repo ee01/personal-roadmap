@@ -6,6 +6,23 @@ export type PhaseKind = 'design' | 'stage' | 'production' | 'custom';
 export type EtaSource = 'jira' | 'manual';
 export type RulerMode = 'release' | 'month';
 export type ReleaseFilterMode = 'all' | 'major' | 'custom';
+export type MilestoneDateSource = 'duedate' | 'targetEnd' | 'description';
+
+/** One cached Jira Custom Label value (LBL sub-task) — the milestone dictionary. */
+export interface MilestoneValue {
+  key: string;
+  labelKey: string | null;
+  labelName: string | null;
+  name: string;
+  description: string | null;
+  milestoneDate: string | null;
+  dateSource: MilestoneDateSource | null;
+  status: string | null;
+  fetchedAt: number;
+}
+
+/** How Gantt renders rows that do not match the milestone filter. */
+export type MilestoneFilterMode = 'dim' | 'hide';
 
 export interface ReleaseFilter {
   mode: ReleaseFilterMode;
@@ -121,6 +138,8 @@ export interface RoadmapItem {
   owner?: string | null;
   /** Mirrored Jira workflow status (e.g. 'Closed', 'Resolved'); null until first Jira refresh. */
   status?: string | null;
+  /** Value keys of the Jira Custom Labels on this issue (milestone filter). */
+  ms?: string[];
   subs: RoadmapSub[];
   markers: RoadmapMarker[];
 }
@@ -168,6 +187,8 @@ export interface TeamSnapshot {
     jiraBaseUrl?: string;
     /** Epoch ms of last successful Jira refresh; used for 10-minute TTL. */
     jiraRefreshedAt?: number | null;
+    /** Team-scoped Custom Label value cache (milestone dictionary). */
+    customLabels?: MilestoneValue[];
   };
   items: RoadmapItem[];
   members: TeamMember[];

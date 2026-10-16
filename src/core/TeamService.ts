@@ -10,6 +10,8 @@ import { parseParentLink } from './parentLink.js';
 import type {
   ActivityRow,
   ActorContext,
+  CustomLabelPair,
+  CustomLabelValue,
   EtaSource,
   IntentOp,
   ItemRow,
@@ -43,6 +45,12 @@ import {
   coerceOriginalEstimateDays,
   originalEstimateFromJiraFields,
 } from './originalEstimate.js';
+import {
+  customLabelValueKeys,
+  parseCustomLabelsField,
+  parseStoredCustomLabels,
+  resolveMilestoneDate,
+} from './customLabels.js';
 
 function parseJsonArray(raw: string | null | undefined): string[] {
   if (!raw) return [];
@@ -194,6 +202,9 @@ function mapMarker(row: MarkerRow) {
 }
 
 function mapItem(row: ItemRow, subs: SubRow[], markers: MarkerRow[] = []) {
+  const customLabels: CustomLabelPair[] = parseStoredCustomLabels(
+    row.custom_labels_json,
+  );
   return {
     key: row.key,
     type: row.type,
@@ -217,6 +228,7 @@ function mapItem(row: ItemRow, subs: SubRow[], markers: MarkerRow[] = []) {
     parentLink: row.parent_link || null,
     owner: row.owner || null,
     status: row.status || null,
+    ms: customLabelValueKeys(customLabels),
     subs: subs.map((sub) => ({
       id: sub.id,
       key: sub.jira_key,
@@ -320,6 +332,7 @@ export function getTeamSnapshot(teamId: string): TeamSnapshot | null {
   const members = db
     .prepare(`SELECT * FROM members WHERE team_id = ? ORDER BY name ASC`)
     .all(teamId) as MemberRow[];
+  const customLabels = listCustomLabelValues(teamId);
 
   const cutoff = now() - 60_000;
   const presence = db
@@ -382,6 +395,7 @@ export function getTeamSnapshot(teamId: string): TeamSnapshot | null {
       assigneeMap: parseAssigneeMap(team.assignee_map_json),
       jiraBaseUrl: config.jira.baseUrl || '',
       jiraRefreshedAt: team.jira_refreshed_at || null,
+      customLabels,
     },
     items: items.map((item) =>
       mapItem(
@@ -409,6 +423,124 @@ export function getTeamSnapshot(teamId: string): TeamSnapshot | null {
       expiresAt: lock.expires_at,
     })),
   };
+}
+
+/** Milestone dictionary cache — one row per Custom Label value (LBL sub-task). */
+export function listCustomLabelValues(teamId: string): CustomLabelValue[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT * FROM custom_label_values WHERE team_id = ? ORDER BY milestone_date IS NULL, milestone_date ASC, name ASC`,
+    )
+    .all(teamId) as Array<{
+    team_id: string;
+    key: string;
+    label_key: string | null;
+    label_name: string | null;
+    name: string;
+    description: string | null;
+    milestone_date: string | null;
+    date_source: string | null;
+    status: string | null;
+    fetched_at: number;
+  }>;
+  return rows.map(mapCustomLabelValueRow);
+}
+
+function mapCustomLabelValueRow(row: {
+  key: string;
+  label_key: string | null;
+  label_name: string | null;
+  name: string;
+  description: string | null;
+  milestone_date: string | null;
+  date_source: string | null;
+  status: string | null;
+  fetched_at: number;
+}): CustomLabelValue {
+  return {
+    key: row.key,
+    labelKey: row.label_key || null,
+    labelName: row.label_name || null,
+    name: row.name,
+    description: row.description || null,
+    milestoneDate: row.milestone_date || null,
+    dateSource:
+      row.date_source === 'duedate' ||
+      row.date_source === 'targetEnd' ||
+      row.date_source === 'description'
+        ? row.date_source
+        : null,
+    status: row.status || null,
+    fetchedAt: row.fetched_at,
+  };
+}
+
+/**
+ * Cache Custom Label value details fetched by the extension (name / description /
+ * Due Date / Target End / parent Label). The server owns the milestone-date
+ * resolution rule so every client sees the same date. Publishing a snapshot
+ * makes the dictionary visible to viewers without the extension.
+ */
+export function upsertCustomLabelValues(
+  teamId: string,
+  actor: ActorContext,
+  values: unknown,
+): { ok: true; values: CustomLabelValue[] } | { ok: false; error: string; status: number } {
+  if (!Array.isArray(values)) {
+    return { ok: false, error: 'values_required', status: 400 };
+  }
+  const team = getTeam(teamId);
+  if (!team) return { ok: false, error: 'team_not_found', status: 404 };
+
+  const db = getDb();
+  const ts = now();
+  const stmt = db.prepare(
+    `INSERT INTO custom_label_values (
+       team_id, key, label_key, label_name, name, description,
+       milestone_date, date_source, status, fetched_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (team_id, key) DO UPDATE SET
+       label_key = COALESCE(excluded.label_key, custom_label_values.label_key),
+       label_name = COALESCE(excluded.label_name, custom_label_values.label_name),
+       name = CASE WHEN excluded.name != '' THEN excluded.name ELSE custom_label_values.name END,
+       description = excluded.description,
+       milestone_date = excluded.milestone_date,
+       date_source = excluded.date_source,
+       status = COALESCE(excluded.status, custom_label_values.status),
+       fetched_at = excluded.fetched_at`,
+  );
+  let written = 0;
+  for (const raw of values) {
+    if (!raw || typeof raw !== 'object') continue;
+    const row = raw as Record<string, unknown>;
+    const key = String(row.key || '').trim();
+    if (!/^[A-Za-z][A-Za-z0-9]+-\d+$/.test(key)) continue;
+    const name = String(row.name || '').trim();
+    const description =
+      row.description == null ? null : clipDescription(String(row.description));
+    const resolved = resolveMilestoneDate({
+      dueDate: row.dueDate == null ? null : String(row.dueDate),
+      targetEnd: row.targetEnd == null ? null : String(row.targetEnd),
+      description,
+    });
+    stmt.run(
+      teamId,
+      key,
+      String(row.labelKey || '').trim() || null,
+      String(row.labelName || '').trim() || null,
+      name || key,
+      description,
+      resolved?.date || null,
+      resolved?.source || null,
+      String(row.status || '').trim() || null,
+      ts,
+    );
+    written += 1;
+  }
+  if (written > 0) {
+    emitTeamEvent('snapshot', getTeamSnapshot(teamId), teamId);
+  }
+  return { ok: true, values: listCustomLabelValues(teamId) };
 }
 
 export function createTeam(input: {
@@ -937,6 +1069,8 @@ export function applyIntent(
       // results under its real key — update that row instead of duplicating it.
       const existing = getItem(teamId, key) || getItemByJiraKey(teamId, key);
       if (existing && !overwrite) continue;
+      const customLabels = parseCustomLabelsField(item.customLabels);
+      const customLabelsJson = JSON.stringify(customLabels);
       const projectKey =
         (item.projectKey ? String(item.projectKey) : null) ||
         projectKeyFromJiraKey(key);
@@ -946,6 +1080,7 @@ export function applyIntent(
             type = ?, title = ?, quarter = ?, estimate = ?,
             target_start = ?, target_end = ?, source = 'jira', jira_key = ?,
             project_key = COALESCE(?, project_key),
+            custom_labels_json = ?,
             updated_at = ?, version = version + 1
            WHERE team_id = ? AND key = ?`,
         ).run(
@@ -957,6 +1092,7 @@ export function applyIntent(
           item.targetEnd ? String(item.targetEnd) : null,
           key,
           projectKey,
+          customLabelsJson,
           ts,
           teamId,
           existing.key,
@@ -966,8 +1102,9 @@ export function applyIntent(
           `INSERT INTO items (
             id, team_id, key, type, title, alias, quarter, estimate,
             target_start, target_end, scheduled, start_date, days, lane,
-            expanded, source, jira_key, project_key, version, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0, NULL, NULL, 0, 0, 'jira', ?, ?, 1, ?, ?)`,
+            expanded, source, jira_key, project_key, custom_labels_json,
+            version, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0, NULL, NULL, 0, 0, 'jira', ?, ?, ?, 1, ?, ?)`,
         ).run(
           nanoid(12),
           teamId,
@@ -980,6 +1117,7 @@ export function applyIntent(
           item.targetEnd ? String(item.targetEnd) : null,
           key,
           projectKey,
+          customLabelsJson,
           ts,
           ts,
         );
@@ -2428,6 +2566,10 @@ function applyRefreshFromJira(
       const nextTitle = summary || item.title;
       const nextDesc =
         description !== undefined ? description : item.description;
+      const nextLabels =
+        fields.customLabels === undefined
+          ? item.custom_labels_json
+          : JSON.stringify(parseCustomLabelsField(fields.customLabels));
       const dirty = scheduleDivergesFromMirroredTarget({
         start: item.start_date,
         days: item.days,
@@ -2468,6 +2610,7 @@ function applyRefreshFromJira(
       const same =
         nextTitle === item.title &&
         (nextDesc || null) === (item.description || null) &&
+        nextLabels === item.custom_labels_json &&
         (nextTStart || null) === (item.target_start || null) &&
         (nextTEnd || null) === (item.target_end || null) &&
         (nextStart || null) === (item.start_date || null) &&
@@ -2480,6 +2623,7 @@ function applyRefreshFromJira(
           `UPDATE items SET
             title = ?, description = ?, target_start = ?, target_end = ?,
             start_date = ?, days = ?, status = ?, owner = ?,
+            custom_labels_json = ?,
             version = version + 1, updated_at = ?
            WHERE team_id = ? AND key = ? AND version = ?`,
         )
@@ -2492,6 +2636,7 @@ function applyRefreshFromJira(
           nextDays,
           nextStatus,
           nextOwner,
+          nextLabels,
           ts,
           teamId,
           item.key,

@@ -42,6 +42,7 @@ describe('a database created from schema.sql', () => {
       '017_subs_target_dates',
       '018_items_parent_link',
       '019_items_owner',
+      '020_custom_labels',
     ]);
     expect(
       (db.pragma('table_info(subs)') as Array<{ name: string }>).map(
@@ -52,7 +53,7 @@ describe('a database created from schema.sql', () => {
       (db.pragma('table_info(items)') as Array<{ name: string }>).map(
         (row) => row.name,
       ),
-    ).toEqual(expect.arrayContaining(['description', 'status', 'parent_link', 'owner']));
+    ).toEqual(expect.arrayContaining(['description', 'status', 'parent_link', 'owner', 'custom_labels_json']));
     expect(
       (db.pragma('table_info(teams)') as Array<{ name: string }>).map(
         (row) => row.name,
@@ -93,5 +94,30 @@ describe('a database created from schema.sql', () => {
         )
         .get(),
     ).toEqual({ name: 'draft_batches' });
+    expect(
+      db
+        .prepare(
+          `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'custom_label_values'`,
+        )
+        .get(),
+    ).toEqual({ name: 'custom_label_values' });
+    expect(
+      (
+        db.pragma('table_info(custom_label_values)') as Array<{ name: string }>
+      ).map((row) => row.name),
+    ).toEqual(
+      expect.arrayContaining([
+        'team_id',
+        'key',
+        'label_key',
+        'label_name',
+        'name',
+        'description',
+        'milestone_date',
+        'date_source',
+        'status',
+        'fetched_at',
+      ]),
+    );
   });
 });

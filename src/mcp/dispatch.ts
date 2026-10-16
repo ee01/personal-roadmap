@@ -11,7 +11,6 @@ import {
   cancelJob,
   commitPlan,
   createPlanningJob,
-  addPlanningItem,
   deletePlanningItem,
   getBatchPayload,
   jobPayload,

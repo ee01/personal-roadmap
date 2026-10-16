@@ -8,10 +8,12 @@ import {
   importRemoteTasks,
   importTasksFromJira,
   listActivity,
+  listCustomLabelValues,
   listFocusItems,
   listTeams,
   pruneOldActivity,
   touchPresence,
+  upsertCustomLabelValues,
   validateShareToken,
 } from '../core/TeamService.js';
 import { getEventBus } from '../core/EventBus.js';
@@ -240,6 +242,39 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         ? queueSubTargetSync(request.params.teamId, subId, access.actor)
         : queueTargetSync(request.params.teamId, itemKey, access.actor);
       return { ok: true, ...queued, via: 'server' };
+    },
+  );
+
+  app.get<{ Params: { teamId: string } }>(
+    '/api/v1/teams/:teamId/custom-labels',
+    async (request, reply) => {
+      const snapshot = getTeamSnapshot(request.params.teamId);
+      if (!snapshot) return reply.code(404).send({ error: 'team_not_found' });
+      return { values: listCustomLabelValues(request.params.teamId) };
+    },
+  );
+
+  // Milestone dictionary cache write: the extension fetches value details with
+  // the user's Jira session; the server resolves milestone dates and caches so
+  // every viewer (extension or not) reads the same dictionary.
+  app.post<{ Params: { teamId: string } }>(
+    '/api/v1/teams/:teamId/custom-labels',
+    async (request, reply) => {
+      const actor = readActor(request) as ActorContext & { shareToken?: string };
+      const access = requireWriteAccess(request.params.teamId, actor);
+      if (!access.ok) {
+        return reply.code(access.status).send({ error: access.error });
+      }
+      const body = (request.body || {}) as Record<string, unknown>;
+      const result = upsertCustomLabelValues(
+        request.params.teamId,
+        access.actor,
+        body.values,
+      );
+      if (!result.ok) {
+        return reply.code(result.status || 400).send({ error: result.error });
+      }
+      return result;
     },
   );
 

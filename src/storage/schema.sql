@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS items (
   /** Team member name; becomes the Jira assignee on create / write-back. */
   owner TEXT,
   status TEXT,
+  /** Value keys of the Jira Custom Labels (`customfield_33875`) on this issue. */
+  custom_labels_json TEXT NOT NULL DEFAULT '[]',
   version INTEGER NOT NULL DEFAULT 1,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
@@ -56,6 +58,21 @@ CREATE INDEX IF NOT EXISTS idx_items_scheduled ON items(team_id, scheduled);
 -- idx_items_jira_key is created by migration 003 instead: this file is executed
 -- before the migrations run, so it must not reference columns that an existing
 -- deployment has not been migrated to yet.
+
+CREATE TABLE IF NOT EXISTS custom_label_values (
+  team_id TEXT NOT NULL,
+  key TEXT NOT NULL,
+  label_key TEXT,
+  label_name TEXT,
+  name TEXT NOT NULL,
+  description TEXT,
+  milestone_date TEXT,
+  date_source TEXT,
+  status TEXT,
+  fetched_at INTEGER NOT NULL,
+  PRIMARY KEY (team_id, key),
+  FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+);
 
 CREATE TABLE IF NOT EXISTS subs (
   id TEXT PRIMARY KEY,

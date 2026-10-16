@@ -309,6 +309,39 @@ const MIGRATIONS: Migration[] = [
       addColumn(database, 'items', 'owner', 'TEXT');
     },
   },
+  {
+    id: '020_custom_labels',
+    up: (database) => {
+      // Mirrored Jira Custom Labels (`customfield_33875`) per item, stored as
+      // [{labelKey, valueKey}] JSON; exposed on snapshots as item.ms.
+      addColumn(
+        database,
+        'items',
+        'custom_labels_json',
+        `TEXT NOT NULL DEFAULT '[]'`,
+      );
+      // Team-scoped milestone dictionary cache. The extension fetches value
+      // details (name / description / dates) with the user's Jira session; the
+      // server only caches them so everyone — including viewers without the
+      // extension — can read the dictionary.
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS custom_label_values (
+          team_id TEXT NOT NULL,
+          key TEXT NOT NULL,
+          label_key TEXT,
+          label_name TEXT,
+          name TEXT NOT NULL,
+          description TEXT,
+          milestone_date TEXT,
+          date_source TEXT,
+          status TEXT,
+          fetched_at INTEGER NOT NULL,
+          PRIMARY KEY (team_id, key),
+          FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+        );
+      `);
+    },
+  },
 ];
 
 function runMigrations(database: Db): void {

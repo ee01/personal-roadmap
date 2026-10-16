@@ -11,6 +11,8 @@ import {
 } from 'vue';
 import type {
   ActivityEntry,
+  MilestoneFilterMode,
+  MilestoneValue,
   ResWindow,
   RoadmapItem,
   RoadmapSub,
@@ -34,6 +36,8 @@ import {
   today,
 } from './useGeometry';
 import { useRoadmapApi } from './useRoadmapApi';
+import { bridgeFetchCustomLabelValues } from './useExtensionBridge';
+import { isDoneStatus } from './useRoadmapContract';
 
 export const ROADMAP_STATE_KEY: InjectionKey<ReturnType<typeof createRoadmapState>> =
   Symbol('roadmap-state');
@@ -132,10 +136,29 @@ export function createRoadmapState() {
   /** Session-only Sprint↔month toggle; not persisted / not synced. */
   const rulerMode = ref<RulerMode>('release');
 
+  // ---------- Milestone 过滤（Custom Labels） ----------
+  // 一个过滤状态（按团队记忆），一个谓词 msMatch，Backlog / 甘特 / 统计共用。
+  // 多选之间是 OR（命中任一）；甘特中未匹配的行默认淡化，可切换隐藏。
+  const msSel = ref<string[]>([]);
+  const msMode = ref<MilestoneFilterMode>(readStoredMsMode());
+  const msDictSyncing = ref(false);
+  const MS_DICT_TTL_MS = 6 * 60 * 60 * 1000;
+  const msSelStorageKey = (teamId: string) =>
+    `personalroadmap.msSel.${teamId}`;
+
+  function readStoredMsMode(): MilestoneFilterMode {
+    try {
+      return localStorage.getItem('personalroadmap.msMode') === 'hide'
+        ? 'hide'
+        : 'dim';
+    } catch {
+      return 'dim';
+    }
+  }
+
   const modals = ref({
     team: false,
     jql: false,
-    import: false,
     cleanup: false,
     aiCreate: false,
     assigneeMap: false,
@@ -172,6 +195,134 @@ export function createRoadmapState() {
     if (!snapshot.value) return [] as RoadmapItem[];
     return snapshot.value.items.filter((i) => !i.scheduled);
   });
+
+  // ---------- Milestone 过滤（Custom Labels） ----------
+  const milestones = computed<MilestoneValue[]>(
+    () => snapshot.value?.team.customLabels || [],
+  );
+  const msActive = computed(() => msSel.value.length > 0);
+  /** 没有任何 Custom Label 数据时，顶部过滤行整体不显示。 */
+  const hasMsData = computed(
+    () =>
+      milestones.value.length > 0 ||
+      Boolean(snapshot.value?.items.some((i) => (i.ms || []).length)),
+  );
+
+  function msMatch(item: Pick<RoadmapItem, 'ms'>): boolean {
+    if (!msActive.value) return true;
+    return (item.ms || []).some((k) => msSel.value.includes(k));
+  }
+
+  /**
+   * 已排期且未完成的条目：结束日晚于某个选中的 milestone 时，返回差得最远
+   * 的那个 {ms, days}（甘特 bar 末端 / Backlog 卡片标红用）。
+   */
+  function msLateOf(item: RoadmapItem): { ms: MilestoneValue; days: number } | null {
+    if (!msActive.value || !item.scheduled || isDoneStatus(item)) return null;
+    if (!item.start || !item.days) return null;
+    const end = addD(item.start, item.days - 1);
+    let worst: { ms: MilestoneValue; days: number } | null = null;
+    for (const key of item.ms || []) {
+      if (!msSel.value.includes(key)) continue;
+      const ms = milestones.value.find((m) => m.key === key);
+      if (!ms?.milestoneDate) continue;
+      const days = diffD(parseDate(ms.milestoneDate), end);
+      if (days > 0 && (!worst || days > worst.days)) worst = { ms, days };
+    }
+    return worst;
+  }
+
+  const msStats = computed(() => {
+    const items = snapshot.value?.items || [];
+    const hits = items.filter((i) => msMatch(i));
+    const late = hits.filter((i) => msLateOf(i) !== null).length;
+    const scheduled = hits.filter((i) => i.scheduled).length;
+    return { hits: hits.length, scheduled, late };
+  });
+
+  function setMsSel(keys: string[]) {
+    msSel.value = [...new Set(keys)];
+    const id = teamId.value;
+    if (id) {
+      try {
+        localStorage.setItem(
+          msSelStorageKey(id),
+          JSON.stringify(msSel.value),
+        );
+      } catch {
+        /* private mode */
+      }
+    }
+  }
+
+  function setMsMode(mode: MilestoneFilterMode) {
+    msMode.value = mode;
+    try {
+      localStorage.setItem('personalroadmap.msMode', mode);
+    } catch {
+      /* private mode */
+    }
+  }
+
+  function loadMsSel(teamId: string): string[] {
+    try {
+      const parsed = JSON.parse(
+        localStorage.getItem(msSelStorageKey(teamId)) || '[]',
+      );
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  const msDictUpdatedAt = computed(() =>
+    milestones.value.reduce((max, v) => Math.max(max, v.fetchedAt), 0),
+  );
+  /** 超过 6 小时的字典在打开浮层时后台刷新一次（stale-while-revalidate 兜底）。 */
+  const msDictStale = computed(
+    () =>
+      msDictUpdatedAt.value > 0 &&
+      Date.now() - msDictUpdatedAt.value > MS_DICT_TTL_MS,
+  );
+
+  /**
+   * Milestone 字典同步：扩展用用户自己的 Jira 登录态拉取 value 详情，服务端解析
+   * 日期并缓存（团队维度），没装扩展的人直接读缓存。
+   * - `force`（点「拉取」时）：强制刷新全部已知 key 的日期与描述
+   * - 默认（静默刷新后 / 打开浮层时）：只补拉字典里还没有的新 key；
+   *   超过 6 小时的条目也一并刷新
+   */
+  async function syncMilestoneDictionary(
+    opts: { force?: boolean } = {},
+  ): Promise<void> {
+    if (!teamId.value || !editable.value || !api.hasExtension()) return;
+    if (msDictSyncing.value) return;
+    const snap = snapshot.value;
+    if (!snap) return;
+    const dict = new Map(
+      (snap.team.customLabels || []).map((v) => [v.key, v]),
+    );
+    const keys = new Set<string>();
+    for (const item of snap.items) {
+      for (const key of item.ms || []) keys.add(key);
+    }
+    if (!keys.size) return;
+    const unknown = [...keys].filter((k) => !dict.has(k));
+    // 默认只拉新 key；只有明确 force（拉取按钮 / 浮层手动刷新）才重刷全部
+    const toFetch = opts.force ? [...keys] : unknown;
+    if (!toFetch.length) return;
+    msDictSyncing.value = true;
+    try {
+      const values = await bridgeFetchCustomLabelValues(toFetch);
+      if (!values.length) return;
+      await api.upsertCustomLabelValues(teamId.value, values);
+      commitSnapshot(await api.fetchTeam(teamId.value));
+    } catch (err) {
+      console.debug('[roadmap] milestone dictionary sync skipped', err);
+    } finally {
+      msDictSyncing.value = false;
+    }
+  }
 
   const jqlHints = computed(() => snapshot.value?.team.jqlHints || EMPTY_JQL_HINTS);
 
@@ -320,6 +471,7 @@ export function createRoadmapState() {
       focusQuarter.value = readUrlParams().q || CURQ;
       view.value = readUrlParams().view || 'gantt';
       resWin.value = readUrlParams().w || '2w';
+      msSel.value = loadMsSel(id);
       activity.value = (await api.fetchActivity(id)).filter(
         (entry) => !entry.teamId || entry.teamId === id,
       );
@@ -644,6 +796,20 @@ export function createRoadmapState() {
     focusQuarter,
     rulerMode,
     modals,
+    msSel,
+    msMode,
+    msActive,
+    hasMsData,
+    milestones,
+    msMatch,
+    msLateOf,
+    msStats,
+    msDictSyncing,
+    msDictUpdatedAt,
+    msDictStale,
+    setMsSel,
+    setMsMode,
+    syncMilestoneDictionary,
     createJiraRunning,
     importOverwrite,
     teamId,

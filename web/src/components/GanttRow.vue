@@ -123,6 +123,18 @@ const itemDone = computed(() => isDoneStatus(props.item));
 const dispKey = computed(() => itemDisplayKey(props.item));
 const wrapMode = computed(() => shouldWrapAlias(props.item.alias));
 const barW = computed(() => (props.item.days || 0) * DAY_W.value - 2);
+
+/* ---------- Milestone 过滤：未匹配行淡化 / 隐藏 ---------- */
+const msRowCls = computed(() => {
+  if (!state.msActive.value || state.msMatch(props.item)) return '';
+  return state.msMode.value === 'hide' ? 'ms-hide' : 'ms-dim';
+});
+
+const msLate = computed(() => state.msLateOf(props.item));
+
+function msShortName(name: string): string {
+  return name.length > 22 ? `${name.slice(0, 21)}…` : name;
+}
 const labelIn = computed(() => wrapMode.value || barW.value >= 110);
 const visibleSubs = computed(() => props.item.subs.filter((s) => !s.cleared));
 const nSubs = computed(() => visibleSubs.value.length);
@@ -987,7 +999,7 @@ watch(
 </script>
 
 <template>
-  <div ref="rowRef" class="g-row" :data-key="item.key">
+  <div ref="rowRef" class="g-row" :class="msRowCls" :data-key="item.key">
     <div class="g-lane">
       <div
         class="bar"
@@ -1071,6 +1083,16 @@ watch(
           ×
         </button>
       </div>
+      <!-- 排期结束晚于所属 milestone：在 bar 末端标出差值 -->
+      <span
+        v-if="msLate"
+        class="ms-late"
+        :style="{ left: `${barLeft() + barW + 8}px` }"
+        :data-tip="`排期结束日 ${fmtMD(addD(item.start!, item.days! - 1))} 晚于 milestone ${msLate.ms.name} ${msLate.days} 天||Milestone ${msLate.ms.milestoneDate ? fmtMD(msLate.ms.milestoneDate) : '日期未识别'} · 日期解析自 LBL description 首行`"
+      >
+        <i />
+        晚于 {{ msShortName(msLate.ms.name) }} {{ msLate.days }}d
+      </span>
       <button
         v-if="editable"
         class="bar-plus"
