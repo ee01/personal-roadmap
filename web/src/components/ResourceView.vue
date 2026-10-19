@@ -56,8 +56,9 @@ const renameValue = ref('');
 
 const allWin = computed(() => state.resWin.value === 'all');
 /** Near-2-weeks window can be panned (see §6): resOffset in days, relative to
- * today. Session-only UI state — not persisted, not synced to teammates. */
-const resOffset = ref(0);
+ * today. Session-only UI state — not persisted, not synced to teammates;
+ * hoisted into the shared state so the copy-export button sees the same window. */
+const resOffset = state.resOffset;
 const winS = computed(() => (allWin.value ? props.tl.start : addD(today, resOffset.value)));
 const winE = computed(() => (allWin.value ? props.tl.end : addD(winS.value, 13)));
 const days = computed(() => diffD(winS.value, winE.value) + 1);

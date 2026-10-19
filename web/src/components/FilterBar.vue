@@ -4,6 +4,7 @@ import { useRoadmapState } from '../composables/useRoadmapState';
 import { esc, fmtMD, parseDate, today, diffD } from '../composables/useGeometry';
 import type { MilestoneValue } from '../types';
 import MilestonePopover from './MilestonePopover.vue';
+import CopyExport from './CopyExport.vue';
 
 /**
  * 视图过滤行（原 Quarter 导入栏）。横跨 Backlog 与甘特，只放「影响看什么」的
@@ -189,12 +190,16 @@ function relOf(date: Date): string {
           隐藏
         </button>
       </div>
-      <span v-if="state.filterActive.value" class="ms-stat">
-        {{ state.msStats.value.hits }} 项 · 已排期 {{ state.msStats.value.scheduled }}
-        <template v-if="state.msStats.value.late">
-          · <span class="late">{{ state.msStats.value.late }} 项晚于 milestone</span>
-        </template>
-      </span>
+      <!-- 过滤行最右：复制导出。「看到什么就复制什么」，范围跟随当前视图（任务 → Epic / 人员 → 按人分组的 Task）与过滤 -->
+      <div class="filter-tail">
+        <span v-if="state.filterActive.value" class="ms-stat">
+          {{ state.msStats.value.hits }} 项 · 已排期 {{ state.msStats.value.scheduled }}
+          <template v-if="state.msStats.value.late">
+            · <span class="late">{{ state.msStats.value.late }} 项晚于 milestone</span>
+          </template>
+        </span>
+        <CopyExport />
+      </div>
     </div>
   </div>
   <MilestonePopover

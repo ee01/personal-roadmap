@@ -1066,6 +1066,130 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
 .ms-stat{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
 .ms-stat .late{color:var(--danger);font-weight:600}
 
+/* ============ 复制导出（过滤行最右） ============
+   主按钮一键复制（默认值 = 上次的选项）；箭头 / 复制成功后弹出「回执卡」：预览 + 就地加列，勾选即重写剪贴板 */
+:root{ --cp:#0684BC; --cp-soft:#EAF3FA; --ok:#2F8F4E; --ok-soft:#E8F5EC }
+.cp-split{display:flex;align-items:stretch;height:32px;flex:none;margin-left:4px;padding-left:12px;border-left:1px solid var(--line2)}
+.cp-main,.cp-more{display:inline-flex;align-items:center;border:1.5px solid var(--line);background:var(--bg);
+  transition:border-color .15s var(--ease),background .15s var(--ease),color .15s var(--ease)}
+.cp-main{gap:7px;padding:0 11px 0 10px;border-radius:9px 0 0 9px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.cp-more{width:28px;justify-content:center;border-left:none;border-radius:0 9px 9px 0;color:var(--muted)}
+.cp-more svg{transition:transform .18s var(--ease)}
+.cp-more[aria-expanded="true"] svg{transform:rotate(180deg)}
+.cp-main:hover,.cp-more:hover{border-color:#C9C6BB;background:#EFEEE8;color:var(--ink)}
+.cp-main:active{transform:translateY(.5px)}
+.cp-main:focus-visible,.cp-more:focus-visible,.cp-pop button:focus-visible{outline:2px solid var(--cp);outline-offset:2px}
+.cp-ico{position:relative;width:14px;height:14px;display:inline-block}
+.cp-ico svg{position:absolute;inset:0;transition:opacity .16s var(--ease),transform .26s cubic-bezier(.3,1.4,.5,1)}
+.cp-ico .i-ok{opacity:0;transform:scale(.4)}
+.cp-n{font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--muted);background:var(--panel);
+  border:1px solid var(--line);border-radius:99px;padding:0 6px;line-height:16px}
+.cp-split.empty .cp-main{color:var(--muted)}
+.cp-split.empty .cp-n{display:none}
+/* 复制成功：按钮原地变绿 + ✓（源头即时反馈），1.6s 后复原 */
+.cp-split.done .cp-main,.cp-split.done .cp-more{border-color:#9ED3AF;background:var(--ok-soft);color:var(--ok)}
+.cp-split.done .i-copy{opacity:0;transform:scale(.4)}
+.cp-split.done .i-ok{opacity:1;transform:none}
+.cp-split.done .cp-n{color:var(--ok);border-color:#B9E0C5}
+
+.cp-pop{position:fixed;z-index:62;width:452px;max-width:calc(100vw - 24px);background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;box-shadow:var(--sh-lg);overflow:hidden;
+  opacity:0;transform:translateY(-6px) scale(.985);transform-origin:top right;pointer-events:none;
+  transition:opacity .18s var(--ease),transform .24s var(--ease)}
+.cp-pop.show{opacity:1;transform:none;pointer-events:auto}
+.cp-head{display:flex;align-items:flex-start;gap:10px;padding:14px 14px 10px 16px}
+.cp-badge{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);color:var(--muted);margin-top:1px}
+.cp-pop.ok .cp-badge{background:var(--ok-soft);color:var(--ok)}
+.cp-pop.err .cp-badge{background:#FDECE8;color:var(--danger)}
+.cp-badge svg{width:13px;height:13px}
+.cp-pop.ok .cp-badge.bump{animation:cpBump .42s cubic-bezier(.3,1.5,.5,1)}
+@keyframes cpBump{0%{transform:scale(.6)}100%{transform:none}}
+.cp-ttl{font-size:14px;font-weight:700;line-height:1.35}
+.cp-ttl .num{font-family:var(--mono)}
+.cp-sub{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.5}
+.cp-sub kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--bg);color:var(--ink)}
+.cp-x{margin-left:auto;width:24px;height:24px;border-radius:7px;color:var(--muted);font-size:15px;line-height:1;flex:none}
+.cp-x:hover{background:var(--bg);color:var(--ink)}
+.cp-scope{display:flex;flex-direction:column;gap:4px;margin:0 16px 10px}
+.cp-note{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);line-height:1.5}
+.cp-note i{width:6px;height:6px;border-radius:50%;flex:none;background:var(--line)}
+.cp-note.ms i{background:var(--ms);border-radius:1.5px;transform:rotate(45deg)}
+.cp-note.win i{background:var(--cur)}
+.cp-note.warn i{background:#E2A13B}
+.cp-note b{color:var(--ink);font-weight:600}
+.cp-note button{color:var(--cp);font-weight:600;font-size:11.5px;margin-left:2px}
+.cp-note button:hover{text-decoration:underline;text-underline-offset:2px}
+.cp-cols{display:flex;flex-wrap:wrap;gap:6px;margin:0 16px}
+.cp-cols span{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:6px;
+  border:1px solid var(--line);background:var(--bg);font-size:11.5px;font-weight:500;animation:chipIn .22s var(--ease)}
+.cp-cols span.g{color:var(--muted);border-style:dashed;background:transparent}
+.cp-cols em{font-style:normal;font-family:var(--mono);font-size:9.5px;color:#A9AFB7}
+/* 预览：以电子表格的列字母（A / B / C…）呈现，直观表达「Tab 分列 → 粘贴进不同单元格」 */
+.cp-prev{margin:0 16px;border:1px solid var(--line);border-radius:9px;overflow:hidden;font-size:11.5px;background:var(--panel)}
+.cp-grid{display:grid;width:100%}
+.cp-grid > div{padding:5px 8px;border-bottom:1px solid var(--line2);border-right:1px solid var(--line2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cp-grid > div.last{border-right:none}
+.cp-grid .ch{background:var(--bg);color:var(--muted);font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;padding:3px 8px}
+.cp-grid .ch em{font-style:normal;color:#A9AFB7;margin-right:5px}
+.cp-grid .k{font-family:var(--mono);font-size:11px}
+.cp-grid .k a{color:var(--cp);text-decoration:underline;text-decoration-color:rgba(6,132,188,.35);text-underline-offset:2px}
+.cp-grid .k .dr{font-size:9px;font-weight:700;letter-spacing:.06em;color:#fff;background:var(--ink);border-radius:3px;padding:0 4px}
+.cp-grid .sub{color:var(--muted)}
+.cp-grid .grp{grid-column:1 / -1;font-weight:700;background:#FBFAF7;border-right:none}
+.cp-grid .grp span{font-family:var(--mono);font-weight:500;color:var(--muted);margin-left:6px;font-size:10.5px}
+.cp-grid .mono{font-family:var(--mono);font-size:10.5px;color:var(--past-ink)}
+.cp-grid .r-in{animation:cpRow .28s var(--ease) backwards}
+@keyframes cpRow{from{opacity:0;transform:translateY(-3px)}}
+.cp-list{padding:8px 12px;line-height:1.7}
+.cp-list .li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-list .li.l1{padding-left:18px;color:var(--past-ink)}
+.cp-list .li.g{font-weight:700;margin-top:4px}
+.cp-list .li.g:first-child{margin-top:0}
+.cp-list a{font-family:var(--mono);font-size:11px;color:var(--cp);margin-right:6px}
+.cp-list .x{color:var(--muted)}
+.cp-more-rows{padding:5px 8px;font-family:var(--mono);font-size:10.5px;color:var(--muted);background:#FBFAF7}
+.cp-empty{padding:22px 16px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7}
+.cp-empty b{color:var(--ink)}
+.cp-sec{display:flex;align-items:center;gap:8px;margin:14px 16px 8px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted)}
+.cp-sec::after{content:"";flex:1;height:1px;background:var(--line2)}
+.cp-sec span{font-family:var(--sans);letter-spacing:0;font-size:10.5px;color:#A9AFB7}
+.cp-opts{display:flex;flex-wrap:wrap;gap:6px;margin:0 16px}
+.cp-chip{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 10px 0 8px;border-radius:8px;
+  border:1.5px solid var(--line);background:var(--bg);font-size:12px;font-weight:500;transition:all .14s var(--ease)}
+.cp-chip:hover{border-color:#C9C6BB}
+.cp-chip .box{width:14px;height:14px;border-radius:4px;border:1.5px solid #B8BFC7;background:#fff;flex:none;
+  display:flex;align-items:center;justify-content:center;transition:all .14s var(--ease)}
+.cp-chip .box svg{opacity:0;transform:scale(.5);transition:all .14s var(--ease)}
+.cp-chip[aria-pressed="true"]{border-color:var(--cp);background:var(--cp-soft);color:var(--fut-deep)}
+.cp-chip[aria-pressed="true"] .box{background:var(--cp);border-color:var(--cp)}
+.cp-chip[aria-pressed="true"] .box svg{opacity:1;transform:none}
+.cp-chip .c{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.cp-seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:2px}
+.cp-seg button{font-size:11.5px;padding:4px 10px;border-radius:6px;color:var(--muted);font-weight:500;white-space:nowrap}
+.cp-seg button.on{background:var(--panel);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(32,36,42,.1)}
+.cp-row{display:flex;align-items:center;gap:10px;margin:8px 16px 0;font-size:11.5px;color:var(--muted)}
+.cp-row .lb{min-width:52px}
+.cp-foot{display:flex;align-items:center;gap:10px;margin-top:14px;padding:11px 16px;border-top:1px solid var(--line2);background:#FBFAF7}
+.cp-foot .hint{font-size:11px;color:var(--muted);line-height:1.45;flex:1}
+.cp-foot .btn{padding:6px 14px;font-size:12.5px}
+.cp-demo{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:#A9AFB7;border:1px dashed var(--line);border-radius:6px;padding:2px 6px;flex:none}
+.cp-demo:hover{color:var(--danger);border-color:#F2B8AC}
+.cp-fallback{margin:0 16px;width:calc(100% - 32px);height:96px;resize:none;border:1.5px solid #F2B8AC;border-radius:9px;
+  padding:8px 10px;font-family:var(--mono);font-size:11px;line-height:1.55;background:#FFFBFA;outline:none;white-space:pre;overflow:auto}
+/* 自动收起倒计时：底部细线（悬停 / 聚焦时暂停）——让「它会自己消失」可预期 */
+.cp-timer{height:2px;background:var(--ok);transform-origin:left;transform:scaleX(0)}
+.cp-timer.run{animation:cpTimer var(--cp-t,8s) linear forwards}
+.cp-pop:hover .cp-timer.run,.cp-pop:focus-within .cp-timer.run{animation-play-state:paused}
+@keyframes cpTimer{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media (max-width:860px){ .cp-label{display:none} }
+@media (prefers-reduced-motion:reduce){
+  .cp-pop,.cp-ico svg,.cp-chip,.cp-chip .box svg{transition:none!important}
+  .cp-badge.bump,.cp-grid .r-in{animation:none!important}
+  .cp-timer.run{animation:none!important;transform:scaleX(0)}
+}
+
 /* 选择浮层：搜索 → 迷你时间轴 → 按日期排序的列表 → 描述详情（渐进披露） */
 .ms-pop{position:fixed;z-index:60;width:400px;max-height:min(620px,calc(100vh - 120px));display:flex;flex-direction:column;
   background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh-lg);
@@ -1213,7 +1337,22 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
     </div>
     <span class="ms-stat" id="msStat"></span>
   </div>
+  <!-- 复制导出：放在过滤行最右——「看到什么就复制什么」，复制范围跟随当前视图（任务 → Epic / 人员 → 按人分组的 Task）与过滤 -->
+  <div class="cp-split" id="cpSplit">
+    <button class="cp-main" id="cpMain" type="button">
+      <span class="cp-ico" aria-hidden="true">
+        <svg class="i-copy" width="14" height="14" viewBox="0 0 14 14"><rect x="4.5" y="4.5" width="7.5" height="7.5" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 4.5V3.2A1.2 1.2 0 008.3 2H3.2A1.2 1.2 0 002 3.2v5.1a1.2 1.2 0 001.2 1.2h1.3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        <svg class="i-ok" width="14" height="14" viewBox="0 0 14 14"><path d="M2.5 7.4l3 3 6-6.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="cp-label" id="cpLabel">复制</span>
+      <span class="cp-n" id="cpN"></span>
+    </button>
+    <button class="cp-more" id="cpMore" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="cpPop" aria-label="复制选项">
+      <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+  </div>
 </div>
+<div class="cp-pop" id="cpPop" role="dialog" aria-label="复制导出"></div>
 <div class="ms-pop" id="msPop" role="dialog" aria-label="按 Milestone 过滤"></div>
 
 <!-- 从 Jira 拉取：Quarter 是「数据源 JQL 的参数」，和 JQL、导入动作放在一起；锚定在 Backlog——结果落在哪，入口就在哪 -->
@@ -5837,6 +5976,421 @@ document.addEventListener('pointerdown', e => {
   closeMsPop();
 }, true);
 addEventListener('resize', () => { if ($('#msPop').classList.contains('show')) placeMsPop(); });
+
+/* ---------- 复制导出（过滤行最右） ----------
+   复制范围 = 当前视图看到的东西：
+   - 任务视图：甘特上的 Epic
+   - 人员视图：按人分组的 Task（近 2 周模式默认只复制时间窗内的任务）
+   Milestone 过滤 / 搜索开启时，两种视图都只复制过滤后的结果（与真实实现 viewMatch 同口径：
+   搜索命中 Epic 本身或其子任务），并在弹窗里写明过滤条件。
+   剪贴板同时写 text/html（<table>，Key 为超链接 → Google Sheet 粘贴后 Key 可点）
+   与 text/plain（Key⇥Summary 的 TSV，纯文本编辑器里同样按列对齐）。
+   主按钮一键复制即完成；随后弹出回执卡：预览 + 附加列，勾选变化立即重写剪贴板，
+   选项按视图记忆（真实实现存 localStorage，无需同步到团队）。 */
+/* 「粘贴到」默认 = 列表 · 文档 / 聊天：一键复制出的就是可直接粘贴到聊天/文档的列表；需要 Sheet 分列时再切表格 */
+const CP_DEF = {
+  gantt:    { subs:false, asg:false, status:false, dates:false, header:false, fmt:'list' },
+  resource: { asgMode:'group', epic:false, status:false, dates:false, header:false, fmt:'list', winOnly:true },
+};
+const cpOpts = (() => {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('personalroadmap.copyOpts') || '{}'); } catch(_){}
+  return { gantt: { ...CP_DEF.gantt, ...saved.gantt }, resource: { ...CP_DEF.resource, ...saved.resource } };
+})();
+const cpSave = () => localStorage.setItem('personalroadmap.copyOpts', JSON.stringify(cpOpts));
+const cpView = () => state.view === 'resource' ? 'resource' : 'gantt';
+const cpEscA = s => esc(String(s ?? '')).replace(/"/g, '&quot;');
+const cpCell = s => String(s ?? '').replace(/[\t\r\n]+/g, ' ').trim();
+const cpStatus = (x, draft) => x.status || (draft ? 'Draft' : '');
+const cpWin = () => { const s = addD(today, state.resOffset); return { s, e: addD(s, 13) }; };
+let cpFail = false;          // Demo：模拟浏览器拒绝剪贴板权限
+
+/* 过滤：Milestone（作用于 Epic）AND 搜索（Epic 标题/Key/备注名，或任一子任务标题/Key 命中） */
+const cpQuery = () => state.search.trim();
+const cpSubHit = (s, q) => !q || q.toLowerCase().split(/\s+/).filter(Boolean)
+  .every(tok => [s.title, s.key || '', s.alias || ''].join(' ').toLowerCase().includes(tok));
+const cpEpicHit = (it, q) => msMatch(it) && (!q || itemMatchesQuery(it, q) || it.subs.some(s => !s.cleared && cpSubHit(s, q)));
+/* Epic 自身命中搜索 → 带上全部子任务；仅因子任务命中 → 只带命中的子任务 */
+const cpSubsOf = (it, q) => {
+  const subs = it.subs.filter(s => !s.cleared);
+  return !q || itemMatchesQuery(it, q) ? subs : subs.filter(s => cpSubHit(s, q));
+};
+function cpFilterNote(n, total, unit){
+  const q = cpQuery(), parts = [];
+  if (msActive()) parts.push(`Milestone「<b>${esc(msSelNames())}</b>」`);
+  if (q) parts.push(`搜索「<b>${esc(q)}</b>」`);
+  if (!parts.length) return null;
+  return { cls:'ms', html:`已按筛选复制：${parts.join(' + ')} · ${n} / ${total} 个 ${unit}` };
+}
+
+/* 数据：返回 { groups:[{ name, rows:[{ lvl, key, summary, asg, epic, status, start, end }] }], notes, n, unit } */
+function cpCollect(view = cpView()){
+  const t = team(), o = cpOpts[view];
+  const onGantt = t.order.map(k => t.items.find(i => i.key === k)).filter(Boolean);
+  if (view === 'gantt'){
+    const q = cpQuery();
+    const epics = onGantt.filter(it => cpEpicHit(it, q));
+    const rows = [];
+    let subN = 0, drafts = 0;
+    epics.forEach(it => {
+      const subs = cpSubsOf(it, q).sort((a, b) => a.start - b.start);
+      const owners = [...new Set(subs.filter(s => s.owner).map(s => dispName(s.owner.n)))];
+      const draft = isDraftItem(it);
+      if (draft) drafts++;
+      rows.push({ lvl:0, key: draft ? null : itemDisplayKey(it), summary: it.title, asg: owners.join(', '),
+                  status: cpStatus(it, draft), start: it.start, end: addD(it.start, it.days - 1) });
+      subN += subs.length;
+      if (o.subs) subs.forEach(s => {
+        if (!s.key) drafts++;
+        rows.push({ lvl:1, key: s.key, summary: s.title, asg: s.owner ? dispName(s.owner.n) : '',
+                    status: cpStatus(s, s.temp), start: s.start, end: addD(s.start, s.days - 1) });
+      });
+    });
+    const notes = [cpFilterNote(epics.length, onGantt.length, 'Epic')].filter(Boolean);
+    if (drafts) notes.push({ cls:'warn', html:`${drafts} 条为草稿，尚未创建到 Jira —— Key 列标为 DRAFT、无链接` });
+    return { groups:[{ name:null, rows }], notes, n: epics.length, unit:'Epic', subN };
+  }
+  /* 人员视图：与 renderResource 同口径（甘特上未清理的子任务，含草稿；成员 + 未分配） */
+  const all = state.resWin === 'all', winOn = !all && o.winOnly, w = cpWin();
+  const people = [...t.members.map(m => ({ key: m.n, name: dispName(m.n) })), { key: null, name: '未分配' }];
+  const q = cpQuery();
+  let drafts = 0, total = 0;
+  const groups = people.map(p => {
+    const rows = [];
+    onGantt.forEach(it => { const hit = cpEpicHit(it, q) ? cpSubsOf(it, q) : [];
+      it.subs.forEach(s => {
+      if (s.cleared || (s.owner ? s.owner.n : null) !== p.key) return;
+      const end = addD(s.start, s.days - 1);
+      if (winOn && (end < w.s || s.start > w.e)) return;
+      total++;
+      if (!hit.includes(s)) return;
+      if (!s.key) drafts++;
+      rows.push({ lvl:0, key: s.key, summary: s.title, asg: p.name, epic: it.alias || it.title,
+                  status: cpStatus(s, s.temp), start: s.start, end });
+    }); });
+    return { name: p.name, rows: rows.sort((a, b) => a.start - b.start) };
+  }).filter(g => g.rows.length);
+  const n = groups.reduce((a, g) => a + g.rows.length, 0);
+  const notes = [cpFilterNote(n, total, 'Task')].filter(Boolean);
+  if (!all) notes.push(winOn
+    ? { cls:'win', html:`仅时间窗内：<b>${fmtMD(w.s)} → ${fmtMD(w.e)}</b>`, act:'复制全部时间', fn:() => cpSet('winOnly', false) }
+    : { cls:'win', html:`包含全部时间（不限当前 14 天窗口）`, act:'仅时间窗内', fn:() => cpSet('winOnly', true) });
+  if (drafts) notes.push({ cls:'warn', html:`${drafts} 条为草稿，尚未创建到 Jira —— Key 列标为 DRAFT、无链接` });
+  return { groups, notes, n, unit:'Task', people: groups.length };
+}
+
+/* 列定义：Key、Summary 固定在 A / B 列，附加信息依次往后 */
+function cpCols(view){
+  const o = cpOpts[view], c = [['key','Key'], ['summary','Summary']];
+  if (view === 'gantt' ? o.asg : o.asgMode === 'col') c.push(['asg','Assignee']);
+  if (view === 'resource' && o.epic) c.push(['epic','Epic']);
+  if (o.status) c.push(['status','Status']);
+  if (o.dates) c.push(['start','Start'], ['end','End']);
+  return c;
+}
+const cpVal = (r, k) => (k === 'start' || k === 'end') ? toISOInput(r[k])
+  : k === 'summary' ? (r.lvl ? '↳ ' : '') + r.summary : (r[k] || '');
+
+/* 序列化：表格（HTML table + TSV）/ 列表（HTML ul + 缩进文本），供 Sheet 或文档 / 聊天粘贴 */
+function cpBuild(data, view){
+  const o = cpOpts[view], cols = cpCols(view);
+  const grouped = view === 'resource' && o.asgMode === 'group';
+  const link = k => k ? `<a href="${cpEscA(JIRA_BROWSE + k)}">${esc(k)}</a>` : 'DRAFT';
+  const rowsOf = g => g.rows;
+  let html = '', text = '';
+  if (o.fmt === 'table'){
+    const tr = cells => `<tr>${cells.join('')}</tr>`;
+    if (o.header){
+      html += tr(cols.map(([, h]) => `<th style="text-align:left">${h}</th>`));
+      text += cols.map(([, h]) => h).join('\t') + '\n';
+    }
+    data.groups.forEach(g => {
+      if (grouped){
+        html += tr([`<td colspan="${cols.length}"><b>${esc(g.name)}</b> (${g.rows.length})</td>`]);
+        text += `${cpCell(g.name)} (${g.rows.length})\n`;
+      }
+      rowsOf(g).forEach(r => {
+        html += tr(cols.map(([k]) => `<td>${k === 'key' ? link(r.key) : esc(cpCell(cpVal(r, k)))}</td>`));
+        text += cols.map(([k]) => k === 'key' ? (r.key || 'DRAFT') : cpCell(cpVal(r, k))).join('\t') + '\n';
+      });
+    });
+    html = `<meta charset="utf-8"><table>${html}</table>`;
+  } else {
+    const extra = r => cols.filter(([k]) => !['key','summary'].includes(k))
+      .map(([k]) => k === 'start' ? `${fmtMD(r.start)} → ${fmtMD(r.end)}` : k === 'end' ? null : cpVal(r, k))
+      .filter(Boolean);
+    const li = r => { const x = extra(r);
+      return `${link(r.key)} ${esc(r.summary)}${x.length ? ` <span style="color:#717A86">· ${esc(x.join(' · '))}</span>` : ''}`; };
+    const tx = r => { const x = extra(r); return `${r.key || 'DRAFT'} ${cpCell(r.summary)}${x.length ? ' · ' + x.join(' · ') : ''}`; };
+    data.groups.forEach(g => {
+      if (grouped){ html += `<p><b>${esc(g.name)}</b> (${g.rows.length})</p>`; text += `${g.name} (${g.rows.length})\n`; }
+      let open = false;
+      html += '<ul>';
+      g.rows.forEach(r => {
+        if (r.lvl && !open){ html = html.replace(/<\/li>$/, ''); html += '<ul>'; open = true; }
+        if (!r.lvl && open){ html += '</ul></li>'; open = false; }
+        html += `<li>${li(r)}</li>`;
+        text += `${r.lvl ? '    ' : ''}- ${tx(r)}\n`;
+      });
+      if (open) html += '</ul></li>';
+      html += '</ul>';
+      if (grouped) text += '\n';
+    });
+  }
+  const lines = data.groups.reduce((a, g) => a + g.rows.length, 0);
+  return { html, text: text.replace(/\n+$/, '\n'), lines };
+}
+
+/* 写剪贴板：在用户手势里同步触发 copy 事件，一次写入 html + plain（file:// 下也可用） */
+function cpWrite(payload){
+  if (cpFail) return false;
+  let ok = false;
+  const onCopy = e => {
+    e.preventDefault();
+    e.clipboardData.setData('text/html', payload.html);
+    e.clipboardData.setData('text/plain', payload.text);
+    ok = true;
+  };
+  document.addEventListener('copy', onCopy, { once:true });
+  try { document.execCommand('copy'); } catch(_){}
+  document.removeEventListener('copy', onCopy);
+  if (!ok && navigator.clipboard && window.ClipboardItem){
+    navigator.clipboard.write([new ClipboardItem({
+      'text/html': new Blob([payload.html], { type:'text/html' }),
+      'text/plain': new Blob([payload.text], { type:'text/plain' }) })]).catch(() => {});
+    ok = true;
+  }
+  return ok;
+}
+
+/* 主按钮：计数随视图 / 过滤实时变化 —— 点之前就知道会复制多少 */
+function renderCopyBtn(){
+  const view = cpView(), d = cpCollect(view), o = cpOpts[view];
+  const sp = $('#cpSplit');
+  sp.classList.toggle('empty', !d.n);
+  $('#cpN').textContent = d.n ? `${d.n} ${d.unit}` : '';
+  const fl = [msActive() && 'Milestone', cpQuery() && '搜索'].filter(Boolean).join(' + ');
+  const what = (fl ? `${fl} 过滤后` : '') + (view === 'gantt'
+    ? `甘特图上的 ${d.n} 个 Epic${o.subs ? '（含子任务）' : ''}`
+    : `按人分组的 ${d.n} 个 Task`);
+  $('#cpMain').dataset.tip = d.n
+    ? `复制${what}||Key（带 Jira 链接）+ Summary，每行一条，可直接粘贴到文档 / 聊天||右侧箭头：附加子任务 / Assignee / 状态 / 排期，可切换 Sheet 表格与列表`
+    : (view === 'gantt' ? '甘特图上还没有 Epic' : '当前没有可复制的 Task') + '||点击查看说明';
+  if (cpState.open && cpState.view !== view) closeCopyPop();
+}
+
+/* 回执卡 */
+const cpState = { open:false, mode:'config', view:'gantt', result:null, timer:null, flash:false };
+const CP_OK_SVG = '<svg viewBox="0 0 14 14"><path d="M2.5 7.4l3 3 6-6.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const CP_ERR_SVG = '<svg viewBox="0 0 14 14"><path d="M7 3.2v4.6M7 10.4v.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const CP_CHK = '<svg width="9" height="9" viewBox="0 0 10 10"><path d="M2 5.2l2 2 4-4.4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const CP_COPY_SVG = '<svg viewBox="0 0 14 14"><rect x="4.5" y="4.5" width="7.5" height="7.5" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 4.5V3.2A1.2 1.2 0 008.3 2H3.2A1.2 1.2 0 002 3.2v5.1a1.2 1.2 0 001.2 1.2h1.3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+
+function cpDoCopy(){
+  const view = cpView(), data = cpCollect(view);
+  if (!data.n){ cpState.result = { ok:false, empty:true }; return false; }
+  const payload = cpBuild(data, view);
+  const ok = cpWrite(payload);
+  cpState.result = { ok, payload, lines: payload.lines, at: Date.now() };
+  if (ok){
+    const sp = $('#cpSplit');
+    sp.classList.remove('done'); void sp.offsetWidth; sp.classList.add('done');
+    clearTimeout(cpDoCopy.t); cpDoCopy.t = setTimeout(() => sp.classList.remove('done'), 1600);
+    $('#cpLabel').textContent = '已复制';
+    clearTimeout(cpDoCopy.l); cpDoCopy.l = setTimeout(() => { $('#cpLabel').textContent = '复制'; }, 1600);
+  }
+  return ok;
+}
+/* 勾选 / 切换即重写剪贴板（仅在已复制过的回执态；配置态只改预览，等用户点「复制」） */
+function cpSet(k, v){
+  cpOpts[cpView()][k] = v; cpSave();
+  if (cpState.mode === 'receipt'){ cpDoCopy(); cpState.flash = true; }
+  renderCopyBtn(); renderCopyPop();
+}
+function openCopyPop(mode){
+  cpState.open = true; cpState.mode = mode; cpState.view = cpView(); cpState.flash = false;
+  renderCopyPop();
+  placeCopyPop();
+  $('#cpPop').classList.add('show');
+  $('#cpMore').setAttribute('aria-expanded', 'true');
+  armCopyTimer(mode === 'receipt' && cpState.result?.ok);
+}
+function closeCopyPop(refocus){
+  if (!cpState.open) return;
+  cpState.open = false; clearTimeout(cpState.timer);
+  $('#cpPop').classList.remove('show');
+  $('#cpMore').setAttribute('aria-expanded', 'false');
+  if (refocus) $('#cpMain').focus();
+}
+function placeCopyPop(){
+  const r = $('#cpSplit').getBoundingClientRect(), p = $('#cpPop');
+  p.style.top = r.bottom + 8 + 'px';
+  p.style.right = Math.max(12, innerWidth - r.right) + 'px';
+}
+/* 成功回执 8s 后自动收起；用户一旦悬停 / 聚焦卡片即视为要继续调整，改为常驻 */
+function armCopyTimer(on){
+  clearTimeout(cpState.timer);
+  const bar = $('#cpPop .cp-timer');
+  if (!on){ bar?.classList.remove('run'); return; }
+  bar?.classList.add('run');
+  cpState.timer = setTimeout(() => closeCopyPop(), 8000);
+}
+const cpEngage = () => { if (cpState.open){ clearTimeout(cpState.timer); $('#cpPop .cp-timer')?.classList.remove('run'); } };
+$('#cpPop').addEventListener('mouseenter', cpEngage);
+$('#cpPop').addEventListener('focusin', cpEngage);
+
+function cpPreview(data, view){
+  const o = cpOpts[view], cols = cpCols(view);
+  const grouped = view === 'resource' && o.asgMode === 'group';
+  const MAX = 6;
+  let shown = 0, hidden = 0;
+  const keyHtml = r => r.key ? `<a href="${cpEscA(JIRA_BROWSE + r.key)}" target="_blank" rel="noopener">${esc(r.key)}</a>` : '<span class="dr">DRAFT</span>';
+  const anim = cpState.flash ? ' r-in' : '';
+  if (o.fmt === 'list'){
+    let h = '';
+    data.groups.forEach(g => {
+      if (grouped && shown < MAX){ h += `<div class="li g${anim}">${esc(g.name)} <span class="x">(${g.rows.length})</span></div>`; }
+      g.rows.forEach(r => {
+        if (shown >= MAX){ hidden++; return; }
+        shown++;
+        const x = cols.filter(([k]) => !['key','summary','end'].includes(k))
+          .map(([k]) => k === 'start' ? `${fmtMD(r.start)} → ${fmtMD(r.end)}` : cpVal(r, k)).filter(Boolean);
+        h += `<div class="li${r.lvl ? ' l1' : ''}${anim}">${r.lvl ? '◦ ' : '• '}${keyHtml(r)}${esc(r.summary)}${x.length ? ` <span class="x">· ${esc(x.join(' · '))}</span>` : ''}</div>`;
+      });
+    });
+    return `<div class="cp-list">${h}</div>${hidden ? `<div class="cp-more-rows">… 还有 ${hidden} 行</div>` : ''}`;
+  }
+  const W = { key:'92px', summary:'minmax(140px,1fr)', asg:'minmax(70px,.42fr)', epic:'minmax(70px,.45fr)', status:'74px', start:'68px', end:'68px' };
+  const tpl = cols.map(([k]) => W[k]).join(' ');
+  const last = i => i === cols.length - 1 ? ' last' : '';
+  let h = cols.map(([k, lab], i) => `<div class="ch${last(i)}"><em>${String.fromCharCode(65 + i)}</em>${o.header ? lab.toUpperCase() : ''}</div>`).join('');
+  if (o.header) h += cols.map(([, lab], i) => `<div class="${last(i)}${anim}" style="font-weight:600">${lab}</div>`).join('');
+  data.groups.forEach(g => {
+    if (grouped && shown < MAX){ h += `<div class="grp${anim}">${esc(g.name)}<span>(${g.rows.length})</span></div>`; }
+    g.rows.forEach(r => {
+      if (shown >= MAX){ hidden++; return; }
+      shown++;
+      h += cols.map(([k], i) => {
+        const cls = (k === 'key' ? 'k' : (k === 'start' || k === 'end') ? 'mono' : (r.lvl && k === 'summary') ? 'sub' : '') + last(i) + anim;
+        return `<div class="${cls}"${k === 'summary' ? ` title="${cpEscA(r.summary)}"` : ''}>${k === 'key' ? keyHtml(r) : esc(cpVal(r, k))}</div>`;
+      }).join('');
+    });
+  });
+  return `<div class="cp-grid" style="grid-template-columns:${tpl}">${h}</div>${hidden ? `<div class="cp-more-rows">… 还有 ${hidden} 行</div>` : ''}`;
+}
+
+/* 回执态不再预览 Ticket 内容，只说明列结构（A Key · B Summary …），附加列勾选后即时变化 */
+function cpColsHtml(view){
+  const o = cpOpts[view];
+  const cols = cpCols(view).map(([, h], i) => `<span><em>${String.fromCharCode(65 + i)}</em>${h}</span>`).join('');
+  return o.fmt === 'table'
+    ? `${view === 'resource' && o.asgMode === 'group' ? '<span class="g">按人分组标题行</span>' : ''}${cols}`
+    : `<span class="g">列表 · 每行一条</span>${cols}`;
+}
+function renderCopyPop(){
+  if (!cpState.open) return;
+  const view = cpState.view, o = cpOpts[view], data = cpCollect(view), res = cpState.result;
+  const pop = $('#cpPop');
+  const receipt = cpState.mode === 'receipt';
+  const err = receipt && res && !res.ok && !res.empty;
+  pop.classList.toggle('ok', receipt && !!res?.ok);
+  pop.classList.toggle('err', err);
+  const lines = data.n ? cpBuild(data, view).lines : 0;
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+  const pasteKey = `<kbd>${isMac ? '⌘' : 'Ctrl'}</kbd> <kbd>V</kbd>`;
+  const target = o.fmt === 'table' ? 'Google Sheet' : '文档 / 聊天';
+  /* 头部 */
+  let ttl, sub;
+  const filtered = msActive() || !!cpQuery();
+  if (!data.n){
+    ttl = filtered ? '筛选后没有可复制的条目' : view === 'gantt' ? '甘特图上还没有 Epic' : '没有可复制的 Task';
+    sub = filtered ? '复制只包含 Milestone / 搜索过滤后的结果，调整或清除筛选后再试'
+      : view === 'gantt' ? '把左侧 Backlog 卡片拖进时间轴后，这里就能一键复制' : '任务添加 Owner 后会按人分组出现在这里';
+  } else if (err){
+    ttl = '浏览器没有允许写入剪贴板';
+    sub = `内容已准备好并全选，按 <kbd>${isMac ? '⌘' : 'Ctrl'}</kbd> <kbd>C</kbd> 手动复制即可`;
+  } else if (receipt){
+    ttl = `${cpState.flash ? '已更新剪贴板' : '已复制'} · <span class="num">${lines}</span> 行`;
+    sub = `${o.fmt === 'table' ? 'Key 带 Jira 链接 · Tab 分列' : 'Key 带 Jira 链接 · 每行一条'}，到 ${target} 里 ${pasteKey} 即可`;
+  } else {
+    ttl = `复制 ${view === 'gantt' ? `${data.n} 个 Epic${o.subs ? `（含 ${data.subN} 个子任务）` : ''}` : `${data.n} 个 Task · ${data.people} 人`}`;
+    sub = '先调好附加列与格式，点「复制」后写入剪贴板；选项会被记住';
+  }
+  const badge = !data.n ? CP_COPY_SVG : err ? CP_ERR_SVG : receipt ? CP_OK_SVG : CP_COPY_SVG;
+  /* 附加列 */
+  const chip = (k, label, extra = '') =>
+    `<button type="button" class="cp-chip" data-k="${k}" aria-pressed="${!!o[k]}"><span class="box">${CP_CHK}</span>${label}${extra}</button>`;
+  const opts = view === 'gantt'
+    ? chip('subs', '子任务', ` <span class="c">${data.subN}</span>`) + chip('asg', 'Assignee') + chip('status', '状态') + chip('dates', '排期') + chip('header', '表头行')
+    : chip('epic', '所属 Epic') + chip('status', '状态') + chip('dates', '排期') + chip('header', '表头行');
+  const seg = (k, pairs) => `<div class="cp-seg" role="group" data-k="${k}">${pairs.map(([v, lab]) =>
+    `<button type="button" data-v="${v}" class="${o[k] === v ? 'on' : ''}" aria-pressed="${o[k] === v}">${lab}</button>`).join('')}</div>`;
+  pop.innerHTML = `
+    <div class="cp-head">
+      <span class="cp-badge${receipt && res?.ok ? ' bump' : ''}">${badge}</span>
+      <div role="status" aria-live="polite"><div class="cp-ttl">${ttl}</div><div class="cp-sub">${sub}</div></div>
+      <button type="button" class="cp-x" aria-label="关闭">×</button>
+    </div>
+    ${data.notes.length ? `<div class="cp-scope">${data.notes.map((n, i) =>
+      `<div class="cp-note ${n.cls}"><i></i><span>${n.html}</span>${n.act ? `<button type="button" data-note="${i}">${n.act}</button>` : ''}</div>`).join('')}</div>` : ''}
+    ${err ? `<textarea class="cp-fallback" readonly aria-label="待复制内容">${esc(res.payload.text)}</textarea>`
+      : data.n && receipt ? `<div class="cp-cols">${cpColsHtml(view)}</div>`
+      : data.n ? `<div class="cp-prev">${cpPreview(data, view)}</div>`
+      : filtered ? ''
+      : `<div class="cp-prev"><div class="cp-empty">${view === 'gantt'
+          ? '时间轴还是空的<br>把 <b>Backlog</b> 卡片拖进来，再回到这里复制'
+          : '还没有分配到人的任务<br>在甘特子任务上设置 <b>Owner</b> 后出现在人员视图'}</div></div>`}
+    ${data.n ? `
+    <div class="cp-sec">附加信息 <span>${receipt && !err ? '勾选后剪贴板立即更新' : '可多选'}</span></div>
+    <div class="cp-opts" id="cpOpts">${opts}</div>
+    ${view === 'resource' ? `<div class="cp-row"><span class="lb">按人</span>${seg('asgMode', [['group','分组标题行'], ['col','Assignee 列']])}</div>` : ''}
+    <div class="cp-row"><span class="lb">粘贴到</span>${seg('fmt', [['table','表格 · Sheet'], ['list','列表 · 文档 / 聊天']])}</div>` : ''}
+    <div class="cp-foot">
+      <span class="hint">${receipt && !err ? '选项已记住，下次点「复制」直接带上' : err ? '常见原因：页面不在前台，或浏览器策略限制' : '默认只复制 Key ⇥ Summary'}</span>
+      <button type="button" class="cp-demo" id="cpDemoFail" data-tip="仅 Demo：模拟浏览器拒绝剪贴板权限，查看兜底交互">${cpFail ? '恢复正常' : '模拟失败'}</button>
+      ${data.n ? `<button type="button" class="btn ${receipt && !err ? 'btn-ghost' : 'btn-primary'}" id="cpGo">${receipt ? '再次复制' : `复制 ${lines} 行`}</button>` : ''}
+    </div>
+    <div class="cp-timer"></div>`;
+  /* 事件 */
+  pop.querySelector('.cp-x').onclick = () => closeCopyPop(true);
+  pop.querySelectorAll('.cp-chip').forEach(b => b.onclick = () => cpSet(b.dataset.k, !o[b.dataset.k]));
+  pop.querySelectorAll('.cp-seg').forEach(s => s.querySelectorAll('button').forEach(b =>
+    b.onclick = () => { if (o[s.dataset.k] !== b.dataset.v) cpSet(s.dataset.k, b.dataset.v); }));
+  pop.querySelectorAll('[data-note]').forEach(b => b.onclick = () => data.notes[+b.dataset.note].fn());
+  $('#cpDemoFail').onclick = () => { cpFail = !cpFail; if (cpState.mode === 'receipt') cpDoCopy(); renderCopyPop(); };
+  const go = $('#cpGo');
+  if (go) go.onclick = () => { cpDoCopy(); cpState.mode = 'receipt'; cpState.flash = false; renderCopyPop(); armCopyTimer(cpState.result?.ok); };
+  if (err){ const ta = pop.querySelector('.cp-fallback'); ta.focus(); ta.select(); }
+  /* 选中的 chip 保持焦点，键盘连续切换不丢位置 */
+  if (cpSet.lastK){ pop.querySelector(`[data-k="${cpSet.lastK}"]`)?.focus(); cpSet.lastK = null; }
+  cpState.flash = false;
+}
+document.getElementById('cpPop').addEventListener('click', e => {
+  const b = e.target.closest('.cp-chip,.cp-seg'); if (b) cpSet.lastK = b.dataset.k;
+}, true);
+
+$('#cpMain').onclick = () => {
+  const view = cpView();
+  if (!cpCollect(view).n){ $('#cpSplit').classList.remove('done'); $('#cpLabel').textContent = '复制'; openCopyPop('config'); return; }
+  cpDoCopy();
+  openCopyPop('receipt');
+};
+$('#cpMore').onclick = e => {
+  e.stopPropagation();
+  if (cpState.open) closeCopyPop(); else openCopyPop('config');
+};
+document.addEventListener('mousedown', e => {
+  if (cpState.open && !e.target.closest('#cpPop,#cpSplit')) closeCopyPop();
+});
+$('#cpPop').addEventListener('keydown', e => { if (e.key === 'Escape'){ e.stopPropagation(); closeCopyPop(true); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && cpState.open && document.activeElement?.closest?.('#cpSplit')) closeCopyPop(true); });
+addEventListener('resize', () => { if (cpState.open) placeCopyPop(); });
+
+/* 计数跟随视图 / 团队 / 过滤 / 时间窗：挂在已有渲染入口之后 */
+[['renderGantt'], ['renderResource'], ['renderMsBar'], ['renderBacklog'], ['syncView']].forEach(([fn]) => {
+  const orig = window[fn];
+  window[fn] = function(){ const r = orig.apply(this, arguments); renderCopyBtn(); return r; };
+});
 
 /* ---------- 总渲染 ---------- */
 function renderAll(newKeys){

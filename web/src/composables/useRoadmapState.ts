@@ -132,6 +132,9 @@ export function createRoadmapState() {
 
   const view = ref<ViewMode>('gantt');
   const resWin = ref<ResWindow>('2w');
+  /** 人员视图「近 2 周」窗口的平移偏移（天，相对今天）。会话级 UI 状态，不持久化；
+   *  放在全局 state 是因为复制导出（过滤行）需要与人员视图看到同一个时间窗。 */
+  const resOffset = ref(0);
   const focusQuarter = ref(CURQ);
   /** Session-only Sprint↔month toggle; not persisted / not synced. */
   const rulerMode = ref<RulerMode>('release');
@@ -831,6 +834,7 @@ export function createRoadmapState() {
     toasts,
     view,
     resWin,
+    resOffset,
     focusQuarter,
     rulerMode,
     modals,
