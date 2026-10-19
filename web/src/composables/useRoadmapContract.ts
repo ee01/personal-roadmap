@@ -704,6 +704,9 @@ export interface CreateJiraChild {
   parentItemKey: string;
   /** Set when the parent issue already exists, so the extension can link right away. */
   parentJiraKey: string | null;
+  /** Gantt bar dates written to Jira Target Start / Target End on direct create. */
+  targetStart?: string | null;
+  targetEnd?: string | null;
   fixVersion?: string | null;
   suggestedFixVersion?: string | null;
   /** Jira username (firstname.lastname); omit / null → leave assignee empty. */
@@ -804,6 +807,8 @@ export function buildCreateJiraPayload(
     parentLinkOverride?: string | null;
     /** Shared Team values written onto every created issue when set. */
     teams?: string[] | null;
+    /** Gantt bar dates keyed by item.key / sub.id; null = unscheduled draft. */
+    targetDatesByKey?: Record<string, { start: string; end: string } | null | undefined>;
   },
 ): CreateJiraPayload {
   const parentIsDraft = isDraftItem(group.item);
@@ -811,6 +816,7 @@ export function buildCreateJiraPayload(
   const parentSuggested =
     fields.fixVersionByKey?.[group.item.key] ?? null;
   const teams = fields.teams?.length ? fields.teams : null;
+  const parentDates = fields.targetDatesByKey?.[group.item.key];
   return {
     teamId: fields.teamId,
     token: fields.token,
@@ -820,8 +826,8 @@ export function buildCreateJiraPayload(
           title: group.item.title,
           issueType: fields.issueType,
           projectKey: fields.projectKey,
-          targetStart: group.item.targetStart ?? null,
-          targetEnd: group.item.targetEnd ?? null,
+          targetStart: parentDates?.start ?? group.item.targetStart ?? null,
+          targetEnd: parentDates?.end ?? group.item.targetEnd ?? null,
           fixVersion: override || parentSuggested || null,
           suggestedFixVersion: parentSuggested || null,
           description: group.item.description ?? null,
@@ -833,6 +839,7 @@ export function buildCreateJiraPayload(
       : null,
     children: group.subs.map((sub) => {
       const suggested = fields.fixVersionByKey?.[sub.id] || null;
+      const dates = fields.targetDatesByKey?.[sub.id];
       return {
         draftId: sub.id,
         title: sub.title,
@@ -840,6 +847,8 @@ export function buildCreateJiraPayload(
         projectKey: fields.projectKey,
         parentItemKey: group.item.key,
         parentJiraKey: group.item.jiraKey ?? null,
+        targetStart: dates?.start ?? null,
+        targetEnd: dates?.end ?? null,
         fixVersion: override || suggested,
         suggestedFixVersion: suggested,
         assignee: fields.assigneeByDraftId?.[sub.id] || null,

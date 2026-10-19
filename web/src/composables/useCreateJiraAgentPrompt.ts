@@ -1,4 +1,4 @@
-import { addD, fmtISO, fmtMD } from './useGeometry';
+import { addD, fmtISO } from './useGeometry';
 import type { RoadmapItem, RoadmapSub, TeamMember } from '../types';
 import {
   collectPeople,
@@ -39,6 +39,10 @@ export const ROADMAP_CREATE_JIRA_SYSTEM_PROMPT = [
   '【Team 规则 — 必须遵守】',
   '1. 字段约束里给了 Team 时，每个新建 issue 都必须写入 Jira Team 字段，值与约束一致（多个 Team 时全部写入）。',
   '2. 没给 Team 时由你自行判断：可按项目 / 父 Epic 的 Team 填写；确定不了就留空，不要臆造不存在的 Team。',
+  '',
+  '【Target 日期规则 — 必须遵守】',
+  '1. 任务清单与【主任务 Target 日期】里给出的 Target Start / Target End（YYYY-MM-DD），创建对应 issue 时必须写入 Jira 的 Target Start 与 Target End 字段。',
+  '2. 没给日期的 issue 这两个字段留空，不要臆造，也不要用今天日期或 Sprint 日期代替。',
   '',
   '【主任务 Assignee 规则 — 必须遵守】',
   '1. 【主任务 Assignee】里列出的待创建主任务，必须把该人写入 Jira assignee。',
@@ -168,6 +172,18 @@ export function buildAgentCreatePrompt(input: {
       );
     }
   }
+  const datedParents = [...parentRows.values()].filter(
+    (item) => !item.jiraKey && item.start && item.days && item.days > 0,
+  );
+  if (datedParents.length) {
+    L.push('', '【主任务 Target 日期】');
+    for (const item of datedParents) {
+      const end = fmtISO(addD(item.start!, Math.max(1, item.days!) - 1));
+      L.push(
+        `- ${item.key} ${item.title} → Target Start ${item.start} / Target End ${end}（待创建，写入 Jira 的 Target Start / Target End 字段）`,
+      );
+    }
+  }
   L.push('', '【任务清单】');
   input.drafts.forEach(({ item, sub }, i) => {
     const r = resolveAssignee({
@@ -187,7 +203,7 @@ export function buildAgentCreatePrompt(input: {
       null;
     L.push(
       `${i + 1}. [父 ${parentKey}] ${sub.title}` +
-        (start && end ? ` · ${fmtMD(start)} → ${fmtMD(end)}` : '') +
+        (start && end ? ` · Target ${start} → ${end}` : '') +
         ` · assignee: ${r.full || r.name}${r.fallback ? '（创建人回落）' : ''}` +
         (override
           ? ''

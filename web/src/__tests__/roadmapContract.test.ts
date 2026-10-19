@@ -540,6 +540,8 @@ describe('create-jira payload', () => {
           projectKey: 'NOVA',
           parentItemKey: 'LOCAL-ab12cd34',
           parentJiraKey: null,
+          targetStart: null,
+          targetEnd: null,
           fixVersion: null,
           suggestedFixVersion: null,
           assignee: null,
@@ -624,6 +626,65 @@ describe('create-jira payload', () => {
       }),
     ])[0];
     expect(buildCreateJiraPayload(group, fields).parent?.parentLink).toBe('INIT-42');
+  });
+
+  it('carries the Gantt bar dates onto parent and children', () => {
+    const group = buildDraftGroups([
+      item({
+        key: 'LOCAL-ab12cd34',
+        source: 'manual',
+        jiraKey: null,
+        title: 'Manual epic',
+        start: '2026-07-01',
+        days: 10,
+        subs: [sub({ id: 'd1', title: 'first child', start: '2026-07-03', days: 4 })],
+      }),
+    ])[0];
+    const payload = buildCreateJiraPayload(group, {
+      ...fields,
+      targetDatesByKey: {
+        'LOCAL-ab12cd34': { start: '2026-07-01', end: '2026-07-10' },
+        d1: { start: '2026-07-03', end: '2026-07-06' },
+      },
+    });
+    expect(payload.parent?.targetStart).toBe('2026-07-01');
+    expect(payload.parent?.targetEnd).toBe('2026-07-10');
+    expect(payload.children[0]).toMatchObject({
+      targetStart: '2026-07-03',
+      targetEnd: '2026-07-06',
+    });
+  });
+
+  it('puts Gantt bar Target dates into the Agent prompt for parent and children', () => {
+    const parent = item({
+      key: 'LOCAL-ab12cd34',
+      source: 'manual',
+      jiraKey: null,
+      title: 'Manual epic',
+      start: '2026-07-01',
+      days: 10,
+    });
+    const draft = sub({ id: 'd1', title: 'first child', start: '2026-07-03', days: 4 });
+    const prompt = buildAgentCreatePrompt({
+      userPrompt: 'create',
+      projectKey: 'NOVA',
+      itemType: 'Epic',
+      subType: 'Task',
+      fixVersion: '',
+      sprint: '',
+      map: {},
+      currentUser: 'Tester',
+      members: [],
+      items: [parent],
+      parentItems: [parent],
+      drafts: [{ item: parent, sub: draft }],
+    });
+    expect(prompt).toContain('【主任务 Target 日期】');
+    expect(prompt).toContain(
+      '- LOCAL-ab12cd34 Manual epic → Target Start 2026-07-01 / Target End 2026-07-10',
+    );
+    expect(prompt).toContain('Target 2026-07-03 → 2026-07-06');
+    expect(ROADMAP_CREATE_JIRA_SYSTEM_PROMPT).toContain('【Target 日期规则');
   });
 
   it('lets the shared Parent Link field override the stored value and carry teams', () => {

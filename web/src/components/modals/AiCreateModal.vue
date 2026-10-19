@@ -262,6 +262,28 @@ function suggestedFixVersion(row: {
   return landReleaseName(end, teamSheet.value);
 }
 
+/**
+ * The dates a fresh Jira issue should carry: the Gantt bar (start + days),
+ * matching what a later Target sync would write — not the mirrored
+ * targetStart/targetEnd, which are null until Jira answers.
+ */
+function targetDatesOf(row: {
+  start?: string | null;
+  days?: number | null;
+}): { start: string; end: string } | null {
+  if (!row.start || !row.days || row.days <= 0) return null;
+  return { start: row.start, end: fmtISO(addD(row.start, row.days - 1)) };
+}
+
+const targetDatesByKey = computed(() => {
+  const map: Record<string, { start: string; end: string } | null> = {};
+  for (const g of groups.value) {
+    if (isDraftItem(g.item)) map[g.item.key] = targetDatesOf(g.item);
+    for (const sub of g.subs) map[sub.id] = targetDatesOf(sub);
+  }
+  return map;
+});
+
 const fixVersionByKey = computed(() => {
   const map: Record<string, string | null> = {};
   for (const g of groups.value) {
@@ -655,6 +677,7 @@ async function start(opts?: { groupKey?: string }) {
         }),
         parentLinkOverride: plOverride,
         teams: teamsOverride,
+        targetDatesByKey: targetDatesByKey.value,
       };
       const createPayload = buildCreateJiraPayload(group, baseFields);
       const result = agentMode.value
