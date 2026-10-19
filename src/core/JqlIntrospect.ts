@@ -53,6 +53,41 @@ function unquote(value: string): string {
   return quoted ? trimmed.slice(1, -1).trim() : trimmed;
 }
 
+/** Jira writes custom fields as `"Team"` / `"Team[Team]"`; plain `Team` also works. */
+const TEAM_FIELD_PATTERN = '"Team\\s*\\[[^"]*\\]"|\\bTeam\\b';
+
+/**
+ * Every team named by `Team = x` / `Team in (a, b)` clauses, de-duplicated and
+ * order-preserving. Negated clauses are ignored, like the other parsers. The
+ * trailing-boundary lookahead on bare tokens rejects function calls such as
+ * `Team = currentUser()` by refusing any token that runs into a `(`.
+ */
+export function parseTeamValues(jql: string | null | undefined): string[] {
+  const text = String(jql || '').trim();
+  if (!text) return [];
+  const values: string[] = [];
+  const push = (value: string | null) => {
+    const v = String(value || '').trim();
+    if (!v) return;
+    if (!values.some((x) => x.toLowerCase() === v.toLowerCase())) values.push(v);
+  };
+  const listRe = new RegExp(
+    `(?:${TEAM_FIELD_PATTERN})\\s*in\\s*\\(([^)]*)\\)`,
+    'gi',
+  );
+  for (const match of text.matchAll(listRe)) {
+    for (const part of match[1].split(',')) push(unquote(part));
+  }
+  const eqRe = new RegExp(
+    `(?:${TEAM_FIELD_PATTERN})\\s*=\\s*("[^"]*"|'[^']*'|[^\\s()]+(?=$|[\\s,)]))`,
+    'gi',
+  );
+  for (const match of text.matchAll(eqRe)) {
+    push(unquote(match[1]));
+  }
+  return values;
+}
+
 function firstListValue(list: string): string | null {
   const first = list.split(',')[0] || '';
   return unquote(first) || null;
@@ -109,6 +144,18 @@ export function parseJql(jql: string | null | undefined): {
 }
 
 /**
+ * Teams to suggest in the Create-Jira dialog. The outer query's Team clause is
+ * authoritative (it filters the rows we actually import); when it has none we
+ * fall back to the nested `portfolioChildrenOf` query, whose Team clause names
+ * the parent portfolio this roadmap belongs to.
+ */
+function resolveJqlTeams(jql: string | null | undefined): string[] {
+  const outer = parseTeamValues(stripQuotedSegments(String(jql || '')));
+  if (outer.length) return outer;
+  return parseTeamValues(jql);
+}
+
+/**
  * Which issue type the children of `itemType` should be, and which field links
  * them back to the parent. `subType: null` means "ask createmeta for the
  * project's sub-task type" — we deliberately do not hardcode "Sub-task".
@@ -149,5 +196,6 @@ export function buildJqlHints(input: {
     subType,
     linkField,
     confident: Boolean(parsed.itemType || fromMode),
+    teams: resolveJqlTeams(input.jql),
   };
 }

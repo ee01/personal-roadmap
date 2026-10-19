@@ -64,6 +64,8 @@ export interface JqlHints {
   subType: string | null;
   linkField: string | null;
   confident: boolean;
+  /** Team names parsed from the team JQL. Optional: an older server omits it. */
+  teams?: string[];
 }
 
 export interface RoadmapMarker {

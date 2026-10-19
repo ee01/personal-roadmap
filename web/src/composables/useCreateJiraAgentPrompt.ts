@@ -34,7 +34,11 @@ export const ROADMAP_CREATE_JIRA_SYSTEM_PROMPT = [
   '【Parent Link 规则 — 必须遵守】',
   '1. 清单里标了 Parent Link 且状态为「待创建」的主任务，创建时必须把该 key 写入 Jira Parent Link 字段（对应 INIT），不要留空，不要改成别的 issue。',
   '2. 已有 Jira key 的父任务不要改写它的 Parent Link。',
-  '3. 清单没有 Parent Link 时不要臆造 Initiative。',
+  '3. 清单与共享字段都没有 Parent Link 时由你自行判断：可检索相关 Initiative 后决定是否填写；确定不了就留空，不要臆造不存在的 issue。',
+  '',
+  '【Team 规则 — 必须遵守】',
+  '1. 字段约束里给了 Team 时，每个新建 issue 都必须写入 Jira Team 字段，值与约束一致（多个 Team 时全部写入）。',
+  '2. 没给 Team 时由你自行判断：可按项目 / 父 Epic 的 Team 填写；确定不了就留空，不要臆造不存在的 Team。',
   '',
   '【主任务 Assignee 规则 — 必须遵守】',
   '1. 【主任务 Assignee】里列出的待创建主任务，必须把该人写入 Jira assignee。',
@@ -66,6 +70,10 @@ export function buildAgentCreatePrompt(input: {
   subType: string;
   fixVersion: string;
   sprint: string;
+  /** Shared Parent Link field; empty = the Agent decides per item. */
+  parentLink?: string;
+  /** Shared Team values; empty = the Agent decides. */
+  teams?: string[];
   map: AssigneeMap;
   currentUser: string;
   members: TeamMember[];
@@ -94,12 +102,28 @@ export function buildAgentCreatePrompt(input: {
     override,
     suggestedValues,
   });
+  const teamValues = (input.teams || [])
+    .map((t) => String(t).trim())
+    .filter(Boolean);
+  const parentLinkValue = String(input.parentLink || '').trim();
   const fields: Array<[string, string]> = [
     ['Project', input.projectKey],
     ['主任务类型', input.itemType],
     ['子任务类型', input.subType],
+    [
+      'Parent Link',
+      parentLinkValue
+        ? `${parentLinkValue}（写入每个待创建主任务的 Jira Parent Link）`
+        : '',
+    ],
     ['fixVersion', fixVersionConstraint],
     ['Sprint', input.sprint || '查询并填当前 Sprint'],
+    [
+      'Team',
+      teamValues.length
+        ? `${teamValues.join(' / ')}（必须写入每个新建 issue 的 Jira Team 字段）`
+        : '',
+    ],
   ];
   for (const [k, v] of fields) {
     L.push(`- ${k}: ${v || '（由 Agent 决定）'}`);

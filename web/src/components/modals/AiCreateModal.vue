@@ -9,6 +9,7 @@ import {
   draftGroupCanRetry,
   isDraftItem,
   itemDisplayKey,
+  parseParentLinkInput,
   sliceDraftGroupForRetry,
   subTypeComesFromCreateMeta,
   typeBadge,
@@ -73,6 +74,8 @@ const itemType = ref('');
 const subType = ref('');
 const fixVersion = ref('');
 const sprint = ref('');
+const parentLink = ref('');
+const teamInput = ref('');
 const executors = ref<AgentExecutorOption[]>([]);
 const selectedExecutor = ref('');
 const executorsLoading = ref(false);
@@ -148,11 +151,13 @@ const fullAgentPrompt = computed(() => {
     subType: subType.value.trim(),
     fixVersion: fixVersion.value.trim(),
     sprint: sprint.value.trim(),
+    parentLink: parentLink.value.trim(),
+    teams: selectedTeams.value,
     map: assigneeMap.value,
     currentUser: currentUser.value,
     members: state.snapshot.value?.members || [],
     items: state.snapshot.value?.items || [],
-    parentItems: groups.value.map((group) => group.item),
+    parentItems: agentParentItems(groups.value),
     drafts,
     suggestedFixVersions: fixVersionByKey.value,
   });
@@ -167,6 +172,43 @@ const totalRows = computed(() =>
 const needsSubType = computed(() => groups.value.some((g) => g.subs.length > 0));
 const needsParent = computed(() => groups.value.some((g) => isDraftItem(g.item)));
 const agentMode = computed(() => prompt.value.trim().length > 0);
+
+/** Teams parsed from the team JQL — offered (and pre-filled) in the Team input. */
+const teamOptions = computed(() => state.jqlHints.value.teams || []);
+
+/** Multiple teams are comma / 、 separated; team names themselves may contain spaces. */
+const selectedTeams = computed(() =>
+  teamInput.value
+    .split(/[,，、;；]+/)
+    .map((t) => t.trim())
+    .filter(Boolean),
+);
+
+const parentLinkParsed = computed(() => parseParentLinkInput(parentLink.value));
+const parentLinkOverride = computed(() =>
+  parentLinkParsed.value.ok ? parentLinkParsed.value.value : null,
+);
+
+/** When every draft parent carries the same Parent Link, start the field there. */
+const sharedDraftParentLink = computed(() => {
+  const links = new Set<string>();
+  for (const g of groups.value) {
+    if (!isDraftItem(g.item)) continue;
+    const link = String(g.item.parentLink || '').trim();
+    if (link) links.add(link);
+  }
+  return links.size === 1 ? [...links][0]! : '';
+});
+
+/** Apply the shared Parent Link field to the prompt's draft parents only. */
+function agentParentItems(list: DraftGroup[]): Array<(typeof list)[number]['item']> {
+  const override = parentLinkOverride.value;
+  if (!override) return list.map((group) => group.item);
+  return list.map((group) => ({
+    ...group.item,
+    parentLink: isDraftItem(group.item) ? override : group.item.parentLink,
+  }));
+}
 
 const teamSheet = computed<ReleaseSheetConfig | null>(() => {
   const cfg = state.snapshot.value?.team.releaseSheet as
@@ -273,6 +315,9 @@ const blockReason = computed(() => {
   if (needsParent.value && !itemType.value.trim()) return '请填写主任务类型';
   if (needsSubType.value && !subType.value.trim() && !subTypeAuto.value) {
     return '请填写子任务类型';
+  }
+  if (parentLink.value.trim() && !parentLinkParsed.value.ok) {
+    return 'Parent Link 需为 issue key（如 INIT-42）或 /browse/ 链接';
   }
   return '';
 });
@@ -391,6 +436,8 @@ watch(
       itemType.value = hints.itemType || '';
       subType.value = hints.subType || '';
       sprint.value = '';
+      parentLink.value = sharedDraftParentLink.value;
+      teamInput.value = teamOptions.value.join(', ');
       const uniq = uniqueSuggestedReleases.value;
       fixVersion.value = uniq.length === 1 ? uniq[0] : '';
     }
@@ -421,11 +468,13 @@ function promptForGroup(group: DraftGroup): string {
     subType: subType.value.trim(),
     fixVersion: fixVersion.value.trim(),
     sprint: sprint.value.trim(),
+    parentLink: parentLink.value.trim(),
+    teams: selectedTeams.value,
     map: assigneeMap.value,
     currentUser: currentUser.value,
     members: state.snapshot.value?.members || [],
     items: state.snapshot.value?.items || [],
-    parentItems: [group.item],
+    parentItems: agentParentItems([group]),
     drafts: group.subs.map((sub) => ({ item: group.item, sub })),
     suggestedFixVersions: fixVersionByKey.value,
   });
@@ -504,6 +553,8 @@ async function start(opts?: { groupKey?: string }) {
   const token = state.api.getShareToken(teamId) || null;
   const teamName = state.snapshot.value?.team.name || null;
   const override = fixVersion.value.trim() || null;
+  const plOverride = parentLinkOverride.value;
+  const teamsOverride = selectedTeams.value.length ? selectedTeams.value : null;
   let created = 0;
   let failed = 0;
 
@@ -529,6 +580,8 @@ async function start(opts?: { groupKey?: string }) {
           map: assigneeMap.value,
           owner: group.item.owner,
         }),
+        parentLinkOverride: plOverride,
+        teams: teamsOverride,
       };
       const createPayload = buildCreateJiraPayload(group, baseFields);
       const result = agentMode.value
@@ -545,6 +598,8 @@ async function start(opts?: { groupKey?: string }) {
               subType: subType.value.trim() || null,
               fixVersion: override,
               sprint: sprint.value.trim() || null,
+              parentLink: plOverride,
+              teams: teamsOverride,
             },
             parent: createPayload.parent,
             children: createPayload.children,
@@ -741,6 +796,50 @@ function closeModal() {
             />
             <div v-if="!agentMode && subTypeAuto && !subType.trim()" class="f-note">
               留空时扩展会用该项目实际的子任务类型
+            </div>
+          </div>
+        </div>
+
+        <div class="f-grid" style="margin-top: 10px">
+          <div>
+            <label class="f-label">Parent Link（可选）</label>
+            <input
+              v-model="parentLink"
+              class="f-input"
+              :placeholder="
+                agentMode ? agentPlaceholder : '如 INIT-42，或 /browse/ 链接'
+              "
+              :disabled="running"
+            />
+            <div class="f-auto-note">
+              {{
+                agentMode
+                  ? '写入每个待创建主任务的 Jira Parent Link；留空由 Agent 决定'
+                  : '写入每个待创建主任务的 Jira Parent Link；留空则不写入'
+              }}
+            </div>
+          </div>
+          <div>
+            <label class="f-label">Team（可选，可多个）</label>
+            <input
+              v-model="teamInput"
+              class="f-input"
+              list="ai-create-team-options"
+              :placeholder="
+                agentMode ? agentPlaceholder : '如 Nova CA - Brandy'
+              "
+              :disabled="running"
+            />
+            <datalist id="ai-create-team-options">
+              <option v-for="t in teamOptions" :key="t" :value="t" />
+            </datalist>
+            <div class="f-auto-note">
+              {{
+                teamOptions.length
+                  ? `已按团队 JQL 预填；多个用逗号分隔，可修改`
+                  : '多个用逗号分隔' +
+                    (agentMode ? '；留空由 Agent 决定' : '；留空则不写入')
+              }}
             </div>
           </div>
         </div>

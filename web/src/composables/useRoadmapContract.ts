@@ -98,6 +98,7 @@ export const EMPTY_JQL_HINTS: JqlHints = {
   subType: null,
   linkField: null,
   confident: false,
+  teams: [],
 };
 
 export const PHASE_DEFS: Record<
@@ -689,6 +690,8 @@ export interface CreateJiraParent {
   description?: string | null;
   /** INIT (or other parent) issue key written into Jira Parent Link on direct create. */
   parentLink?: string | null;
+  /** Jira Team values written onto the created issue (shared dialog field). */
+  teams?: string[] | null;
   /** Jira username (firstname.lastname). Omit / null → leave the epic assignee empty. */
   assignee?: string | null;
 }
@@ -705,6 +708,8 @@ export interface CreateJiraChild {
   suggestedFixVersion?: string | null;
   /** Jira username (firstname.lastname); omit / null → leave assignee empty. */
   assignee?: string | null;
+  /** Jira Team values written onto the created issue (shared dialog field). */
+  teams?: string[] | null;
   description?: string | null;
 }
 
@@ -736,6 +741,10 @@ export interface AgentCreateConstraints {
   subType?: string | null;
   fixVersion?: string | null;
   sprint?: string | null;
+  /** Shared Parent Link field; null = the Agent decides per item. */
+  parentLink?: string | null;
+  /** Shared Team field values; null = the Agent decides. */
+  teams?: string[] | null;
 }
 
 export interface AgentCreateJiraPayload {
@@ -791,12 +800,17 @@ export function buildCreateJiraPayload(
     assigneeByDraftId?: Record<string, string | null | undefined>;
     /** Parent epic Jira username. Empty leaves the epic assignee unset. */
     parentAssignee?: string | null;
+    /** Shared Parent Link; overrides each draft item's stored value when set. */
+    parentLinkOverride?: string | null;
+    /** Shared Team values written onto every created issue when set. */
+    teams?: string[] | null;
   },
 ): CreateJiraPayload {
   const parentIsDraft = isDraftItem(group.item);
   const override = String(fields.fixVersionOverride || '').trim() || null;
   const parentSuggested =
     fields.fixVersionByKey?.[group.item.key] ?? null;
+  const teams = fields.teams?.length ? fields.teams : null;
   return {
     teamId: fields.teamId,
     token: fields.token,
@@ -811,7 +825,9 @@ export function buildCreateJiraPayload(
           fixVersion: override || parentSuggested || null,
           suggestedFixVersion: parentSuggested || null,
           description: group.item.description ?? null,
-          parentLink: group.item.parentLink ?? null,
+          parentLink:
+            (fields.parentLinkOverride || group.item.parentLink) ?? null,
+          teams,
           assignee: fields.parentAssignee || null,
         }
       : null,
@@ -827,6 +843,7 @@ export function buildCreateJiraPayload(
         fixVersion: override || suggested,
         suggestedFixVersion: suggested,
         assignee: fields.assigneeByDraftId?.[sub.id] || null,
+        teams,
         description: sub.description ?? null,
       };
     }),

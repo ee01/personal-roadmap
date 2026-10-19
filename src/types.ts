@@ -133,6 +133,8 @@ export interface JqlHints {
   /** 'customfield_15751' (Parent Link) | 'customfield_11450' (Epic Link) | 'parent' */
   linkField: string | null;
   confident: boolean;
+  /** Team names parsed from the team JQL (`Team = x` / `Team in (a, b)` clauses). */
+  teams: string[];
 }
 
 export interface ItemRow {

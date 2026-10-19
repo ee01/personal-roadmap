@@ -63,6 +63,7 @@ describe('snapshot contract', () => {
       subType: 'Task',
       linkField: 'customfield_11450',
       confident: true,
+      teams: ['Nova CA - Brandy'],
     });
   });
 

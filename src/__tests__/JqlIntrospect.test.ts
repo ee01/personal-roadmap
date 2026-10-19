@@ -6,6 +6,7 @@ import {
   buildJqlHints,
   parseIssueType,
   parseProjectKey,
+  parseTeamValues,
   resolveSubType,
   stripQuotedSegments,
 } from '../core/JqlIntrospect.js';
@@ -64,6 +65,33 @@ describe('parseIssueType', () => {
   });
 });
 
+describe('parseTeamValues', () => {
+  it('reads every value of an outer Team in-list, keeping order', () => {
+    expect(
+      parseTeamValues(
+        'project=NOVA and Team in ("Nova CA - Brandy", "Nova CA - Tony")',
+      ),
+    ).toEqual(['Nova CA - Brandy', 'Nova CA - Tony']);
+  });
+
+  it('supports the custom-field spelling and equality form', () => {
+    expect(parseTeamValues('"Team[Team]" = "Nova CA - Brandy"')).toEqual([
+      'Nova CA - Brandy',
+    ]);
+    expect(parseTeamValues('Team = Nova-CA')).toEqual(['Nova-CA']);
+  });
+
+  it('de-duplicates and ignores negated clauses and functions', () => {
+    expect(
+      parseTeamValues(
+        'Team in ("A Team", "a team") and Team not in ("B Team")',
+      ),
+    ).toEqual(['A Team']);
+    expect(parseTeamValues('Team = currentUser()')).toEqual([]);
+    expect(parseTeamValues('')).toEqual([]);
+  });
+});
+
 describe('resolveSubType', () => {
   it('maps Initiative to Epic children via Parent Link', () => {
     expect(resolveSubType('Initiative')).toEqual({
@@ -98,7 +126,16 @@ describe('buildJqlHints', () => {
       subType: 'Task',
       linkField: EPIC_LINK_FIELD,
       confident: true,
+      teams: ['Nova CA - Brandy'],
     });
+  });
+
+  it('falls back to the nested portfolioChildrenOf Team clause', () => {
+    expect(
+      buildJqlHints({
+        jql: `issueFunction in portfolioChildrenOf('project = INIT AND Team in ("Nova CA - Brandy")') and project=NOVA`,
+      }).teams,
+    ).toEqual(['Nova CA - Brandy']);
   });
 
   it('falls back to the mode of already imported item types', () => {
@@ -120,6 +157,7 @@ describe('buildJqlHints', () => {
       subType: 'Task',
       linkField: EPIC_LINK_FIELD,
       confident: false,
+      teams: [],
     });
   });
 });

@@ -529,6 +529,7 @@ describe('create-jira payload', () => {
         suggestedFixVersion: null,
         description: null,
         parentLink: null,
+        teams: null,
         assignee: null,
       },
       children: [
@@ -542,6 +543,7 @@ describe('create-jira payload', () => {
           fixVersion: null,
           suggestedFixVersion: null,
           assignee: null,
+          teams: null,
           description: null,
         },
       ],
@@ -622,6 +624,62 @@ describe('create-jira payload', () => {
       }),
     ])[0];
     expect(buildCreateJiraPayload(group, fields).parent?.parentLink).toBe('INIT-42');
+  });
+
+  it('lets the shared Parent Link field override the stored value and carry teams', () => {
+    const group = buildDraftGroups([
+      item({
+        key: 'LOCAL-ab12cd34',
+        source: 'manual',
+        jiraKey: null,
+        title: 'Manual epic',
+        parentLink: 'INIT-42',
+        subs: [sub({ id: 'd1', title: 'first child' })],
+      }),
+    ])[0];
+    const payload = buildCreateJiraPayload(group, {
+      ...fields,
+      parentLinkOverride: 'INIT-99',
+      teams: ['Nova CA - Brandy', 'Nova CA - Tony'],
+    });
+    expect(payload.parent?.parentLink).toBe('INIT-99');
+    expect(payload.parent?.teams).toEqual([
+      'Nova CA - Brandy',
+      'Nova CA - Tony',
+    ]);
+    expect(payload.children[0].teams).toEqual([
+      'Nova CA - Brandy',
+      'Nova CA - Tony',
+    ]);
+  });
+
+  it('puts the shared Parent Link and Team constraints into the Agent prompt', () => {
+    const parent = item({
+      key: 'LOCAL-ab12cd34',
+      source: 'manual',
+      jiraKey: null,
+      title: 'Manual epic',
+    });
+    const prompt = buildAgentCreatePrompt({
+      userPrompt: 'create',
+      projectKey: 'NOVA',
+      itemType: 'Epic',
+      subType: 'Task',
+      fixVersion: '',
+      sprint: '',
+      parentLink: 'INIT-99',
+      teams: ['Nova CA - Brandy', 'Nova CA - Tony'],
+      map: {},
+      currentUser: 'Tester',
+      members: [],
+      items: [parent],
+      parentItems: [{ ...parent, parentLink: 'INIT-99' }],
+      drafts: [],
+    });
+    expect(prompt).toContain('- Parent Link: INIT-99');
+    expect(prompt).toContain('- Team: Nova CA - Brandy / Nova CA - Tony');
+    expect(prompt).toContain('必须写入每个新建 issue 的 Jira Team 字段');
+    expect(prompt).toContain('INIT-99');
   });
 });
 
