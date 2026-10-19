@@ -75,6 +75,7 @@ export type IntentOp =
   | 'unlock'
   | 'set_quarters'
   | 'update_create_jira_prompt'
+  | 'update_create_jira_fields'
   | 'update_assignee_map'
   | 'merge_people'
   | 'refresh_from_jira'
@@ -103,11 +104,26 @@ export interface MarkerRow {
   updated_at: number;
 }
 
+/**
+ * The Create-Jira dialog's shared fields, remembered per team so the next
+ * open — on any device — starts from what was last filled in. `null` / absent
+ * means "never saved" (the client falls back to JQL hints); an empty string
+ * or empty array means the user deliberately cleared the field.
+ */
+export interface CreateJiraFields {
+  projectKey?: string | null;
+  itemType?: string | null;
+  subType?: string | null;
+  parentLink?: string | null;
+  teams?: string[] | null;
+}
+
 export interface TeamRow {
   id: string;
   name: string;
   jql: string;
   checked_quarters_json: string;
+  create_jira_fields_json: string;
   imported_quarters_json: string;
   release_sheet_json: string;
   create_jira_prompt: string;
@@ -246,6 +262,8 @@ export interface TeamSnapshot {
     releaseSheet?: ReleaseSheetConfig | null;
     /** Team-shared Create-Jira Agent prompt. */
     createJiraPrompt?: string;
+    /** Last-filled Create-Jira dialog fields, shared across devices. */
+    createJiraFields?: CreateJiraFields | null;
     /** System name (lowercase key) → Jira Firstname Lastname. */
     assigneeMap?: Record<string, string>;
     /** Browse base from server env (no trailing slash); may be empty. */

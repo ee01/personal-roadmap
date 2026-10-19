@@ -342,6 +342,19 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: '021_teams_create_jira_fields',
+    up: (database) => {
+      // Last-filled Create-Jira dialog fields (Project Key / types / Parent
+      // Link / teams), shared across devices like create_jira_prompt.
+      addColumn(
+        database,
+        'teams',
+        'create_jira_fields_json',
+        `TEXT NOT NULL DEFAULT '{}'`,
+      );
+    },
+  },
 ];
 
 function runMigrations(database: Db): void {

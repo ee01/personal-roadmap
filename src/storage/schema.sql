@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS teams (
   imported_quarters_json TEXT NOT NULL DEFAULT '[]',
   release_sheet_json TEXT NOT NULL DEFAULT 'null',
   create_jira_prompt TEXT NOT NULL DEFAULT '',
+  create_jira_fields_json TEXT NOT NULL DEFAULT '{}',
   assignee_map_json TEXT NOT NULL DEFAULT '{}',
   jira_refreshed_at INTEGER,
   version INTEGER NOT NULL DEFAULT 1,

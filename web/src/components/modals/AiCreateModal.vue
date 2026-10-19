@@ -176,6 +176,28 @@ const agentMode = computed(() => prompt.value.trim().length > 0);
 /** Teams parsed from the team JQL — offered (and pre-filled) in the Team input. */
 const teamOptions = computed(() => state.jqlHints.value.teams || []);
 
+/**
+ * Last-filled dialog fields saved on the server (team-shared, cross-device).
+ * A null field means "never saved" — fall back to JQL hints / draft values.
+ */
+const savedFields = computed(
+  () => state.snapshot.value?.team.createJiraFields || null,
+);
+
+/**
+ * The field state this open started from. Saving on close only fires when the
+ * user actually changed something, so untouched opens never write team config.
+ */
+const fieldsBaseline = ref<CreateFieldsPayload | null>(null);
+
+interface CreateFieldsPayload {
+  projectKey: string;
+  itemType: string;
+  subType: string;
+  parentLink: string;
+  teams: string[];
+}
+
 /** Multiple teams are comma / 、 separated; team names themselves may contain spaces. */
 const selectedTeams = computed(() =>
   teamInput.value
@@ -432,12 +454,20 @@ watch(
       const draft = getAiPromptDraft(teamId);
       const teamPrompt = state.snapshot.value?.team.createJiraPrompt || '';
       prompt.value = draft !== null ? draft : teamPrompt;
-      projectKey.value = hints.projectKey || '';
-      itemType.value = hints.itemType || '';
-      subType.value = hints.subType || '';
+      // Saved fields win over JQL hints: the user's last filled state is the
+      // point of saving them. "" (cleared) also wins; null falls back.
+      const saved = savedFields.value;
+      const pick = (v: string | null | undefined, fb: string) =>
+        v === null || v === undefined ? fb : v;
+      projectKey.value = pick(saved?.projectKey, hints.projectKey || '');
+      itemType.value = pick(saved?.itemType, hints.itemType || '');
+      subType.value = pick(saved?.subType, hints.subType || '');
       sprint.value = '';
-      parentLink.value = sharedDraftParentLink.value;
-      teamInput.value = teamOptions.value.join(', ');
+      parentLink.value = pick(saved?.parentLink, sharedDraftParentLink.value);
+      teamInput.value = saved?.teams
+        ? saved.teams.join(', ')
+        : teamOptions.value.join(', ');
+      fieldsBaseline.value = currentFieldsPayload();
       const uniq = uniqueSuggestedReleases.value;
       fixVersion.value = uniq.length === 1 ? uniq[0] : '';
     }
@@ -459,6 +489,46 @@ watch(uniqueSuggestedReleases, (uniq) => {
     fixVersion.value = uniq[0];
   }
 });
+
+function currentFieldsPayload(): CreateFieldsPayload {
+  return {
+    projectKey: projectKey.value.trim(),
+    itemType: itemType.value.trim(),
+    subType: subType.value.trim(),
+    parentLink: parentLink.value.trim(),
+    teams: [...selectedTeams.value],
+  };
+}
+
+function fieldsEqual(a: CreateFieldsPayload, b: CreateFieldsPayload): boolean {
+  return (
+    a.projectKey === b.projectKey &&
+    a.itemType === b.itemType &&
+    a.subType === b.subType &&
+    a.parentLink === b.parentLink &&
+    a.teams.join('\u0000') === b.teams.join('\u0000')
+  );
+}
+
+/**
+ * Team-shared save of the dialog fields — like the Create Prompt config, the
+ * values live on the server so any device opening this team sees them.
+ */
+async function saveCreateJiraFields(): Promise<void> {
+  if (!state.editable.value || !state.teamId.value) return;
+  const next = currentFieldsPayload();
+  const baseline = fieldsBaseline.value;
+  if (baseline && fieldsEqual(baseline, next)) return;
+  try {
+    await state.applySnapshotFromIntent({
+      op: 'update_create_jira_fields',
+      fields: next,
+    });
+    fieldsBaseline.value = next;
+  } catch {
+    /* non-blocking: create / close continues with the local values */
+  }
+}
 
 function promptForGroup(group: DraftGroup): string {
   return buildAgentCreatePrompt({
@@ -550,6 +620,9 @@ async function start(opts?: { groupKey?: string }) {
   if (selectedExecutor.value) {
     localStorage.setItem(AI_EXECUTOR_KEY, selectedExecutor.value);
   }
+  // Executing also persists the shared fields so any device reopening this
+  // team starts from what was just used.
+  await saveCreateJiraFields();
   const token = state.api.getShareToken(teamId) || null;
   const teamName = state.snapshot.value?.team.name || null;
   const override = fixVersion.value.trim() || null;
@@ -695,6 +768,9 @@ async function start(opts?: { groupKey?: string }) {
 }
 
 function closeModal() {
+  // Fields the user changed but never executed are still worth keeping —
+  // closing is the last chance to persist them for the next open.
+  if (!running.value) void saveCreateJiraFields();
   state.modals.value.aiCreate = false;
 }
 </script>
@@ -717,7 +793,7 @@ function closeModal() {
         <div class="m-sub">
           Prompt 留空：按下方字段<b>直连 Jira API</b> 创建。填写 Prompt：交给
           <b>Agent 执行器</b>创建（可用技能、自动填当前 Sprint 等动态字段）——已填字段作为约束带给
-          Agent，未填字段由 Agent 决定。Jira 里还没有对应 fixVersion 时会<b>留空该字段继续创建</b>，不会因此整行拒绝。失败行可改字段后按 Epic 重试，已成功的 ticket 不会再创建。Prompt 草稿保存在本机；执行创建时同步为团队配置，协作者也能看到。
+          Agent，未填字段由 Agent 决定。Jira 里还没有对应 fixVersion 时会<b>留空该字段继续创建</b>，不会因此整行拒绝。失败行可改字段后按 Epic 重试，已成功的 ticket 不会再创建。Prompt 草稿保存在本机，执行时同步为团队配置；Project / 任务类型 / Parent Link / Team 这些已填字段也会保存为团队配置，换设备打开同一 Team 自动带出。
         </div>
       </div>
       <div class="m-body">

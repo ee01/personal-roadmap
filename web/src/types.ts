@@ -167,6 +167,20 @@ export interface LockEntry {
   expiresAt: number;
 }
 
+/**
+ * Last-filled Create-Jira dialog fields, remembered on the server per team so
+ * the next open — on any device — starts from what was last filled in.
+ * A `null` / absent field means "never saved" (fall back to JQL hints); an
+ * empty string / empty array means the user deliberately cleared it.
+ */
+export interface CreateJiraFields {
+  projectKey?: string | null;
+  itemType?: string | null;
+  subType?: string | null;
+  parentLink?: string | null;
+  teams?: string[] | null;
+}
+
 export interface TeamSnapshot {
   team: {
     id: string;
@@ -183,6 +197,8 @@ export interface TeamSnapshot {
     releaseSheet?: ReleaseSheetConfig | null;
     /** Team-shared Create-Jira Agent prompt shown to all collaborators. */
     createJiraPrompt?: string;
+    /** Last-filled Create-Jira dialog fields, shared across devices. */
+    createJiraFields?: CreateJiraFields | null;
     /** System name (lowercase key) → Jira Firstname Lastname. */
     assigneeMap?: Record<string, string>;
     /** Browse base from server env; empty when unset. */

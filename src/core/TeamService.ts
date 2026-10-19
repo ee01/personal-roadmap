@@ -10,6 +10,7 @@ import { parseParentLink } from './parentLink.js';
 import type {
   ActivityRow,
   ActorContext,
+  CreateJiraFields,
   CustomLabelPair,
   CustomLabelValue,
   EtaSource,
@@ -73,6 +74,72 @@ function normalizeReleaseFilter(
   const pattern = String(o.pattern || '').trim();
   if (mode === 'custom' && !pattern) return { mode: 'all', pattern: '' };
   return { mode, pattern: mode === 'custom' ? pattern : '' };
+}
+
+/**
+ * Shared clamp of the dialog fields. Absent / non-string values stay absent
+ * ("never saved"); an empty string survives as "user cleared it". A malformed
+ * Parent Link is rejected so garbage never reaches the stored config.
+ */
+function normalizeCreateJiraFields(
+  raw: unknown,
+):
+  | { ok: true; fields: CreateJiraFields }
+  | { ok: false; error: 'invalid_parent_link' } {
+  const src =
+    raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const str = (value: unknown): string | null =>
+    value === undefined || value === null
+      ? null
+      : String(value).trim().slice(0, 200);
+
+  const parentLink = str(src.parentLink);
+  let parentLinkValue: string | null = null;
+  if (parentLink) {
+    const parsed = parseParentLink(parentLink);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    parentLinkValue = parsed.value;
+  } else if (parentLink === '') {
+    parentLinkValue = '';
+  }
+
+  const teams: string[] = [];
+  if (Array.isArray(src.teams)) {
+    // Case-insensitive de-dup keeps the first-seen casing, like parseTeamValues.
+    for (const raw of src.teams) {
+      const name = String(raw || '').trim().slice(0, 100);
+      if (!name) continue;
+      if (!teams.some((t) => t.toLowerCase() === name.toLowerCase())) {
+        teams.push(name);
+      }
+    }
+  }
+  const teamsValue = Array.isArray(src.teams) ? teams.slice(0, 20) : null;
+
+  const fields: CreateJiraFields = {};
+  if (str(src.projectKey) !== null) fields.projectKey = str(src.projectKey)!;
+  if (str(src.itemType) !== null) fields.itemType = str(src.itemType)!;
+  if (str(src.subType) !== null) fields.subType = str(src.subType)!;
+  if (parentLinkValue !== null) fields.parentLink = parentLinkValue;
+  if (teamsValue !== null) fields.teams = teamsValue;
+  return { ok: true, fields };
+}
+
+/**
+ * Lenient read of the stored dialog fields: garbage rows read back as null
+ * ("never saved") instead of poisoning every snapshot.
+ */
+function parseCreateJiraFields(
+  raw: string | null | undefined,
+): CreateJiraFields | null {
+  if (!raw || raw === '{}') return null;
+  try {
+    const normalized = normalizeCreateJiraFields(JSON.parse(raw));
+    if (!normalized.ok) return null;
+    return Object.keys(normalized.fields).length ? normalized.fields : null;
+  } catch {
+    return null;
+  }
 }
 
 function parseReleaseSheet(
@@ -392,6 +459,7 @@ export function getTeamSnapshot(teamId: string): TeamSnapshot | null {
       jiraEnabled: config.jira.enabled,
       releaseSheet: parseReleaseSheet(team.release_sheet_json),
       createJiraPrompt: team.create_jira_prompt || '',
+      createJiraFields: parseCreateJiraFields(team.create_jira_fields_json),
       assigneeMap: parseAssigneeMap(team.assignee_map_json),
       jiraBaseUrl: config.jira.baseUrl || '',
       jiraRefreshedAt: team.jira_refreshed_at || null,
@@ -726,6 +794,8 @@ export function renderActivityText(
       return `${who} 更新了发布时间表标尺`;
     case 'update_create_jira_prompt':
       return `${who} 更新了创建 Jira Prompt`;
+    case 'update_create_jira_fields':
+      return `${who} 更新了创建 Jira 字段`;
     case 'update_assignee_map':
       return `${who} 更新了 Assignee 映射`;
     case 'merge_people':
@@ -1980,6 +2050,21 @@ export function applyIntent(
       targetType: 'team',
       targetKey: teamId,
       summary: { length: prompt.trim().length },
+    });
+  } else if (op === 'update_create_jira_fields') {
+    const normalized = normalizeCreateJiraFields(intent.fields);
+    if (!normalized.ok) return { ok: false, error: normalized.error };
+    db.prepare(
+      `UPDATE teams SET create_jira_fields_json = ?, version = version + 1, updated_at = ?
+       WHERE id = ?`,
+    ).run(JSON.stringify(normalized.fields), ts, teamId);
+    writeActivity({
+      teamId,
+      actor,
+      op,
+      targetType: 'team',
+      targetKey: teamId,
+      summary: { fields: Object.keys(normalized.fields) },
     });
   } else if (op === 'update_assignee_map') {
     const nextMap = normalizeAssigneeMap(intent.assigneeMap);

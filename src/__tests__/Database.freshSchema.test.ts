@@ -43,6 +43,7 @@ describe('a database created from schema.sql', () => {
       '018_items_parent_link',
       '019_items_owner',
       '020_custom_labels',
+      '021_teams_create_jira_fields',
     ]);
     expect(
       (db.pragma('table_info(subs)') as Array<{ name: string }>).map(
