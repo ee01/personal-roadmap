@@ -151,8 +151,11 @@ function clearResSel() {
 }
 
 // 换团队 / 换「近 2 周·全部」都回到今天、清空聚焦，不带着旧偏移量或旧选择
+// 必须用「多源 watch」写法（数组里放 getter）：单个 getter 每次都返回新数组，
+// 引用永远不同，Vue 会把每次 snapshot 替换（SSE 推送 / 静默 Jira 刷新 / 别人
+// 的编辑回声）都误判成变化，几秒后就把「正在做」选中清空——这正是选中丢失的根因。
 watch(
-  () => [state.resWin.value, state.snapshot.value?.team.id] as const,
+  [() => state.resWin.value, () => state.snapshot.value?.team.id],
   () => {
     resOffset.value = 0;
     clearResSel();

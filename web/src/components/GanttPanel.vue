@@ -652,8 +652,15 @@ function scheduleSilentJiraRefresh() {
   }, 2000);
 }
 
+// 多源 watch 写法（数组里放 getter）：单个 getter 每次返回新数组、引用永远不同，
+// 会导致每次 snapshot 替换都误触发，把「2 秒后静默刷新 Jira」变成持续重拉数据的
+// 循环；这里只应在扩展连接态 / 可编辑态 / 团队真正变化时触发一次。
 watch(
-  () => [state.hasExtension.value, state.editable.value, state.snapshot.value?.team.id] as const,
+  [
+    () => state.hasExtension.value,
+    () => state.editable.value,
+    () => state.snapshot.value?.team.id,
+  ],
   ([hasExt, editable, teamId]) => {
     if (hasExt && editable && teamId) {
       flushUnsyncedTargetDates();
