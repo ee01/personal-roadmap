@@ -38,6 +38,7 @@ import type { MilestoneValue, RoadmapItem, RoadmapSub, RulerMode } from '../type
 import GanttRow from './GanttRow.vue';
 import ResourceView from './ResourceView.vue';
 import DependencyView from './DependencyView.vue';
+import DependencyTools from './DependencyTools.vue';
 import {
   bridgeImportChildTasks,
   bridgeRefreshJiraIssues,
@@ -1119,8 +1120,17 @@ onUnmounted(() => {
         >
           人员
         </button>
-        <button class="vs-btn" :class="{ active: state.view.value === 'dependency' }" @click="state.view.value = 'dependency'">依赖</button>
+        <button
+          class="vs-btn"
+          :class="{ active: state.view.value === 'dependency' }"
+          data-tip="依赖视图||只列出带外部依赖的任务：对方 ETA vs 我们期望、晚多少天、Ticket 排期||拖动改期望 · 单击改 ETA"
+          @click="state.view.value = 'dependency'"
+        >
+          依赖
+        </button>
       </div>
+      <!-- 依赖视图：过滤 + 图例与视图切换同一行 -->
+      <DependencyTools v-if="state.view.value === 'dependency'" />
 
       <div
         v-show="showRulerSwitch"
@@ -1455,7 +1465,7 @@ onUnmounted(() => {
     </div>
 
     <!-- v-if: ResourceView 有多个根节点（主视图 + 延长 Epic 弹窗），v-show 无法落到根上 -->
-    <DependencyView v-if="state.view.value === 'dependency'" :tl="tl" />
+    <DependencyView v-if="state.view.value === 'dependency'" />
     <ResourceView
       v-if="state.view.value === 'resource'"
       :tl="tl"
