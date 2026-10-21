@@ -1191,6 +1191,7 @@ textarea.f-input.f-desc{min-height:60px;font-family:var(--sans);font-size:12.5px
 .cp-list{padding:8px 12px;line-height:1.7}
 .cp-list .li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cp-list .li.l1{padding-left:18px;color:var(--past-ink)}
+.cp-list .li.chat{white-space:normal;word-break:break-word;padding:2px 0}
 .cp-list .li.g{font-weight:700;margin-top:4px}
 .cp-list .li.g:first-child{margin-top:0}
 .cp-list a{font-family:var(--mono);font-size:11px;margin-right:6px}

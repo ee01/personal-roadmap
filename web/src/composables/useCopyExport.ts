@@ -145,6 +145,9 @@ export interface CopyRow {
   risk?: string;
   targetStart?: string;
   targetEnd?: string;
+  /** 依赖视图：所属任务的 Jira Key（草稿为空）与 Jira 标题，用于聊天文本行 */
+  taskKey?: string | null;
+  taskTitle?: string;
 }
 
 export interface CopyGroup {
@@ -296,6 +299,8 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
         summary: dep.label,
         asg: '',
         epic: `${itemDisplayKey(item)} ${item.alias || item.title}`,
+        taskKey: isDraftItem(item) ? null : itemDisplayKey(item),
+        taskTitle: item.title,
         status: dep.jiraStatus || '',
         start: null,
         end: null,
@@ -470,6 +475,24 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
 
 /* ---------- 序列化：行 → 剪贴板内容 ---------- */
 
+/**
+ * 依赖视图列表格式 = 可直接贴进聊天的一行：
+ * `* Depends on PLAT-1 API ready ： NOVA-1 Alpha epic - Expect: 2026-10-31，ETA: 未确认`
+ * 依赖（有 ticket 带 Key）在前，所属任务在后；期望未单独设置时等于 ETA。
+ */
+export function dependencyChatParts(r: CopyRow) {
+  return {
+    dep: [r.key, cpCell(r.summary)].filter(Boolean).join(' '),
+    task: [r.taskKey, cpCell(r.taskTitle)].filter(Boolean).join(' '),
+    need: r.need || '未设置',
+    eta: r.eta || '未确认',
+  };
+}
+export function dependencyChatLine(r: CopyRow): string {
+  const p = dependencyChatParts(r);
+  return `* Depends on ${p.dep} ： ${p.task} - Expect: ${p.need}，ETA: ${p.eta}`;
+}
+
 export interface CopyPayload {
   html: string;
   text: string;
@@ -589,6 +612,17 @@ export function buildCopyPayload(
       }
     }
     html = `<meta charset="utf-8"><table>${html}</table>`;
+  } else if (view === 'dependency') {
+    const a = (k: string | null | undefined, label: string) =>
+      k ? `<a href="${cpEscA(jiraBrowseUrl(k, jiraBrowseBase))}">${esc(k)}</a> ${esc(label)}` : esc(label);
+    const lines = data.groups.flatMap((g) => g.rows);
+    html = lines
+      .map((r) => {
+        const p = dependencyChatParts(r);
+        return `<p>* Depends on ${a(r.key, cpCell(r.summary))} ： ${a(r.taskKey, cpCell(r.taskTitle))} - Expect: ${esc(p.need)}，ETA: ${esc(p.eta)}</p>`;
+      })
+      .join('');
+    text = lines.map((r) => `${dependencyChatLine(r)}\n`).join('');
   } else {
     /** Key / Summary 之外的附加信息（Start/End 合并成一段人可读的区间） */
     const extra = (r: CopyRow): string[] =>
@@ -601,9 +635,7 @@ export function buildCopyPayload(
               : ''
             : k === 'end'
               ? ''
-              : view === 'dependency' && cellVal(r, k)
-                ? `${cols.find(([key]) => key === k)![1]}: ${cellVal(r, k)}`
-                : cellVal(r, k),
+              : cellVal(r, k),
         )
         .filter((x) => x && x.trim())
         .map(cpCell);
@@ -617,7 +649,7 @@ export function buildCopyPayload(
     };
     const liText = (r: CopyRow) => {
       const x = extra(r);
-      return `${r.key || (view === 'dependency' ? '手动依赖' : 'DRAFT')} ${cpCell(r.summary)}${
+      return `${r.key || 'DRAFT'} ${cpCell(r.summary)}${
         x.length ? ` · ${x.join(' · ')}` : ''
       }`;
     };

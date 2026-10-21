@@ -4,6 +4,7 @@ import { fmtMD } from '../composables/useGeometry';
 import { jiraBrowseUrl } from '../composables/useRoadmapContract';
 import {
   copyColumns,
+  dependencyChatLine,
   useCopyExport,
   type CopyNote,
   type CopyOptions,
@@ -174,7 +175,7 @@ const COL_W: Record<string, string> = {
 
 type PrevEntry =
   | { t: 'group'; name: string; count: number }
-  | { t: 'row'; cells: Array<{ kind: 'key'; key: string | null; text?: never; cls?: never } | { kind: 'text'; text: string; cls: string; key?: never }>; title: string };
+  | { t: 'row'; cells: Array<{ kind: 'key'; key: string | null; text?: never; cls?: never } | { kind: 'text'; text: string; cls: string; key?: never }>; title: string; line?: string };
 
 interface Preview {
   cols: Array<[string, string]>;
@@ -259,6 +260,8 @@ const preview = computed<Preview | null>(() => {
       entries.push({
         t: 'row',
         title: r.summary,
+        /* 依赖视图：预览即剪贴板里的聊天文本行 */
+        line: view === 'dependency' ? dependencyChatLine(r) : undefined,
         cells: [
           { kind: 'key', key: r.key } as const,
           { kind: 'text', text: r.summary, cls: r.lvl ? 'l1' : '' } as const,
@@ -649,6 +652,7 @@ onBeforeUnmount(() => {
             <div v-if="e.t === 'group'" class="li g">
               {{ e.name }} <span class="x">({{ e.count }})</span>
             </div>
+            <div v-else-if="e.line" class="li chat">{{ e.line }}</div>
             <div v-else class="li" :class="{ l1: e.cells[1].cls === 'l1' }">
               {{ e.cells[1].cls === 'l1' ? '◦ ' : '• ' }}
               <template v-if="e.cells[0].kind === 'key'">
