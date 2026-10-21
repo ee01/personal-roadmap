@@ -25,6 +25,15 @@ legacy.exec(`
     version INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL, UNIQUE(team_id, key)
   );
+  CREATE TABLE item_markers (
+    id TEXT PRIMARY KEY, team_id TEXT NOT NULL, item_key TEXT NOT NULL,
+    kind TEXT NOT NULL, phase_kind TEXT, label TEXT NOT NULL, date TEXT,
+    jira_key TEXT, eta_source TEXT, jira_status TEXT, jira_target_end TEXT,
+    jira_fetched_at INTEGER, created_by TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+  );
+  INSERT INTO item_markers (id,team_id,item_key,kind,label,date,jira_key,eta_source,created_by,created_at,updated_at)
+    VALUES ('legacy-dep','Sp1CSuq7w70L','NOVA-42','dep','Legacy dependency','2026-08-25','PLAT-1','jira','test',1,1);
   INSERT INTO teams (id, name, jql, created_at, updated_at)
     VALUES ('Sp1CSuq7w70L', 'Legacy', 'project = NOVA', 1, 1);
   INSERT INTO items (id, team_id, key, type, title, quarter, created_at, updated_at)
@@ -96,7 +105,9 @@ describe('items migrations on an existing database', () => {
       '019_items_owner',
       '020_custom_labels',
       '021_teams_create_jira_fields',
+      '022_dependency_expectation',
     ]);
+    expect(db.prepare(`SELECT date, need, eta_at, jira_target_start FROM item_markers WHERE id = 'legacy-dep'`).get()).toEqual({ date: '2026-08-25', need: null, eta_at: null, jira_target_start: null });
     const row = db
       .prepare(`SELECT source, jira_key, project_key FROM items WHERE id = 'i1'`)
       .get() as { source: string; jira_key: string; project_key: string };
@@ -127,7 +138,7 @@ describe('items migrations on an existing database', () => {
   it('is safe to re-run on an already migrated database', () => {
     closeDb();
     const db = getDb();
-    expect(migrationIds(db)).toHaveLength(21);
+    expect(migrationIds(db)).toHaveLength(22);
     expect(
       db.prepare(`SELECT COUNT(*) AS n FROM items`).get() as { n: number },
     ).toEqual({ n: 1 });

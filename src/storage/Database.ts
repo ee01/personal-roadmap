@@ -355,6 +355,14 @@ const MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    id: '022_dependency_expectation',
+    up: (database) => {
+      addColumn(database, 'item_markers', 'need', 'TEXT');
+      addColumn(database, 'item_markers', 'eta_at', 'INTEGER');
+      addColumn(database, 'item_markers', 'jira_target_start', 'TEXT');
+    },
+  },
 ];
 
 function runMigrations(database: Db): void {

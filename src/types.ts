@@ -95,6 +95,9 @@ export interface MarkerRow {
   date: string | null;
   jira_key: string | null;
   eta_source: EtaSource | null;
+  need: string | null;
+  eta_at: number | null;
+  jira_target_start: string | null;
   jira_status: string | null;
   jira_target_end: string | null;
   jira_fetched_at: number | null;
@@ -331,6 +334,12 @@ export interface TeamSnapshot {
       date?: string | null;
       jiraKey?: string | null;
       etaSource?: EtaSource | null;
+      need?: string | null;
+      etaAt?: number | null;
+      jiraTargetStart?: string | null;
+      jiraTargetEnd?: string | null;
+      jiraStatus?: string | null;
+      jiraFetchedAt?: number | null;
       createdBy: string;
       version: number;
     }>;

@@ -69,6 +69,7 @@ const countText = computed(() =>
 
 const mainTip = computed(() => {
   const d = data.value;
+  if (cp.view.value === 'dependency') return d.n ? `复制当前筛选下的 ${d.n} 个依赖||所属任务 · 期望日期 · ETA · 风险 · Ticket Target 排期||右侧箭头可切换列表或表格` : '当前没有可复制的依赖';
   if (!d.n) {
     return `${
       cp.view.value === 'gantt' ? '甘特图上还没有 Epic' : '当前没有可复制的 Task'
@@ -106,8 +107,8 @@ const head = computed<{ title: string; sub: string }>(() => {
             sub: '把左侧 Backlog 卡片拖进时间轴后，这里就能一键复制',
           }
         : {
-            title: '没有可复制的 Task',
-            sub: '任务添加 Owner 后会按人分组出现在人员视图',
+            title: cp.view.value === 'dependency' ? '没有可复制的依赖' : '没有可复制的 Task',
+            sub: cp.view.value === 'dependency' ? '在甘特任务条上添加外部依赖后再复制' : '任务添加 Owner 后会按人分组出现在人员视图',
           };
   }
   if (isErr.value) {
@@ -131,7 +132,7 @@ const head = computed<{ title: string; sub: string }>(() => {
     title:
       cp.view.value === 'gantt'
         ? `复制 ${d.n} 个 Epic${o.value.subs ? `（含 ${d.subN} 个子任务）` : ''}`
-        : `复制 ${d.n} 个 Task · ${d.people} 人`,
+        : cp.view.value === 'dependency' ? `复制 ${d.n} 个依赖` : `复制 ${d.n} 个 Task · ${d.people} 人`,
     sub: '先调好附加列与格式，点「复制」后写入剪贴板；选项会被记住',
   };
 });
@@ -139,13 +140,14 @@ const head = computed<{ title: string; sub: string }>(() => {
 const footHint = computed(() => {
   if (isErr.value) return '常见原因：页面不在前台，或浏览器策略限制';
   if (isReceiptOk.value) return '选项已记住，下次点「复制」直接带上';
+  if (cp.view.value === 'dependency') return '仅复制当前筛选下的依赖，始终附带期望、ETA、风险和 ticket 排期';
   return '默认只复制 Key ⇥ Summary；「粘贴到」默认列表，贴进文档 / 聊天';
 });
 
 const emptyHtml = computed(() =>
   popView.value === 'gantt'
     ? '时间轴还是空的<br>把 <b>Backlog</b> 卡片拖进来，再回到这里复制'
-    : '还没有分配到人的任务<br>在甘特子任务上设置 <b>Owner</b> 后出现在人员视图',
+    : popView.value === 'dependency' ? '当前没有依赖，请添加依赖或调整筛选' : '还没有分配到人的任务<br>在甘特子任务上设置 <b>Owner</b> 后出现在人员视图',
 );
 
 /* ---------- 回执态列结构（不预览 Ticket 内容，只说明 A/B/C 列） ---------- */
@@ -172,7 +174,7 @@ const COL_W: Record<string, string> = {
 
 type PrevEntry =
   | { t: 'group'; name: string; count: number }
-  | { t: 'row'; cells: Array<{ kind: 'key'; key: string | null } | { kind: 'text'; text: string; cls: string }>; title: string };
+  | { t: 'row'; cells: Array<{ kind: 'key'; key: string | null; text?: never; cls?: never } | { kind: 'text'; text: string; cls: string; key?: never }>; title: string };
 
 interface Preview {
   cols: Array<[string, string]>;
@@ -225,7 +227,7 @@ const preview = computed<Preview | null>(() => {
     }
     return {
       cols,
-      tpl: cols.map(([k]) => COL_W[k]).join(' '),
+      tpl: cols.map(([k]) => COL_W[k] || '90px').join(' '),
       headerLabels: o.value.header ? cols.map(([, h]) => h) : null,
       entries,
       hidden,
@@ -269,6 +271,7 @@ const preview = computed<Preview | null>(() => {
 });
 
 function cellOf(r: CopyRow, k: string): string {
+  if (['need', 'eta', 'risk', 'targetStart', 'targetEnd'].includes(k)) return String(r[k as keyof CopyRow] || '');
   if (k === 'asg') return r.asg;
   if (k === 'epic') return r.epic;
   if (k === 'status') return r.status;
@@ -374,7 +377,7 @@ function onGo() {
 
 /** 勾选 / 切换即重写剪贴板（仅在已复制过的回执态；配置态只改预览） */
 function setOpt(key: keyof CopyOptions, value: unknown) {
-  const cur = (o.value as Record<string, unknown>)[key];
+  const cur = o.value[key];
   if (cur === value) return;
   cp.setOpt(popView.value, key, value);
   if (isReceipt.value && data.value.n) {
@@ -632,7 +635,7 @@ onBeforeUnmount(() => {
               >
                 <template v-if="cell.kind === 'key'">
                   <a v-if="cell.key" :href="keyHref(cell.key)" target="_blank" rel="noopener">{{ cell.key }}</a>
-                  <span v-else class="dr">DRAFT</span>
+                  <span v-else class="dr">{{ popView === 'dependency' ? '手动依赖' : 'DRAFT' }}</span>
                 </template>
                 <template v-else>{{ cell.text }}</template>
               </div>
@@ -650,7 +653,7 @@ onBeforeUnmount(() => {
               {{ e.cells[1].cls === 'l1' ? '◦ ' : '• ' }}
               <template v-if="e.cells[0].kind === 'key'">
                 <a v-if="e.cells[0].key" :href="keyHref(e.cells[0].key)" target="_blank" rel="noopener">{{ e.cells[0].key }}</a>
-                <span v-else class="dr">DRAFT</span>
+                <span v-else class="dr">{{ popView === 'dependency' ? '手动依赖' : 'DRAFT' }}</span>
               </template>
               <span class="sum">{{ e.cells[1].text }}</span>
               <span v-if="e.cells[2].text" class="x"> · {{ e.cells[2].text }}</span>
@@ -665,11 +668,11 @@ onBeforeUnmount(() => {
     </div>
 
     <template v-if="data.n">
-      <div class="cp-sec">
+      <div v-if="popView !== 'dependency'" class="cp-sec">
         附加信息
         <span>{{ isReceipt && !isErr ? '勾选后剪贴板立即更新' : '可多选' }}</span>
       </div>
-      <div class="cp-opts">
+      <div v-if="popView !== 'dependency'" class="cp-opts">
         <template v-if="popView === 'gantt'">
           <button
             type="button"

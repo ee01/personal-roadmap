@@ -1,6 +1,6 @@
 ## 外部依赖：ETA 与期望时间分离 + 依赖视图（Demo 方案）
 
-> 状态：**仅 Demo**（`docs/demo/roadmap-demo.html`），功能代码未改。本文记录交互判断规则，作为后续实现的依据。
+> 状态：**已实现**（2026-10-21）。`docs/demo/roadmap-demo.html` 保留为设计参考；生产行为与接口说明见下文。
 
 ### 1. 两个时间概念
 
@@ -65,9 +65,19 @@ state =
 - 过滤：全部 / 晚于期望 / 缺 ETA / Jira 有变更，计数实时更新。组内和组间都按风险排序。
 - 在甘特的依赖浮层里点「在依赖视图中查看」，会跳到依赖视图并闪烁定位到这一行。
 
-### 6. 落地改动预估（实现阶段）
+### 6. 生产实现
 
-- 数据：`deps[]` 增加 `need`、`etaAt`、`jiraTargetStart`。迁移时 `need = null`，即与 ETA 相同，现有数据不受影响。
-- 服务端：依赖的 PATCH 接受 `need`。静默刷新只写镜像字段。
-- 扩展：依赖 ticket 的读取多带回 Target Start。
-- 前端：标记轨的节点渲染和拖拽拆成 ETA 点和期望环两部分，新增 `DependencyView` 组件，可以复用 `res-view` 的外壳和 sticky 表头。
+- 兼容现有结构：`item.markers[]` 中 `kind: 'dep'` 的 `date` 仍是已确认 ETA，增加 `need`（nullable）、`etaAt`（确认时间戳）、`jiraTargetStart`。`need = null` 跟随 ETA；历史数据迁移不改原 ETA。
+- 数据库迁移：`022_dependency_expectation`，在 `item_markers` 上增加 `need` / `eta_at` / `jira_target_start` 三个可空字段。
+- 现有 `POST /api/v1/teams/:teamId/intents`：`add_marker` 支持新字段和首次读取的 Jira 镜像；`update_marker` 支持 `need` 与 `jiraTargetStart`，沿用 `baseVersion` 乐观并发校验。仅改期望或镜像不改 `etaAt`；显式设置/清空 `date` 更新/清空确认时间。
+- `refresh_from_jira` 同步 Target Start/End 和 status，只写镜像，不改变 ETA/期望、不增加 marker version。显式刷新才将非空 Target End 写入 ETA；无 Target End 时保留已有已确认 ETA，允许手动填写。
+- 前端：`dependency.ts` 统一派生风险、过滤、排序及吸附规则，`DependencyTrack.vue` 被甘特与 `DependencyView.vue` 共用；方向键与拖动改期望，可撤销，冲突按既有机制刷新。
+- 扩展：复用现有 `pai-roadmap-refresh-jira` 批量接口读取两种 Target 日期，无须修改或重新加载扩展。Jira 实际数据需已安装的 Personal AI 扩展提供。
+- 「催一下」复制包含期望时间的跟进文案并打开 Jira，由用户粘贴发送。
+
+### 7. 复制联动（用户追加需求）
+
+- 工具栏「依赖」激活时，右上角复制只导出当前任务搜索 / Milestone 与依赖风险筛选后的依赖，顺序与依赖页一致。
+- 始终包含：Ticket（无 ticket 标记手动依赖）、依赖内容、所属任务、期望日期、ETA、风险/余量、Jira 状态、Target Start、Target End。
+- 支持列表（文档/聊天）和表格（Sheet/TSV）两种格式，带 Jira 超链接；缺 ETA/期望会明确标记。复制格式按三个视图分别记忆。
+- 任务/人员视图继续使用各自的复制范围。没有依赖时显示空态。

@@ -131,6 +131,8 @@ export function createRoadmapState() {
   let toastSeq = 0;
 
   const view = ref<ViewMode>('gantt');
+  const dependencyFilter = ref<import('./dependency').DependencyFilter>('all');
+  const dependencyFocus = ref<string | null>(null);
   const resWin = ref<ResWindow>('2w');
   /** 人员视图「近 2 周」窗口的平移偏移（天，相对今天）。会话级 UI 状态，不持久化；
    *  放在全局 state 是因为复制导出（过滤行）需要与人员视图看到同一个时间窗。 */
@@ -255,6 +257,7 @@ export function createRoadmapState() {
       item.parentLink || '',
       item.owner || '',
       itemDisplayKey(item),
+      ...(item.markers || []).filter(m => m.kind === 'dep').flatMap(m => [m.label, m.jiraKey || '', m.jiraStatus || '']),
       // 甘特上展开的子任务也能被搜到（命中子任务即保留其父条目）
       ...(item.subs || []).flatMap((sub) => [sub.title, sub.key || '', sub.alias || '', sub.owner || '']),
     ]
@@ -833,6 +836,8 @@ export function createRoadmapState() {
     newSubId,
     toasts,
     view,
+    dependencyFilter,
+    dependencyFocus,
     resWin,
     resOffset,
     focusQuarter,

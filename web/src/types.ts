@@ -1,5 +1,5 @@
 export type ActorSource = 'creator' | 'extension' | 'anonymous' | 'system';
-export type ViewMode = 'gantt' | 'resource';
+export type ViewMode = 'gantt' | 'resource' | 'dependency';
 export type ResWindow = '2w' | 'all';
 export type MarkerKind = 'phase' | 'dep';
 export type PhaseKind = 'design' | 'stage' | 'production' | 'custom';
@@ -76,6 +76,9 @@ export interface RoadmapMarker {
   date?: string | null;
   jiraKey?: string | null;
   etaSource?: EtaSource | null;
+  need?: string | null;
+  etaAt?: number | null;
+  jiraTargetStart?: string | null;
   /** Last mirrored Jira status name; null until a refresh has seen this key. */
   jiraStatus?: string | null;
   /** Last mirrored Jira Target End; never auto-copied onto `date`. */

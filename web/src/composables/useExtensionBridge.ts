@@ -405,3 +405,11 @@ export async function bridgeFetchCustomLabelValues(
   const result = await pending;
   return Array.isArray(result.values) ? result.values : [];
 }
+
+/** Bulk refresh already supplies both Target dates; reuse its supported bridge protocol. */
+export async function bridgeFetchDependencyDates(jiraKey: string) {
+  const issues = await bridgeRefreshJiraIssues([jiraKey]);
+  const issue = issues.find(i => i.key.toUpperCase() === jiraKey.toUpperCase());
+  if (!issue) throw new Error(`未找到 ${jiraKey}`);
+  return { targetStart: issue.targetStart, targetEnd: issue.targetEnd, status: issue.status };
+}

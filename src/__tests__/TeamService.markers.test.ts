@@ -212,3 +212,41 @@ describe('item markers', () => {
     );
   });
 });
+
+describe('dependency expectation and ETA separation', () => {
+  it('preserves confirmed ETA on expectation edits and silent Jira refresh, with OCC', () => {
+    const added = expectOk(apply(teamId, { op: 'add_marker', itemKey: 'NOVA-M1', kind: 'dep', label: 'Platform API', jiraKey: 'PLAT-22', date: '2026-08-25', need: '2026-08-20', etaSource: 'jira', jiraTargetStart: '2026-08-10', jiraTargetEnd: '2026-08-25', jiraStatus: 'Open' })).snapshot;
+    const dep = itemOf(added, 'NOVA-M1').markers.find(m => m.jiraKey === 'PLAT-22')!;
+    expect(dep.need).toBe('2026-08-20');
+    expect(dep.etaAt).toBeTypeOf('number');
+    expect(dep.jiraTargetStart).toBe('2026-08-10');
+    let snapshot = expectOk(apply(teamId, { op: 'update_marker', markerId: dep.id, need: '2026-08-18', baseVersion: dep.version })).snapshot;
+    let next = itemOf(snapshot, 'NOVA-M1').markers.find(m => m.id === dep.id)!;
+    expect(next.date).toBe(dep.date);
+    expect(next.etaSource).toBe('jira');
+    expect(next.etaAt).toBe(dep.etaAt);
+    const version = next.version;
+    snapshot = expectOk(apply(teamId, { op: 'refresh_from_jira', issues: [{ key: 'PLAT-22', fetchedAt: Date.now(), fields: { targetStart: '2026-08-12', targetEnd: '2026-08-30', status: 'In Progress' } }] })).snapshot;
+    next = itemOf(snapshot, 'NOVA-M1').markers.find(m => m.id === dep.id)!;
+    expect(next).toMatchObject({ need: '2026-08-18', date: '2026-08-25', jiraTargetStart: '2026-08-12', jiraTargetEnd: '2026-08-30', version, etaAt: dep.etaAt });
+    expect(apply(teamId, { op: 'update_marker', markerId: dep.id, need: null, baseVersion: dep.version }).ok).toBe(false);
+    snapshot = expectOk(apply(teamId, { op: 'update_marker', markerId: dep.id, date: next.jiraTargetEnd, etaSource: 'jira', baseVersion: version })).snapshot;
+    next = itemOf(snapshot, 'NOVA-M1').markers.find(m => m.id === dep.id)!;
+    expect(next).toMatchObject({ date: '2026-08-30', need: '2026-08-18', etaSource: 'jira' });
+    snapshot = expectOk(apply(teamId, { op: 'update_marker', markerId: dep.id, need: null, baseVersion: next.version })).snapshot;
+    expect(itemOf(snapshot, 'NOVA-M1').markers.find(m => m.id === dep.id)!.need).toBeNull();
+  });
+
+  it('handles missing ETA, clears/normalizes expectation and validates input', () => {
+    let snapshot = expectOk(apply(teamId, { op: 'add_marker', itemKey: 'NOVA-M1', kind: 'dep', label: 'No ticket', need: '2026-08-20' })).snapshot;
+    let dep = itemOf(snapshot, 'NOVA-M1').markers.find(m => m.label === 'No ticket')!;
+    expect(dep).toMatchObject({ date: null, need: '2026-08-20', etaAt: null, etaSource: null });
+    snapshot = expectOk(apply(teamId, { op: 'update_marker', markerId: dep.id, date: '2026-08-20', etaSource: 'manual', baseVersion: dep.version })).snapshot;
+    dep = itemOf(snapshot, 'NOVA-M1').markers.find(m => m.id === dep.id)!;
+    expect(dep.need).toBeNull();
+    expect(dep.etaAt).toBeTypeOf('number');
+    expect(apply(teamId, { op: 'update_marker', markerId: dep.id, need: 'garbage', baseVersion: dep.version }).ok).toBe(false);
+    snapshot = expectOk(apply(teamId, { op: 'update_marker', markerId: dep.id, date: null, baseVersion: dep.version })).snapshot;
+    expect(itemOf(snapshot, 'NOVA-M1').markers.find(m => m.id === dep.id)).toMatchObject({ date: null, etaAt: null, etaSource: null });
+  });
+});

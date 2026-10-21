@@ -767,7 +767,7 @@ async function commitRename(m: TeamMember) {
         </button>
       </div>
       <div class="res-strip" :style="{ minHeight: `${row.stripH}px` }">
-      <div class="res-pan" :ref="(el) => setRowPanEl(personKeyOf(row), el)">
+      <div class="res-pan" :ref="(el) => setRowPanEl(personKeyOf(row), el as Element | null)">
         <template v-if="!allWin">
           <div
             v-for="i in days + BUF * 2"
@@ -821,7 +821,7 @@ async function commitRename(m: TeamMember) {
             <i class="rb-stripe" :style="{ background: epicColor(orderedEpicKeys, it.key) }" />
             <span
               class="rb-title-group"
-              :ref="(el) => setTitleGroupEl(s.id, el, s, end)"
+              :ref="(el) => setTitleGroupEl(s.id, el as Element | null, s, end)"
             >
               <span
                 v-if="showEpicPrefix(barSpan(s, end).frac)"

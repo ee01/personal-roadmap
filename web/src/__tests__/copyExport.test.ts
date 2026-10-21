@@ -9,7 +9,7 @@ import {
   type CopyData,
   type CopyOptions,
 } from '../composables/useCopyExport';
-import type { RoadmapSub, TeamMember } from '../types';
+import type { RoadmapItem, RoadmapSub, TeamMember } from '../types';
 
 function sub(overrides: Partial<RoadmapSub> = {}): RoadmapSub {
   return {
@@ -394,5 +394,36 @@ describe('copyColumns / buildCopyPayload', () => {
       ['key', 'Key'],
       ['summary', 'Summary'],
     ]);
+  });
+});
+
+describe('dependency view copy', () => {
+  const markers = [
+    { id: 'late', kind: 'dep' as const, label: 'API <ready>', jiraKey: 'PLAT-1', date: '2026-08-25', need: '2026-08-20', jiraStatus: 'Open', jiraTargetStart: '2026-08-10', jiraTargetEnd: '2026-08-25', createdBy: 'x', version: 1 },
+    { id: 'manual', kind: 'dep' as const, label: 'Approval', date: null, need: '2026-08-18', createdBy: 'x', version: 1 },
+  ];
+  it('exports visible dependencies with all dates, parent context and risk in table and list', () => {
+    const data = collectCopyData(input({ view: 'dependency', items: [epic({ markers })] }));
+    expect(data.n).toBe(2);
+    expect(data.unit).toBe('依赖');
+    const table = buildCopyPayload(data, OPTS({ fmt: 'table', header: true }), 'dependency', 'https://jira.example.com');
+    expect(table.text).toContain('期望日期\tETA\t风险 / 余量');
+    expect(table.text).toContain('2026-08-20\t2026-08-25\t晚 5 天');
+    expect(table.text).toContain('2026-08-10\t2026-08-25');
+    expect(table.text).not.toContain('DRAFT');
+    expect(table.html).toContain('API &lt;ready>');
+    expect(table.html).toContain('https://jira.example.com/browse/PLAT-1');
+    const list = buildCopyPayload(data, OPTS(), 'dependency', 'https://jira.example.com');
+    expect(list.text).toContain('期望日期: 2026-08-20');
+    expect(list.text).toContain('ETA: 2026-08-25');
+    expect(list.text).toContain('所属任务: NOVA-1 Alpha epic');
+    expect(list.text).toContain('手动依赖 Approval');
+    expect(list.text).not.toContain('DRAFT');
+  });
+  it('follows dependency risk, search/milestone filters without copying tasks or subtasks', () => {
+    const data = collectCopyData(input({ view: 'dependency', dependencyFilter: 'late', items: [epic({ markers }), epic({ key: 'excluded', markers: [{ ...markers[0], label: 'hidden' }] })], epicMatch: it => it.key !== 'excluded' }));
+    expect(data.n).toBe(1);
+    expect(data.groups[0].rows[0].summary).toBe('API <ready>');
+    expect(data.filtered).toBe(true);
   });
 });

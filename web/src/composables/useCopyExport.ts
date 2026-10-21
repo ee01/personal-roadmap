@@ -1,6 +1,15 @@
 import { computed, reactive } from 'vue';
 import { addD, dateMs, esc, fmtISO, fmtMD, today } from './useGeometry';
-import { isDraftItem, itemDisplayKey, jiraBrowseUrl } from './useRoadmapContract';
+import {
+  isDraftItem,
+  itemDisplayKey,
+  jiraBrowseUrl,
+} from './useRoadmapContract';
+import {
+  dependencyGroups,
+  dependencyTiming,
+  type DependencyFilter,
+} from './dependency';
 import { dispName, teamAssigneeMap } from './useAssigneeMap';
 import { useRoadmapState } from './useRoadmapState';
 import type { RoadmapItem, RoadmapSub, TeamMember } from '../types';
@@ -23,7 +32,7 @@ import type { RoadmapItem, RoadmapSub, TeamMember } from '../types';
  * 重写剪贴板，没有第二步「再复制」。
  */
 
-export type CopyView = 'gantt' | 'resource';
+export type CopyView = 'gantt' | 'resource' | 'dependency';
 export type CopyFormat = 'table' | 'list';
 
 /** 两种视图共用一张选项表；各字段只在所属视图里生效。 */
@@ -50,6 +59,17 @@ export interface CopyOptions {
 export const COPY_OPTIONS_KEY = 'personalroadmap.copyOpts';
 
 export const COPY_DEFAULTS: Record<CopyView, CopyOptions> = {
+  dependency: {
+    subs: false,
+    asg: false,
+    asgMode: 'col',
+    epic: true,
+    status: true,
+    dates: true,
+    header: true,
+    fmt: 'list',
+    winOnly: false,
+  },
   gantt: {
     subs: false,
     asg: false,
@@ -93,7 +113,11 @@ export function loadCopyOptions(): Record<CopyView, CopyOptions> {
     ...COPY_DEFAULTS[view],
     ...(saved[view] || {}),
   });
-  return { gantt: merge('gantt'), resource: merge('resource') };
+  return {
+    gantt: merge('gantt'),
+    resource: merge('resource'),
+    dependency: merge('dependency'),
+  };
 }
 
 export function saveCopyOptions(options: Record<CopyView, CopyOptions>) {
@@ -116,6 +140,11 @@ export interface CopyRow {
   status: string;
   start: string | null;
   end: string | null;
+  need?: string;
+  eta?: string;
+  risk?: string;
+  targetStart?: string;
+  targetEnd?: string;
 }
 
 export interface CopyGroup {
@@ -137,7 +166,7 @@ export interface CopyData {
   notes: CopyNote[];
   /** 主行数（甘特 = Epic 数；人员 = Task 数） */
   n: number;
-  unit: 'Epic' | 'Task';
+  unit: 'Epic' | 'Task' | '依赖';
   /** 甘特：过滤口径下的子任务总数（勾「子任务」后全部进入复制） */
   subN: number;
   /** 人员：有任务的人数（含未分配组） */
@@ -148,6 +177,7 @@ export interface CopyData {
 
 export interface CopyCollectInput {
   view: CopyView;
+  dependencyFilter?: DependencyFilter;
   /** 已排期条目，按甘特 lane 顺序 */
   items: RoadmapItem[];
   members: TeamMember[];
@@ -167,7 +197,10 @@ export interface CopyCollectInput {
 }
 
 /** 单元格值清洗：Tab / 换行一律压成空格，保证 TSV 不串列。 */
-export const cpCell = (s: unknown) => String(s ?? '').replace(/[\t\r\n]+/g, ' ').trim();
+export const cpCell = (s: unknown) =>
+  String(s ?? '')
+    .replace(/[\t\r\n]+/g, ' ')
+    .trim();
 export const cpEscA = (s: string) => esc(s).replace(/"/g, '&quot;');
 
 function searchTokens(q: string): string[] {
@@ -251,6 +284,53 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
   };
   const filtered = Boolean(input.msNames) || Boolean(input.search.trim());
 
+  if (input.view === 'dependency') {
+    const groups = dependencyGroups(
+      items.filter(epicMatch),
+      input.dependencyFilter,
+    );
+    const rows: CopyRow[] = groups.flatMap(({ item, deps }) =>
+      deps.map((dep) => ({
+        lvl: 0 as const,
+        key: dep.jiraKey || null,
+        summary: dep.label,
+        asg: '',
+        epic: `${itemDisplayKey(item)} ${item.alias || item.title}`,
+        status: dep.jiraStatus || '',
+        start: null,
+        end: null,
+        need: dep.need || dep.date || '未设置',
+        eta: dep.date || '未确认',
+        risk: dependencyTiming(dep),
+        targetStart: dep.jiraTargetStart || '',
+        targetEnd: dep.jiraTargetEnd || '',
+      })),
+    );
+    const notes: CopyNote[] = [];
+    const note = filterNote(
+      groups.length,
+      items.length,
+      'Epic',
+      input.msNames,
+      input.search,
+    );
+    if (note) notes.push(note);
+    if (input.dependencyFilter && input.dependencyFilter !== 'all')
+      notes.push({ cls: 'warn', html: '仅复制依赖视图当前风险筛选下的依赖' });
+    return {
+      groups: [{ name: null, rows }],
+      notes,
+      n: rows.length,
+      unit: '依赖',
+      subN: 0,
+      people: 0,
+      filtered:
+        filtered ||
+        (input.dependencyFilter !== undefined &&
+          input.dependencyFilter !== 'all'),
+    };
+  }
+
   if (input.view === 'gantt') {
     const epics = items.filter(epicMatch);
     const rows: CopyRow[] = [];
@@ -293,7 +373,13 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
         }
       }
     }
-    const note = filterNote(epics.length, items.length, 'Epic', input.msNames, input.search);
+    const note = filterNote(
+      epics.length,
+      items.length,
+      'Epic',
+      input.msNames,
+      input.search,
+    );
     if (note) notes.push(note);
     const draft = draftNote(drafts);
     if (draft) notes.push(draft);
@@ -325,7 +411,10 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
         const end = endOf(s.start, s.days);
         if (input.win) {
           if (!s.start || !end) continue; // 时间窗内无法判定 → 与人员视图一致不展示
-          if (dateMs(end) < dateMs(input.win.s) || dateMs(s.start) > dateMs(input.win.e)) {
+          if (
+            dateMs(end) < dateMs(input.win.s) ||
+            dateMs(s.start) > dateMs(input.win.e)
+          ) {
             continue;
           }
         }
@@ -368,7 +457,15 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
   }
   const draft = draftNote(drafts);
   if (draft) notes.push(draft);
-  return { groups, notes, n, unit: 'Task', subN: 0, people: groups.length, filtered };
+  return {
+    groups,
+    notes,
+    n,
+    unit: 'Task',
+    subN: 0,
+    people: groups.length,
+    filtered,
+  };
 }
 
 /* ---------- 序列化：行 → 剪贴板内容 ---------- */
@@ -380,7 +477,22 @@ export interface CopyPayload {
 }
 
 /** 列定义：Key、Summary 固定在 A / B 列，附加信息依次往后。 */
-export function copyColumns(view: CopyView, opts: CopyOptions): Array<[string, string]> {
+export function copyColumns(
+  view: CopyView,
+  opts: CopyOptions,
+): Array<[string, string]> {
+  if (view === 'dependency')
+    return [
+      ['key', 'Ticket'],
+      ['summary', '依赖内容'],
+      ['epic', '所属任务'],
+      ['need', '期望日期'],
+      ['eta', 'ETA'],
+      ['risk', '风险 / 余量'],
+      ['status', 'Jira 状态'],
+      ['targetStart', 'Target Start'],
+      ['targetEnd', 'Target End'],
+    ];
   const cols: Array<[string, string]> = [
     ['key', 'Key'],
     ['summary', 'Summary'],
@@ -394,7 +506,9 @@ export function copyColumns(view: CopyView, opts: CopyOptions): Array<[string, s
   return cols;
 }
 
-function cellVal(r: CopyRow, k: string): string {
+export function cellVal(r: CopyRow, k: string): string {
+  if (['need', 'eta', 'risk', 'targetStart', 'targetEnd'].includes(k))
+    return String(r[k as keyof CopyRow] || '');
   if (k === 'summary') return (r.lvl ? '↳ ' : '') + r.summary;
   if (k === 'start' || k === 'end') return r[k] || '';
   if (k === 'asg') return r.asg;
@@ -438,7 +552,9 @@ export function buildCopyPayload(
   const link = (k: string | null) =>
     k
       ? `<a href="${cpEscA(jiraBrowseUrl(k, jiraBrowseBase))}">${esc(k)}</a>`
-      : 'DRAFT';
+      : view === 'dependency'
+        ? '手动依赖'
+        : 'DRAFT';
 
   let html = '';
   let text = '';
@@ -464,7 +580,11 @@ export function buildCopyPayload(
           ),
         );
         text += `${cols
-          .map(([k]) => (k === 'key' ? r.key || 'DRAFT' : cpCell(cellVal(r, k))))
+          .map(([k]) =>
+            k === 'key'
+              ? r.key || (view === 'dependency' ? '手动依赖' : 'DRAFT')
+              : cpCell(cellVal(r, k)),
+          )
           .join('\t')}\n`;
       }
     }
@@ -481,18 +601,23 @@ export function buildCopyPayload(
               : ''
             : k === 'end'
               ? ''
-              : cellVal(r, k),
+              : view === 'dependency' && cellVal(r, k)
+                ? `${cols.find(([key]) => key === k)![1]}: ${cellVal(r, k)}`
+                : cellVal(r, k),
         )
-        .filter((x) => x && x.trim());
+        .filter((x) => x && x.trim())
+        .map(cpCell);
     const liHtml = (r: CopyRow) => {
       const x = extra(r);
       return `${link(r.key)} ${esc(r.summary)}${
-        x.length ? ` <span style="color:#717A86">· ${esc(x.join(' · '))}</span>` : ''
+        x.length
+          ? ` <span style="color:#717A86">· ${esc(x.join(' · '))}</span>`
+          : ''
       }`;
     };
     const liText = (r: CopyRow) => {
       const x = extra(r);
-      return `${r.key || 'DRAFT'} ${cpCell(r.summary)}${
+      return `${r.key || (view === 'dependency' ? '手动依赖' : 'DRAFT')} ${cpCell(r.summary)}${
         x.length ? ` · ${x.join(' · ')}` : ''
       }`;
     };
@@ -561,7 +686,8 @@ export function writeRichClipboard(payload: CopyPayload): boolean {
 export function useCopyExport() {
   const state = useRoadmapState();
   const jiraBase = computed(
-    () => state.snapshot.value?.team.jiraBaseUrl || 'https://jira.ringcentral.com',
+    () =>
+      state.snapshot.value?.team.jiraBaseUrl || 'https://jira.ringcentral.com',
   );
   const assigneeMap = computed(() => teamAssigneeMap(state.snapshot.value));
   const showName = (raw: string | null | undefined) =>
@@ -570,22 +696,26 @@ export function useCopyExport() {
   const options = reactive(loadCopyOptions()) as Record<CopyView, CopyOptions>;
 
   function setOpt(view: CopyView, key: keyof CopyOptions, value: unknown) {
-    (options[view] as Record<string, unknown>)[key] = value;
+    (options[view] as unknown as Record<string, unknown>)[key] = value;
     saveCopyOptions(options);
   }
 
-  const view = computed<CopyView>(() =>
-    state.view.value === 'resource' ? 'resource' : 'gantt',
-  );
+  const view = computed<CopyView>(() => state.view.value);
   const msNames = computed<string | null>(() =>
     state.msActive.value
       ? state.msSel.value
-          .map((k) => state.milestones.value.find((m) => m.key === k)?.name || k)
+          .map(
+            (k) => state.milestones.value.find((m) => m.key === k)?.name || k,
+          )
           .join(' / ')
       : null,
   );
   const win = computed<{ s: Date; e: Date } | null>(() => {
-    if (view.value !== 'resource' || state.resWin.value !== '2w' || !options.resource.winOnly) {
+    if (
+      view.value !== 'resource' ||
+      state.resWin.value !== '2w' ||
+      !options.resource.winOnly
+    ) {
       return null;
     }
     const s = addD(today, state.resOffset.value);
@@ -594,6 +724,7 @@ export function useCopyExport() {
   const data = computed<CopyData>(() =>
     collectCopyData({
       view: view.value,
+      dependencyFilter: state.dependencyFilter.value,
       items: state.scheduledItems.value,
       members: state.snapshot.value?.members || [],
       includeSubs: options.gantt.subs,
@@ -606,7 +737,12 @@ export function useCopyExport() {
     }),
   );
   const payload = computed<CopyPayload>(() =>
-    buildCopyPayload(data.value, options[view.value], view.value, jiraBase.value),
+    buildCopyPayload(
+      data.value,
+      options[view.value],
+      view.value,
+      jiraBase.value,
+    ),
   );
 
   function copyNow(): { ok: boolean } {

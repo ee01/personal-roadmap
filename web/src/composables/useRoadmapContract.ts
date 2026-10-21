@@ -9,7 +9,7 @@ import type {
 // Keep the runtime import Node-ESM compatible: the extension's contract test
 // imports this module directly, while Vite resolves the `.js` specifier to the
 // TypeScript source during the web build.
-import { addD, fmtISO, fmtMD, parseDate, qCmp } from './useGeometry.js';
+import { addD, diffD, fmtISO, fmtMD, parseDate, qCmp } from './useGeometry.js';
 import type { JiraRefreshIssue } from './useExtensionBridge';
 
 /**
@@ -115,12 +115,12 @@ export const PHASE_DEFS: Record<
 export function pendingDepCount(
   item: Pick<RoadmapItem, 'markers'>,
 ): number {
-  return (item.markers || []).filter((m) => m.kind === 'dep' && !m.date).length;
+  return (item.markers || []).filter((m) => m.kind === 'dep' && !m.date && !isDoneStatus({ status: m.jiraStatus })).length;
 }
 
 /** ETA 与镜像的 Jira Target End 不一致（有 ETA 才算） */
 export function depEtaMismatchesJira(m: RoadmapMarker): boolean {
-  if (m.kind !== 'dep' || !m.jiraKey || !m.jiraTargetEnd || !m.date) return false;
+  if (m.kind !== 'dep' || !m.jiraKey || (!m.jiraTargetEnd && !m.jiraFetchedAt) || !m.date) return false;
   return m.date !== m.jiraTargetEnd;
 }
 
@@ -144,12 +144,12 @@ export function depAdoptLabel(
 export function driftedDepCount(
   item: Pick<RoadmapItem, 'markers'>,
 ): number {
-  return (item.markers || []).filter(depEtaMismatchesJira).length;
+  return (item.markers || []).filter(m => depEtaMismatchesJira(m) && !isDoneStatus({ status: m.jiraStatus })).length;
 }
 
 /** Hover 第三段：只读提示，不承载确认按钮 */
 export function depHoverHint(m: RoadmapMarker): string {
-  const drag = '左右拖动改 ETA · 单击查看该依赖';
+  const drag = '左右拖动改期望 · 单击查看该依赖';
   if (!m.jiraKey) return `${drag} · 手动填写`;
   if (!m.date && m.jiraTargetEnd) {
     return `缺 ETA · Jira Target End ${fmtMD(m.jiraTargetEnd)} · 单击可同步`;
@@ -159,6 +159,7 @@ export function depHoverHint(m: RoadmapMarker): string {
       ? '缺 ETA · Jira 也无 Target End · 单击查看'
       : `${drag} · 尚未刷新 Jira`;
   }
+  if (depEtaMismatchesJira(m) && !m.jiraTargetEnd) return 'Jira 已清空 Target End · 单击查看或手动填写 ETA';
   if (depEtaMismatchesJira(m)) {
     return `Jira Target End ${fmtMD(m.jiraTargetEnd!)} · 不一致 · 单击可同步`;
   }
@@ -195,10 +196,12 @@ export function depBadgeTip(item: Pick<RoadmapItem, 'markers'>): string {
   const deps = depMarkers(item);
   const n = deps.length;
   const pending = pendingDepCount(item);
+  const late = deps.filter(m => m.need && m.date && diffD(m.need, m.date) > 0 && !isDoneStatus({ status: m.jiraStatus })).length;
   const drift = driftedDepCount(item);
   const canAdopt = deps.some((d) => d.jiraKey && !d.date && d.jiraTargetEnd);
   let head = `${n} 个外部依赖`;
   if (pending) head += ' · 有依赖缺少交付时间 ETA';
+  else if (late) head += ` · ${late} 个依赖晚于期望`;
   else if (drift) head += ' · 有依赖 ETA 与 Jira Target End 不一致';
   let hint = '点击查看 / 添加外部依赖';
   if (canAdopt) hint = 'Jira 已有 Target End，单击可同步为 ETA';
@@ -216,9 +219,9 @@ export function trackMarkers(
   item: Pick<RoadmapItem, 'markers'>,
 ): RoadmapMarker[] {
   return (item.markers || [])
-    .filter((m) => m.kind === 'phase' || Boolean(m.date))
+    .filter((m) => m.kind === 'phase' || Boolean(m.date || m.need))
     .slice()
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    .sort((a, b) => String(a.date || a.need).localeCompare(String(b.date || b.need)));
 }
 
 /** 新 phase 的默认日期：bar end + 7 + phases.length*7（与 demo 一致） */

@@ -280,7 +280,7 @@ export function useDraftPlanning() {
     try {
       const result = await state.api.cancelPlanningJob(state.teamId.value, jobId.value);
       if (result.receipt) {
-        applyReceipt(result.receipt as PlanningReceiptView);
+        applyReceipt(result.receipt as unknown as PlanningReceiptView);
         return;
       }
       phase.value = String(result.status || 'cancelled') as PlanningPhase;
@@ -304,7 +304,7 @@ export function useDraftPlanning() {
         decisions: decisions.value,
         quarter: quarter.value || null,
       });
-      applyReceipt(result.receipt as PlanningReceiptView);
+      applyReceipt(result.receipt as unknown as PlanningReceiptView);
     } catch (err: unknown) {
       const e = err as { body?: { error?: string; issues?: PlanningIssueView[] } };
       if (e.body?.error === 'needs_input') {

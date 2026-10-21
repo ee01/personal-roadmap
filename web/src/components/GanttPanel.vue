@@ -37,6 +37,7 @@ import {
 import type { MilestoneValue, RoadmapItem, RoadmapSub, RulerMode } from '../types';
 import GanttRow from './GanttRow.vue';
 import ResourceView from './ResourceView.vue';
+import DependencyView from './DependencyView.vue';
 import {
   bridgeImportChildTasks,
   bridgeRefreshJiraIssues,
@@ -1118,6 +1119,7 @@ onUnmounted(() => {
         >
           人员
         </button>
+        <button class="vs-btn" :class="{ active: state.view.value === 'dependency' }" @click="state.view.value = 'dependency'">依赖</button>
       </div>
 
       <div
@@ -1453,6 +1455,7 @@ onUnmounted(() => {
     </div>
 
     <!-- v-if: ResourceView 有多个根节点（主视图 + 延长 Epic 弹窗），v-show 无法落到根上 -->
+    <DependencyView v-if="state.view.value === 'dependency'" :tl="tl" />
     <ResourceView
       v-if="state.view.value === 'resource'"
       :tl="tl"

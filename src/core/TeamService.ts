@@ -260,6 +260,9 @@ function mapMarker(row: MarkerRow) {
     date: row.date,
     jiraKey: row.jira_key,
     etaSource: row.eta_source,
+    need: row.need || null,
+    etaAt: row.eta_at || null,
+    jiraTargetStart: row.jira_target_start || null,
     jiraStatus: row.jira_status || null,
     jiraTargetEnd: row.jira_target_end || null,
     jiraFetchedAt: row.jira_fetched_at || null,
@@ -1831,13 +1834,15 @@ export function applyIntent(
           ? etaSourceRaw
           : 'manual'
         : null;
+    const need = kind === 'dep' ? isoDateOrNull(intent.need) : null;
+    if (intent.need && !need) return { ok: false, error: 'invalid_need' };
     const id = nanoid(12);
     db.prepare(
       `INSERT INTO item_markers (
         id, team_id, item_key, kind, phase_kind, label, date, jira_key, eta_source,
-        jira_status, jira_target_end, jira_fetched_at,
+        jira_status, jira_target_end, jira_fetched_at, need, eta_at, jira_target_start,
         created_by, version, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, 1, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
     ).run(
       id,
       teamId,
@@ -1848,6 +1853,12 @@ export function applyIntent(
       date,
       kind === 'dep' ? jiraKey : null,
       etaSource,
+      kind === 'dep' ? String(intent.jiraStatus || '') || null : null,
+      kind === 'dep' ? isoDateOrNull(intent.jiraTargetEnd) : null,
+      kind === 'dep' && jiraKey && intent.jiraTargetEnd !== undefined ? ts : null,
+      need === date ? null : need,
+      kind === 'dep' && date ? ts : null,
+      kind === 'dep' ? isoDateOrNull(intent.jiraTargetStart) : null,
       actor.name,
       ts,
       ts,
@@ -1915,8 +1926,15 @@ export function applyIntent(
     } else {
       nextEtaSource = null;
     }
+    const rawNeed = intent.need !== undefined ? isoDateOrNull(intent.need) : marker.need;
+    if (intent.need && !rawNeed) return { ok: false, error: 'invalid_need' };
+    const nextNeed = marker.kind === 'dep' && rawNeed !== nextDate ? rawNeed : null;
+    const nextEtaAt = marker.kind === 'dep' && intent.date !== undefined
+      ? (nextDate ? ts : null) : marker.eta_at;
+    const nextJiraStart = intent.jiraTargetStart !== undefined
+      ? isoDateOrNull(intent.jiraTargetStart) : marker.jira_target_start;
     const cacheTouched =
-      intent.jiraStatus !== undefined || intent.jiraTargetEnd !== undefined;
+      intent.jiraTargetStart !== undefined || intent.jiraStatus !== undefined || intent.jiraTargetEnd !== undefined;
     const nextJiraStatus =
       intent.jiraStatus !== undefined
         ? String(intent.jiraStatus || '').trim() || null
@@ -1930,6 +1948,7 @@ export function applyIntent(
       `UPDATE item_markers SET
         label = ?, date = ?, jira_key = ?, eta_source = ?,
         jira_status = ?, jira_target_end = ?, jira_fetched_at = ?,
+        need = ?, eta_at = ?, jira_target_start = ?,
         version = version + 1, updated_at = ?
        WHERE id = ?`,
     ).run(
@@ -1940,6 +1959,9 @@ export function applyIntent(
       nextJiraStatus,
       nextJiraTargetEnd,
       nextJiraFetchedAt,
+      nextNeed,
+      nextEtaAt,
+      nextJiraStart,
       ts,
       marker.id,
     );
@@ -2821,19 +2843,21 @@ function applyRefreshFromJira(
       .all(teamId, key) as MarkerRow[];
     for (const marker of deps) {
       const nextStatus = status !== undefined ? status : marker.jira_status;
+      const nextTargetStart = targetStart !== undefined ? targetStart : marker.jira_target_start;
       const nextTargetEnd =
         targetEnd !== undefined ? targetEnd : marker.jira_target_end;
       const same =
         (nextStatus || null) === (marker.jira_status || null) &&
-        (nextTargetEnd || null) === (marker.jira_target_end || null);
+        (nextTargetEnd || null) === (marker.jira_target_end || null) &&
+        (nextTargetStart || null) === (marker.jira_target_start || null);
       if (same) continue;
       // Cache only — never copy Target End onto marker.date. Skip version
       // bump so a user confirming ETA is not OCC-blocked by this refresh.
       db.prepare(
         `UPDATE item_markers SET
-          jira_status = ?, jira_target_end = ?, jira_fetched_at = ?, updated_at = ?
+          jira_status = ?, jira_target_end = ?, jira_target_start = ?, jira_fetched_at = ?, updated_at = ?
          WHERE id = ?`,
-      ).run(nextStatus, nextTargetEnd, fetchedAt, ts, marker.id);
+      ).run(nextStatus, nextTargetEnd, nextTargetStart, fetchedAt, ts, marker.id);
       changed += 1;
     }
   }

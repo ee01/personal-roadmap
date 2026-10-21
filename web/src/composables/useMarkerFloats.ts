@@ -20,6 +20,8 @@ import {
   depStatusIsStale,
   jiraBrowseUrl,
 } from './useRoadmapContract';
+import { defaultDependencyNeed, dependencyTiming } from './dependency';
+import { copyTextToClipboard, esc } from './useGeometry';
 import { extensionLockTip, useExtensionGate } from './useExtensionGate';
 import type { PhaseKind, RoadmapItem, RoadmapMarker } from '../types';
 
@@ -35,7 +37,10 @@ const REFRESH_SVG =
   '<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7A5 5 0 1 1 10.6 3.6"/><path d="M12 2.2V5H9.2"/></svg>';
 
 export function linkIconHtml(size = 9): string {
-  return LINK_SVG.replace('width="9" height="9"', `width="${size}" height="${size}"`);
+  return LINK_SVG.replace(
+    'width="9" height="9"',
+    `width="${size}" height="${size}"`,
+  );
 }
 
 export function closeMarkerFloats() {
@@ -59,7 +64,11 @@ function floatAt(anchor: HTMLElement, cls: string, width?: number) {
     document.removeEventListener('pointerdown', onOutside, true);
   };
   const onOutside = (e: PointerEvent) => {
-    if (!p.contains(e.target as Node) && e.target !== anchor && !anchor.contains(e.target as Node)) {
+    if (
+      !p.contains(e.target as Node) &&
+      e.target !== anchor &&
+      !anchor.contains(e.target as Node)
+    ) {
       close();
     }
   };
@@ -74,12 +83,14 @@ export type MarkerHandlers = {
   deleteMarker: (intent: Record<string, unknown>) => Promise<void>;
   toast: (html: string) => void;
   fetchIssueDates?: (jiraKey: string) => Promise<{
+    targetStart?: string | null;
     targetEnd: string | null;
     status: string | null;
   }>;
   hasExtension: boolean;
   editable: boolean;
   jiraBaseUrl?: string;
+  showDependency?: (id: string) => void;
 };
 
 export function openMarkerMenu(
@@ -135,9 +146,7 @@ async function addPhase(
     label,
     date,
   });
-  handlers.toast(
-    `已添加节点「${label}」· ${fmtMD(date)}，可点击标记调整日期`,
-  );
+  handlers.toast(`已添加节点「${label}」· ${fmtMD(date)}，可点击标记调整日期`);
 }
 
 function openCustomPhaseForm(
@@ -250,7 +259,7 @@ export function markerDragStart(
 ) {
   if (e.button !== 0) return;
   const { marker, item, tl, handlers } = opts;
-  if (!marker.date) return;
+  if (!marker.date || marker.kind !== 'phase') return;
   e.preventDefault();
   e.stopPropagation();
 
@@ -309,7 +318,7 @@ export function markerDragStart(
       hint.style.display = 'block';
       hint.style.left = `${ev.clientX + 14}px`;
       hint.style.top = `${ev.clientY - 34}px`;
-      hint.textContent = `${marker.kind === 'phase' ? marker.label : 'ETA'} · ${fmtMD(cur)}`;
+      hint.textContent = `${marker.label} · ${fmtMD(cur)}`;
     }
   };
 
@@ -327,14 +336,13 @@ export function markerDragStart(
     el.classList.remove('dragging');
 
     if (!moved) {
-      if (marker.kind === 'phase') openPhaseEditor(el, item, marker, handlers);
-      else openDepPopover(el, item, handlers);
+      openPhaseEditor(el, item, marker, handlers);
       return;
     }
 
     const next = fmtISO(cur);
     if (next === marker.date) {
-      el.style.left = `${X(tl, marker.date) + DAY_W.value / 2}px`;
+      el.style.left = `${X(tl, marker.date!) + DAY_W.value / 2}px`;
       return;
     }
     try {
@@ -343,16 +351,11 @@ export function markerDragStart(
         markerId: marker.id,
         itemKey: item.key,
         date: next,
-        etaSource: marker.kind === 'dep' ? 'manual' : undefined,
         baseVersion: marker.version,
       });
-      handlers.toast(
-        marker.kind === 'phase'
-          ? `${marker.label} 已改到 ${fmtMD(next)}`
-          : `<span class="ok">✓</span> 外部依赖 ETA 已改到 ${fmtMD(next)}（手动调整）`,
-      );
+      handlers.toast(`${marker.label} 已改到 ${fmtMD(next)}`);
     } catch {
-      el.style.left = `${X(tl, marker.date) + DAY_W.value / 2}px`;
+      el.style.left = `${X(tl, marker.date!) + DAY_W.value / 2}px`;
     }
   };
 
@@ -373,11 +376,14 @@ export function openDepForm(
       <div class="df-row" style="margin-bottom:7px">
         <input class="me-field df-jira" placeholder="Jira Key（可选），如 PLAT-123" style="font-family:var(--mono)">
         <button class="df-fetch${handlers.hasExtension ? '' : ' locked'}" type="button"${
-          handlers.hasExtension ? '' : ` data-tip="${extensionLockTip('fetchEta')}"`
+          handlers.hasExtension
+            ? ''
+            : ` data-tip="${extensionLockTip('fetchEta')}"`
         }>读取 ETA</button>
       </div>
       <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">交付时间 ETA（可留空）</label>
       <input type="date" class="me-field df-eta">
+      <label style="font-size:11px">期望时间（我们需要）</label><input type="date" class="me-field df-need">
       <div class="df-hint">留空则在任务条角标上持续提醒需要跟进获取 ETA</div>
     </div>
     <div class="m-foot" style="padding:9px;gap:6px;border-top:1px solid var(--line2)">
@@ -388,6 +394,13 @@ export function openDepForm(
   const etaInp = p.querySelector('.df-eta') as HTMLInputElement;
   const fetchBtn = p.querySelector('.df-fetch') as HTMLButtonElement;
   let etaSource: 'jira' | 'manual' | null = null;
+  let mirror: {
+    targetStart?: string | null;
+    targetEnd: string | null;
+    status: string | null;
+  } | null = null;
+  let fetchedKey = '';
+  const needInp = p.querySelector('.df-need') as HTMLInputElement;
   fetchBtn.onclick = async () => {
     if (!handlers.hasExtension || !handlers.fetchIssueDates) {
       openGate('fetchEta');
@@ -401,6 +414,9 @@ export function openDepForm(
     fetchBtn.textContent = '…';
     try {
       const info = await handlers.fetchIssueDates(key);
+      if (jiraInp.value.trim() !== key) return;
+      mirror = info;
+      fetchedKey = key;
       if (info.targetEnd) {
         etaInp.value = info.targetEnd;
         etaSource = 'jira';
@@ -408,24 +424,32 @@ export function openDepForm(
           `<span class="ok">✓</span> 已从 ${key} 读取 Target End 作为 ETA`,
         );
       } else {
-        handlers.toast(
-          `${key} 尚未填写 Target End，可先留空，后续会持续提醒`,
-        );
+        etaInp.value = '';
+        etaSource = null;
+        handlers.toast(`${key} 尚未填写 Target End，可先留空，后续会持续提醒`);
       }
     } catch (err) {
-      handlers.toast(
-        err instanceof Error ? err.message : '读取 ETA 失败',
-      );
+      handlers.toast(err instanceof Error ? err.message : '读取 ETA 失败');
     } finally {
       fetchBtn.textContent = '读取 ETA';
     }
   };
   etaInp.onchange = () => {
-    if (etaSource !== 'jira') etaSource = etaInp.value ? 'manual' : null;
+    etaSource = etaInp.value ? 'manual' : null;
+  };
+  jiraInp.onchange = () => {
+    if (jiraInp.value.trim() !== fetchedKey) {
+      mirror = null;
+      fetchedKey = '';
+      etaInp.value = '';
+      etaSource = null;
+    }
   };
   (p.querySelector('.df-cancel') as HTMLButtonElement).onclick = close;
   (p.querySelector('.df-title') as HTMLInputElement).focus();
-  (p.querySelector('.df-save') as HTMLButtonElement).onclick = async () => {
+  const saveButton = p.querySelector('.df-save') as HTMLButtonElement;
+  saveButton.onclick = async () => {
+    if (saveButton.disabled) return;
     const titleInp = p.querySelector('.df-title') as HTMLInputElement;
     const title = titleInp.value.trim();
     if (!title) {
@@ -433,31 +457,114 @@ export function openDepForm(
       return;
     }
     const jiraKey = jiraInp.value.trim() || null;
-    const date = etaInp.value || null;
-    await handlers.addMarker({
-      op: 'add_marker',
-      itemKey: item.key,
-      kind: 'dep',
-      label: title,
-      jiraKey,
-      date,
-      etaSource: date ? etaSource || 'manual' : null,
-    });
-    close();
-    handlers.toast(
-      date
-        ? `<span class="ok">✓</span> 已添加外部依赖，ETA ${fmtMD(date)}`
-        : '已添加外部依赖 · 缺少 ETA，将在任务条上持续提醒',
-    );
+    saveButton.disabled = true;
+    try {
+      if (
+        jiraKey &&
+        fetchedKey !== jiraKey &&
+        handlers.hasExtension &&
+        handlers.fetchIssueDates
+      ) {
+        mirror = await handlers.fetchIssueDates(jiraKey);
+        fetchedKey = jiraKey;
+        if (mirror.targetEnd) {
+          etaInp.value = mirror.targetEnd;
+          etaSource = 'jira';
+        }
+      }
+      const date = etaInp.value || null;
+      await handlers.addMarker({
+        op: 'add_marker',
+        itemKey: item.key,
+        kind: 'dep',
+        label: title,
+        jiraKey,
+        date,
+        etaSource: date ? etaSource || 'manual' : null,
+        need: needInp.value || (date ? null : defaultDependencyNeed(item)),
+        jiraStatus: mirror?.status,
+        jiraTargetStart: mirror?.targetStart,
+        jiraTargetEnd: mirror?.targetEnd,
+      });
+      close();
+      handlers.toast(
+        date
+          ? `<span class="ok">✓</span> 已添加外部依赖，ETA ${fmtMD(date)}`
+          : jiraKey && !handlers.hasExtension
+            ? '依赖已保存 · 安装扩展后单击节点读取 ETA，也可手动填写'
+            : '已添加外部依赖 · 缺少 ETA，将在任务条上持续提醒',
+      );
+    } catch (err) {
+      handlers.toast(
+        esc(err instanceof Error ? err.message : '保存失败，请重试'),
+      );
+    } finally {
+      saveButton.disabled = false;
+    }
   };
+}
+
+/** Explicit refresh confirms Jira's current Target End as ETA. Silent refresh never calls this. */
+export async function refreshDependencyEta(
+  item: RoadmapItem,
+  dep: RoadmapMarker,
+  handlers: MarkerHandlers,
+) {
+  if (!handlers.editable || !dep.jiraKey) return;
+  if (!handlers.hasExtension || !handlers.fetchIssueDates) {
+    openGate('fetchEta');
+    return;
+  }
+  try {
+    const info = await handlers.fetchIssueDates(dep.jiraKey);
+    await handlers.updateMarker({
+      op: 'update_marker',
+      markerId: dep.id,
+      itemKey: item.key,
+      jiraStatus: info.status,
+      jiraTargetStart: info.targetStart,
+      jiraTargetEnd: info.targetEnd,
+      ...(info.targetEnd ? { date: info.targetEnd, etaSource: 'jira' } : {}),
+      baseVersion: dep.version,
+    });
+    handlers.toast(
+      info.targetEnd
+        ? `ETA 已更新为 ${fmtMD(info.targetEnd)} · 期望保持独立`
+        : 'Ticket 尚无 Target End，可手动填写 ETA',
+    );
+  } catch (err) {
+    handlers.toast(esc(err instanceof Error ? err.message : '刷新失败'));
+  }
+}
+
+export async function nudgeDependency(
+  dep: RoadmapMarker,
+  handlers: MarkerHandlers,
+) {
+  const text = `请帮忙确认 ${dep.jiraKey || ''}（${dep.label}）的交付时间，我们期望 ${dep.need || dep.date || '尽快'} 就绪。当前 ETA：${dep.date || '未确认'}。`;
+  const ok = await copyTextToClipboard(text);
+  handlers.toast(
+    ok
+      ? '跟进文案已复制（含期望时间），请粘贴到 Jira 评论'
+      : '复制失败，请重试',
+  );
+  if (ok && dep.jiraKey)
+    window.open(
+      jiraBrowseUrl(dep.jiraKey, handlers.jiraBaseUrl),
+      '_blank',
+      'noopener',
+    );
 }
 
 export function openDepPopover(
   anchor: HTMLElement,
   item: RoadmapItem,
   handlers: MarkerHandlers,
+  focusId?: string,
 ) {
-  const deps = (item.markers || []).filter((m) => m.kind === 'dep');
+  const deps = (item.markers || []).filter(
+    (m) => m.kind === 'dep' && (!focusId || m.id === focusId),
+  );
   const rows = deps
     .map((d) => {
       const stale = depStatusIsStale(d);
@@ -499,6 +606,10 @@ export function openDepPopover(
       ]
         .filter(Boolean)
         .join('');
+      const needHtml = `<div class="dep-need-editor">期望 <input class="dep-need-edit" data-id="${d.id}" type="date" value="${d.need || d.date || ''}" ${handlers.editable ? '' : 'disabled'}>
+        <span>${dependencyTiming(d)}</span>${handlers.editable && d.date ? `<button class="dep-accept" data-id="${d.id}">接受 ETA</button>` : ''}
+        ${d.jiraKey ? `<button class="dep-follow" data-id="${d.id}">催一下</button>` : ''}
+        <button class="dep-view" data-id="${d.id}">在依赖视图中查看 →</button></div>`;
       return `<div class="dep-row" data-id="${d.id}">
       <div class="dep-row-top">
         <span class="dep-title"></span>
@@ -512,7 +623,7 @@ export function openDepPopover(
         }
         ${etaHtml}
         ${actions}
-      </div>
+      </div>${needHtml}
     </div>`;
     })
     .join('');
@@ -534,6 +645,60 @@ export function openDepPopover(
       if (keyEl) keyEl.textContent = d.jiraKey;
     }
   });
+  p.querySelectorAll('.dep-eta-edit').forEach((input) => {
+    (input as HTMLInputElement).disabled = !handlers.editable;
+  });
+  p.querySelectorAll('.dep-need-edit').forEach((input) => {
+    (input as HTMLInputElement).onchange = async () => {
+      if (!handlers.editable) return;
+      const dep = deps.find((d) => d.id === (input as HTMLElement).dataset.id)!;
+      try {
+        await handlers.updateMarker({
+          op: 'update_marker',
+          markerId: dep.id,
+          itemKey: item.key,
+          need: (input as HTMLInputElement).value || null,
+          baseVersion: dep.version,
+        });
+        close();
+      } catch {
+        /* API toast */
+      }
+    };
+  });
+  p.querySelectorAll('.dep-accept').forEach((button) =>
+    button.addEventListener('click', async () => {
+      const dep = deps.find(
+        (d) => d.id === (button as HTMLElement).dataset.id,
+      )!;
+      try {
+        await handlers.updateMarker({
+          op: 'update_marker',
+          markerId: dep.id,
+          itemKey: item.key,
+          need: null,
+          baseVersion: dep.version,
+        });
+        close();
+      } catch {
+        /* API toast */
+      }
+    }),
+  );
+  p.querySelectorAll('.dep-follow').forEach((button) =>
+    button.addEventListener('click', async () => {
+      const dep = deps.find(
+        (d) => d.id === (button as HTMLElement).dataset.id,
+      )!;
+      await nudgeDependency(dep, handlers);
+    }),
+  );
+  p.querySelectorAll('.dep-view').forEach((button) =>
+    button.addEventListener('click', () => {
+      handlers.showDependency?.((button as HTMLElement).dataset.id!);
+      close();
+    }),
+  );
   p.querySelectorAll('.dep-del').forEach((b) => {
     b.addEventListener('pointerdown', (e) => {
       e.preventDefault();
@@ -554,24 +719,29 @@ export function openDepPopover(
       e.stopPropagation();
       const id = (b as HTMLElement).dataset.id!;
       const dep = deps.find((d) => d.id === id);
-      if (dep?.jiraKey) window.open(jiraBrowseUrl(dep.jiraKey), '_blank');
+      if (dep) void nudgeDependency(dep, handlers);
     });
   });
   p.querySelectorAll('.dep-eta-edit').forEach((inp) => {
     (inp as HTMLInputElement).onchange = async () => {
+      if (!handlers.editable) return;
       const id = (inp as HTMLInputElement).dataset.id!;
       const dep = deps.find((d) => d.id === id);
       if (!dep) return;
       const value = (inp as HTMLInputElement).value || null;
-      await handlers.updateMarker({
-        op: 'update_marker',
-        markerId: dep.id,
-        itemKey: item.key,
-        date: value,
-        etaSource: value ? 'manual' : null,
-        baseVersion: dep.version,
-      });
-      close();
+      try {
+        await handlers.updateMarker({
+          op: 'update_marker',
+          markerId: dep.id,
+          itemKey: item.key,
+          date: value,
+          etaSource: value ? 'manual' : null,
+          baseVersion: dep.version,
+        });
+        close();
+      } catch {
+        /* API toast */
+      }
     };
   });
   p.querySelectorAll('.dep-adopt').forEach((b) => {
@@ -602,37 +772,8 @@ export function openDepPopover(
       const id = (b as HTMLElement).dataset.id!;
       const dep = deps.find((d) => d.id === id);
       if (!dep?.jiraKey) return;
-      if (!handlers.hasExtension || !handlers.fetchIssueDates) {
-        openGate('fetchEta');
-        return;
-      }
-      try {
-        const info = await handlers.fetchIssueDates(dep.jiraKey);
-        await handlers.updateMarker({
-          op: 'update_marker',
-          markerId: dep.id,
-          itemKey: item.key,
-          jiraStatus: info.status,
-          jiraTargetEnd: info.targetEnd,
-          baseVersion: dep.version,
-        });
-        const bits = [
-          info.status || '未刷新',
-          info.targetEnd ? `Target End ${fmtMD(info.targetEnd)}` : '无 Target End',
-        ];
-        handlers.toast(
-          info.status
-            ? `<span class="ok">✓</span> 已同步 ${dep.jiraKey} · ${bits.join(' · ')}。${
-                info.targetEnd && info.targetEnd !== dep.date
-                  ? '单击 🔗 可把该日期设为 ETA。'
-                  : ''
-              }`
-            : `已读到 ${dep.jiraKey} 的日期，但状态仍未返回。请重新加载 Personal AI 扩展后再点刷新。`,
-        );
-        close();
-      } catch (err) {
-        handlers.toast(err instanceof Error ? err.message : '刷新失败');
-      }
+      await refreshDependencyEta(item, dep, handlers);
+      close();
     });
   });
   p.querySelector('[data-add]')?.addEventListener('pointerdown', (e) => {

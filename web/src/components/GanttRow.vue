@@ -17,6 +17,8 @@ import {
 import { memberChipHtml, openOwnerFloat } from '../composables/useOwnerFloat';
 import type { RoadmapItem, RoadmapSub, TeamMember } from '../types';
 import { useRoadmapState } from '../composables/useRoadmapState';
+import DependencyTrack from './DependencyTrack.vue';
+import { dependencyGap } from '../composables/dependency';
 import { isDraftItem, itemDisplayKey, jiraBrowseUrl, pendingDepCount, driftedDepCount, depBadgeTip, depHoverTip, depEtaMismatchesJira, trackMarkers, phaseColor, phaseGlyph, tooltipHintLine, clampDescription, DESCRIPTION_MAX_CHARS, shouldWrapAlias, isDoneStatus } from '../composables/useRoadmapContract';
 import { ganttAliasEditDirty } from '../composables/ganttAliasEdit';
 import {
@@ -32,7 +34,7 @@ import {
   openMarkerMenu,
   type MarkerHandlers,
 } from '../composables/useMarkerFloats';
-import { bridgeFetchIssueDates } from '../composables/useExtensionBridge';
+import { bridgeFetchDependencyDates } from '../composables/useExtensionBridge';
 import {
   catchReleaseHint,
   relParsed,
@@ -142,6 +144,7 @@ const markers = computed(() => props.item.markers || []);
 const onTrack = computed(() => trackMarkers(props.item));
 const depCount = computed(() => markers.value.filter((m) => m.kind === 'dep').length);
 const pendingDeps = computed(() => pendingDepCount(props.item));
+const lateDeps = computed(() => markers.value.filter(m => m.kind === 'dep' && dependencyGap(m) > 0 && !isDoneStatus({ status: m.jiraStatus })).length);
 const driftedDeps = computed(() => driftedDepCount(props.item));
 
 const members = computed(() => state.snapshot.value?.members || []);
@@ -186,9 +189,10 @@ function markerHandlers(): MarkerHandlers {
       else emit('deleteMarker', intent);
     },
     fetchIssueDates: state.hasExtension.value
-      ? (jiraKey) => bridgeFetchIssueDates(jiraKey)
+      ? (jiraKey) => bridgeFetchDependencyDates(jiraKey)
       : undefined,
     jiraBaseUrl: jiraBase.value,
+    showDependency: (id) => { state.dependencyFocus.value = id; state.dependencyFilter.value = 'all'; state.view.value = 'dependency'; },
   };
 }
 
@@ -1044,7 +1048,7 @@ watch(
           <span
             v-if="depCount"
             class="dep-badge"
-            :class="{ pending: pendingDeps > 0, drift: pendingDeps === 0 && driftedDeps > 0 }"
+            :class="{ pending: pendingDeps > 0, late: lateDeps > 0, drift: pendingDeps === 0 && lateDeps === 0 && driftedDeps > 0 }"
             :data-tip="depBadgeTip(item)"
             @pointerdown.stop
             @click.stop="openDepPopover($event.currentTarget as HTMLElement, item, markerHandlers())"
@@ -1124,8 +1128,9 @@ watch(
         </svg>
       </button>
       <div v-if="onTrack.length" class="marker-track">
+        <DependencyTrack v-for="dep in markers.filter(m => m.kind === 'dep')" :key="dep.id" :marker="dep" :item="item" :tl="tl" :handlers="markerHandlers()" />
         <button
-          v-for="m in onTrack"
+          v-for="m in onTrack.filter(m => m.kind === 'phase')"
           :key="m.id"
           type="button"
           class="marker"

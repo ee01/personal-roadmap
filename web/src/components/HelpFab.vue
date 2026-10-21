@@ -49,7 +49,8 @@ const open = ref(false);
       <li>添加任务：左侧头像点选，或标题里输入 <b>@</b> 指定 Owner（可选）；默认从今天起两周；描述可选，不挡 Enter 秒建</li>
       <li>创建 Jira 可配置 <b>Assignee 映射</b>（系统名 → Firstname Lastname）</li>
       <li>悬浮：bar <b>左侧 ＋ 添加任务</b>，<b>右侧 ◆＋ 阶段节点/外部依赖</b>，<b>右上角 × 退回 Backlog</b></li>
-      <li><b>阶段节点</b>与有 ETA 的依赖落在标记轨；缺 ETA 时红色 🔗 角标持续提醒。绑定了 Jira 的依赖：浮层里点 key 打开 Jira，点「未刷新」旁的 ↻ 刷新 status / Target End；hover 只读，单击才确认是否把 Target End 写成 ETA</li>
+      <li><b>外部依赖</b>：实心点是对方 ETA，虚线环是我们期望；<b>拖动只改期望</b>，单击填写或刷新 ETA，方向键也可改期望（Shift 一次 7 天）。期望早于 ETA 时标红；拖回 ETA ±1 天会合并。</li>
+      <li><b>依赖视图</b>：只显示带依赖的任务，按风险分组排序，可筛选晚于期望 / 缺 ETA / Jira 有变更；展示 ticket 的 Target Start → End。右上角<b>复制</b>跟随当前视图与筛选，在依赖页专门复制依赖内容、期望、ETA、风险和 ticket 排期。</li>
       <li>装了扩展时，打开 Roadmap 会<b>静默刷新</b>甘特上非草稿票的 summary / description / Target / assignee，以及依赖 ticket 的 status / Target End（10 分钟内不重复；依赖 ETA 不会被自动改写）</li>
       <li>装了扩展时，非草稿主/子任务拖动会回写 Jira Target，主任务改 Assignee、子任务改 Owner 都会回写 assignee（需映射；清空会确认）。未装扩展时这两类改动只留在 Roadmap</li>
       <li><b>人员视图</b>：按人查看任务（近 2 周 / 全部）；双击改名、添加/移除空闲成员。任务条<b>左侧色条 + 前缀 chip</b>标识所属主任务（条太窄只留色条）</li>
