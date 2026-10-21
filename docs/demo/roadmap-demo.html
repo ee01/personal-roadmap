@@ -172,8 +172,9 @@ input,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .zoom-hint.show{opacity:1;transform:none}
 .zoom-hint b{color:#FFB25C}
 .g-toolbar{display:flex;align-items:center;gap:16px;padding:10px 18px;flex:none}
-.legend{display:flex;align-items:center;gap:14px;font-size:11.5px;color:var(--muted)}
-.lg{display:flex;align-items:center;gap:6px}
+.legend{display:flex;align-items:center;gap:4px 14px;font-size:11.5px;color:var(--muted);flex-wrap:wrap;min-width:0}
+.g-toolbar .btn{flex:none;white-space:nowrap}
+.lg{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .dot{width:11px;height:11px;border-radius:3.5px;flex:none}
 .dot.past{background:var(--past)}
 .dot.cur{background:var(--cur)}
@@ -191,7 +192,7 @@ input,textarea{font-family:inherit;font-size:inherit;color:inherit}
 /* 视图切换（任务 / 人员） */
 .view-switch{display:flex;gap:2px;background:var(--bg);border:1px solid var(--line);
   border-radius:9px;padding:3px}
-.vs-btn{padding:4px 13px;border-radius:6px;font-size:12px;font-weight:600;color:var(--muted);
+.vs-btn{padding:4px 13px;border-radius:6px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;
   transition:all .15s}
 .vs-btn:hover{color:var(--ink)}
 .vs-btn.active{background:var(--panel);color:var(--ink);box-shadow:var(--sh)}
@@ -477,7 +478,7 @@ body.no-select,body.no-select *{user-select:none!important}
 .df-fetch.locked{color:var(--muted);background:var(--bg)}
 .df-fetch.locked:hover{color:var(--ink);border-color:#C9C6BB}
 .df-hint{font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.55}
-.dep-list{max-height:260px;overflow-y:auto}
+.dep-list{max-height:min(440px,60vh);overflow-y:auto}
 .dep-row{padding:8px 9px;border-bottom:1px solid var(--line2)}
 .dep-row:last-child{border-bottom:none}
 .dep-row-top{display:flex;align-items:flex-start;gap:8px}
@@ -505,6 +506,172 @@ body.no-select,body.no-select *{user-select:none!important}
 .dep-status-cluster.stale .dep-refresh{background:#EAF3FA;color:var(--fut-deep)}
 .dep-adopt{background:#E8F6EE;color:#2E8540}
 .dep-adopt:hover{background:#D4EEDD}
+.dep-badge.late{background:var(--danger);color:#fff}
+
+/* ============ 外部依赖：ETA（对方承诺）vs 期望（我们需要） ============
+   视觉语言（甘特 / 依赖视图统一）：
+   · ETA = 实心圆点（对方给的确定日期，"实"）
+   · 期望 = 虚线空心环（我们想要的日期，"虚"，可拖）
+   · 两者之间：期望早于 ETA → 红色连线（甘特细线 / 依赖视图红色半透明带）；有余量 → 灰色点线 */
+:root{ --eta:#4A5260; --late:#E4573D; --late-bg:rgba(228,87,61,.10); --drift:#C9842A; --okc:#2E8540 }
+.marker.dep{background:var(--eta)!important}
+.marker.dep.late{background:var(--late)!important;box-shadow:0 0 0 2px rgba(228,87,61,.22)}
+.marker.dep.done{background:var(--okc)!important}
+.marker.dep-need{border-radius:50%;transform:translate(-50%,-50%);width:13px;height:13px;
+  background:#fff;border:1.5px dashed var(--eta);box-shadow:none;z-index:2}
+.marker.dep-need:hover{transform:translate(-50%,-50%) scale(1.18)}
+.marker.dep-need.late{border-color:var(--late)}
+.marker.dep-need.slack{opacity:.6}
+.marker.dep-need.missing{border-color:var(--late);color:var(--late);font:700 8px/1 var(--mono)}
+.marker.dep-need.missing::after{content:"?"}
+.marker.dep-need.dragging{transform:translate(-50%,-50%) scale(1.3);opacity:1}
+.marker.dep-need:focus-visible,.dv-pt:focus-visible{outline:2px solid var(--fut);outline-offset:2px}
+.dep-link{position:absolute;top:50%;height:0;border-top:1.5px dotted #A9B1BB;pointer-events:none;
+  transition:opacity .15s}
+.dep-link.late{border-top:2px solid var(--late);opacity:.75}
+.dep-gap-tag{position:absolute;top:-3px;transform:translateX(-50%);font:700 9px/1 var(--mono);
+  color:var(--late);background:#fff;padding:1px 3px;border-radius:3px;pointer-events:none;white-space:nowrap}
+/* 多依赖：hover 某个节点 → 同一依赖的 ETA / 期望 / 连线高亮，其它依赖淡化 */
+.marker-track.pairing [data-dep]:not(.hl){opacity:.18}
+.marker-track.pairing .dep-link.hl{opacity:1}
+
+/* ---- 依赖浮层（单条展开编辑） ---- */
+.dep-row{cursor:pointer;transition:background .13s}
+.dep-row:hover{background:#FAF9F5}
+.dep-row.open{background:#FAF9F5;cursor:default}
+.dep-st{font:600 9.5px/1 var(--sans);border-radius:4px;padding:3px 6px;flex:none;white-space:nowrap}
+.dep-st.late{background:#FDECE8;color:#B23A22}
+.dep-st.missing{background:#FDECE8;color:#B23A22}
+.dep-st.stale,.dep-st.drift{background:#FBF1E1;color:#8A5A12}
+.dep-st.ok{background:#EEF1F4;color:#4A5260}
+.dep-st.done{background:#E3F2E9;color:#1F5B3C}
+.dep-edit{margin-top:9px;display:grid;grid-template-columns:44px 1fr;gap:7px 8px;align-items:center;
+  animation:chipIn .18s ease}
+.dep-edit .k{font-size:10.5px;color:var(--muted);font-weight:600}
+.dep-edit .v{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font:11px var(--mono)}
+.dep-edit .v .me-field{width:128px;padding:4px 7px;font-size:11px}
+.dep-edit .src{font-family:var(--sans);font-size:10px;color:var(--muted)}
+.dep-edit .gapline{grid-column:1/-1;font-size:11px;border-radius:7px;padding:6px 9px;line-height:1.5}
+.dep-edit .gapline.late{background:var(--late-bg);color:#9E3320}
+.dep-edit .gapline.ok{background:#F1F6F2;color:#2C6B44}
+.dep-edit .gapline.missing{background:var(--late-bg);color:#9E3320}
+.dep-edit .acts{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.dep-act{font-size:10.5px;font-weight:600;border-radius:99px;padding:3px 10px;border:1px solid var(--line);
+  background:#fff;color:var(--ink);transition:all .13s}
+.dep-act:hover{border-color:#C9C6BB;background:var(--bg)}
+.dep-act.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
+.dep-act.pri:hover{background:#000}
+.dep-act .mini-spin{width:9px;height:9px}
+.dep-jump{color:var(--fut-deep);font-weight:600}
+
+/* ---- 依赖视图 ---- */
+.dep-view{--dv-left:348px;flex:1;overflow:auto;margin:0 18px 18px;background:var(--panel);
+  border:1px solid var(--line);border-radius:14px;position:relative}
+.dv-head{display:grid;grid-template-columns:var(--dv-left) 1fr;position:sticky;top:0;z-index:8;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(4px);border-bottom:1px solid var(--line)}
+.dv-corner{padding:12px 16px;font-size:11.5px;font-weight:600;color:var(--muted);display:flex;
+  align-items:center;gap:8px}
+.dv-corner b{font-family:var(--mono);color:var(--ink)}
+.dv-axis{position:relative;height:44px;border-left:1px solid var(--line2)}
+.dv-tr{position:absolute;left:22px;right:40px;top:0;bottom:0}
+.dv-tick{position:absolute;top:20px;bottom:0;border-left:1px solid var(--line2);padding:4px 0 0 5px;
+  font:500 10px/1 var(--mono);color:var(--muted);white-space:nowrap}
+.dv-mon{position:absolute;top:0;bottom:0;border-left:1px solid #D9D6CC;padding:6px 0 0 6px;
+  font:600 10.5px/1 var(--mono);color:var(--past-ink);white-space:nowrap}
+.dv-today-h{position:absolute;bottom:3px;transform:translateX(-50%);background:var(--danger);color:#fff;
+  font:600 9.5px/1 var(--sans);letter-spacing:.06em;border-radius:4px;padding:3px 6px}
+.dv-body{position:relative}
+.dv-grid{position:absolute;top:0;bottom:0;left:var(--dv-left);right:0;pointer-events:none;
+  border-left:1px solid var(--line2)}
+.dv-grid .gl{position:absolute;top:0;bottom:0;width:1px;background:rgba(32,36,42,.04)}
+.dv-grid .gl.m{background:var(--line2)}
+.dv-grid .td{position:absolute;top:0;bottom:0;width:2px;background:var(--danger);opacity:.45;transform:translateX(-1px)}
+.dv-grp{display:grid;grid-template-columns:var(--dv-left) 1fr;background:#FBFAF7;border-bottom:1px solid var(--line2);
+  position:relative}
+.dv-grp-info{display:flex;align-items:center;gap:10px;padding:10px 16px;min-width:0}
+.dv-grp-stripe{width:4px;height:22px;border-radius:3px;flex:none}
+.dv-grp-title{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.dv-grp-meta{font:500 10px var(--mono);color:var(--muted);flex:none}
+.dv-grp-risk{font:600 10px var(--sans);color:#B23A22;background:#FDECE8;border-radius:4px;padding:2px 6px;flex:none}
+.dv-grp-lane{position:relative;min-height:48px}
+.dv-task{position:absolute;top:30px;height:8px;border-radius:4px;opacity:.45}
+.dv-task-l{position:absolute;top:12px;font:500 9.5px/1 var(--mono);color:var(--muted);white-space:nowrap}
+.dv-row{display:grid;grid-template-columns:var(--dv-left) 1fr;border-bottom:1px solid var(--line2);position:relative;
+  transition:background .2s}
+.dv-row:hover{background:rgba(32,36,42,.018)}
+.dv-row.flash{animation:dvFlash 1.6s ease}
+@keyframes dvFlash{0%,40%{background:#EAF3FA}100%{background:transparent}}
+.dv-info{padding:11px 16px 11px 30px;min-width:0;position:relative}
+.dv-top{display:flex;align-items:flex-start;gap:8px}
+.dv-title{font-size:12.5px;line-height:1.4;font-weight:500;display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden;min-width:0;flex:1}
+.dv-meta{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;font-size:10.5px;color:var(--muted)}
+.dv-meta .dep-tag{font-size:9.5px}
+.dv-meta .who{font-family:var(--sans)}
+.dv-acts{position:absolute;right:10px;bottom:8px;display:flex;gap:4px;opacity:0;transition:opacity .15s;
+  padding-left:28px;background:linear-gradient(90deg,transparent,var(--panel) 24px)}
+.dv-row:hover .dv-acts,.dv-row:focus-within .dv-acts{opacity:1}
+.dv-lane{position:relative;min-height:76px;border-left:1px solid transparent}
+/* lane 内部纵向：日期标签(上) / ETA·期望点(28px) / 期望标签(下) / ticket 排期细条(60px) */
+.dv-band{position:absolute;top:19px;height:18px;background:var(--late-bg);border-radius:4px;
+  border-top:2px solid var(--late);border-bottom:none;pointer-events:none}
+.dv-band.ok{background:none;border-top:1.5px dotted #A9B1BB;top:28px;height:0}
+.dv-band-l{position:absolute;top:24px;transform:translateX(-50%);font:700 10px/1 var(--mono);white-space:nowrap;
+  pointer-events:none;color:#B23A22}
+.dv-band-l.ok{top:34px;color:var(--okc);font-weight:600}
+.dv-span{position:absolute;top:60px;height:5px;border-radius:3px;pointer-events:auto;
+  background:repeating-linear-gradient(-45deg,#C9D3DC 0 3px,#E8EDF1 3px 6px)}
+.dv-span-l{position:absolute;top:56px;transform:translateX(calc(-100% - 6px));font:500 9px var(--mono);
+  color:#97A1AC;white-space:nowrap;pointer-events:none}
+.dv-pt{position:absolute;top:28px;width:15px;height:15px;border-radius:50%;transform:translate(-50%,-50%);
+  cursor:grab;touch-action:none;z-index:3;transition:transform .15s cubic-bezier(.2,.8,.2,1),box-shadow .15s}
+.dv-pt:hover{transform:translate(-50%,-50%) scale(1.2)}
+.dv-pt.dragging{cursor:grabbing;transform:translate(-50%,-50%) scale(1.3);transition:none;z-index:6}
+.dv-pt.eta{background:var(--eta);box-shadow:0 1px 3px rgba(32,36,42,.3)}
+.dv-pt.eta.late{background:var(--late);box-shadow:0 0 0 3px rgba(228,87,61,.18)}
+.dv-pt.eta.done{background:var(--okc)}
+.dv-pt.eta.done::after{content:"";position:absolute;left:4.5px;top:3px;width:4px;height:6px;border:solid #fff;
+  border-width:0 1.6px 1.6px 0;transform:rotate(45deg)}
+.dv-pt.need{background:#fff;border:2px dashed var(--eta)}
+.dv-pt.need.late,.dv-pt.need.missing{border-color:var(--late)}
+.dv-pt.need.missing::after{content:"?";position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font:700 8.5px/1 var(--mono);color:var(--late)}
+.dv-pt.ghost{width:11px;height:11px;background:#fff;border:2px solid var(--drift);cursor:pointer;z-index:2}
+.dv-drift{position:absolute;top:28px;height:0;border-top:1.5px dashed var(--drift);pointer-events:none}
+.dv-drift::after{content:"";position:absolute;right:-1px;top:-4.5px;border:4px solid transparent;
+  border-left:6px solid var(--drift);transform:translateX(4px)}
+.dv-drift.back::after{right:auto;left:-1px;transform:translateX(-10px) rotate(180deg)}
+.dv-tbd{position:absolute;top:28px;height:0;width:72px;border-top:1.5px dashed rgba(228,87,61,.5);
+  -webkit-mask:linear-gradient(90deg,#000 30%,transparent);mask:linear-gradient(90deg,#000 30%,transparent);pointer-events:none}
+.dv-lbl{position:absolute;transform:translateX(-50%);font:600 10px/1 var(--mono);white-space:nowrap;
+  pointer-events:none;color:var(--ink)}
+.dv-lbl.up{top:6px}
+.dv-lbl.down{top:42px;color:var(--muted);font-weight:500}
+.dv-lbl.late{color:#B23A22}
+.dv-lbl.drift{color:var(--drift)}
+.dv-lbl small{font:500 9px var(--sans);color:var(--muted);margin-right:3px}
+.dv-hint{position:fixed;z-index:200;background:var(--ink);color:#fff;font:600 11px var(--mono);
+  border-radius:6px;padding:4px 8px;pointer-events:none;white-space:nowrap}
+.dv-hint .late{color:#FF9C88}.dv-hint .ok{color:#8FD6A8}
+.dv-empty{padding:72px 20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.9}
+.dv-empty b{color:var(--ink)}
+.dv-empty .ico{width:40px;height:40px;margin:0 auto 12px;border-radius:12px;background:var(--bg);display:flex;
+  align-items:center;justify-content:center;color:var(--muted)}
+/* 工具栏：过滤（带计数）+ 图例 */
+.dep-tools .vs-btn{display:inline-flex;align-items:center;gap:6px}
+.dep-tools .n{font:600 10px var(--mono);color:var(--muted);background:var(--bg);border-radius:99px;padding:1px 6px}
+.dep-tools .vs-btn.active .n{background:var(--line2)}
+.dep-tools .n.red{background:#FDECE8;color:#B23A22}
+.dep-tools .n.amber{background:#FBF1E1;color:#8A5A12}
+.dep-legend .g{display:inline-block;flex:none}
+.dep-legend .g.eta{width:9px;height:9px;border-radius:50%;background:var(--eta)}
+.dep-legend .g.need{width:10px;height:10px;border-radius:50%;border:1.5px dashed var(--eta)}
+.dep-legend .g.late{width:18px;height:8px;background:var(--late-bg);border-top:2px solid var(--late);border-radius:2px}
+.dep-legend .g.span{width:18px;height:5px;border-radius:3px;background:repeating-linear-gradient(-45deg,#C9D3DC 0 3px,#E8EDF1 3px 6px)}
+@media (max-width:1100px){ .dep-view{--dv-left:260px} .dep-legend{display:none!important} }
+@media (prefers-reduced-motion:reduce){
+  .dv-pt,.dv-row,.dep-link,.dep-edit{transition:none!important;animation:none!important}
+}
 
 /* ---- 子任务区（下拉滑出/收起） ---- */
 .g-subs{overflow:hidden;position:relative;
@@ -1411,6 +1578,14 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
       <div class="view-switch" id="viewSwitch">
         <button class="vs-btn active" data-v="gantt">任务</button>
         <button class="vs-btn" data-v="resource">人员</button>
+        <button class="vs-btn" data-v="deps" data-tip="依赖视图||只列出带外部依赖的任务：对方 ETA vs 我们期望、晚多少天、Ticket 排期||拖动改期望 · 单击改 ETA">依赖</button>
+      </div>
+      <div class="view-switch dep-tools" id="depTools" style="display:none" role="group" aria-label="依赖过滤"></div>
+      <div class="legend dep-legend" id="depLegend" style="display:none">
+        <span class="lg"><i class="g eta"></i>ETA（对方）</span>
+        <span class="lg"><i class="g need"></i>期望（我们）</span>
+        <span class="lg"><i class="g late"></i>晚于期望</span>
+        <span class="lg"><i class="g span"></i>Ticket 排期</span>
       </div>
       <div class="legend" id="legend">
         <span class="lg"><span class="dot past"></span>过去</span>
@@ -1455,6 +1630,7 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
       </div>
     </div>
     <div class="res-view" id="resView" style="display:none"></div>
+    <div class="dep-view" id="depView" style="display:none"></div>
   </section>
 </div>
 
@@ -1760,7 +1936,8 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
     <li><b>草稿描述（可选）</b>：快速添加时 Enter 仍是只填标题秒建；点输入框右侧 <b>≡ 描述</b>（或 Shift+Enter）展开描述框，新建条目弹窗同样有描述字段。<b>有描述的任务 hover 提示最后的灰色小字改为展示描述</b>（无描述仍显示操作提示）。描述会并入 Agent Prompt 由 AI 综合生成最终 description（不必与输入逐字一致）；直连 API 则原文写入</li>
     <li>悬浮：bar <b>左侧 ＋ 添加任务</b>，<b>右侧 ◆＋ 添加阶段节点 / 外部依赖</b>，<b>右上角 × 退回 Backlog</b>（草稿为删除）</li>
     <li><b>阶段节点</b>（Design/Stage/Production/自定义）以菱形标记显示在 bar 下方的标记轨上，按日期定位、可超出 bar 范围；标记可<b>左右拖动改期</b>（按天吸附，拖到边缘自动滚动），<b>单击</b>则打开编辑器改日期 / 改名 / 删除</li>
-    <li><b>外部依赖</b>不是子任务，可不填 Jira 直接手动添加，也可绑定 Jira ticket。打开页会镜像依赖票的 <b>status / Target End</b>（不自动改 ETA）。<b>Hover 只读</b>：缺 ETA 或与 Jira 日期不一致时提示「单击可同步」；<b>单击 🔗 / 标记</b>打开浮层：点 key 打开 Jira，点「未刷新」旁的 ↻ 刷新 status。缺少 ETA 时角标红色脉动；日期不一致时琥珀色</li>
+    <li><b>外部依赖：ETA 与期望分开</b>。<b>ETA</b> = 对方承诺（实心点）：绑定 ticket 时添加即自动读取 <b>Target End</b> 并把节点放在 ETA 上；ticket 没填 Target End 或没有 ticket 时手动填写。<b>期望</b> = 我们需要的日期（虚线环）。<b>拖动 = 改期望</b>（从 ETA 点上拖会拉出期望环，ETA 不动；拖回 ±1 天内吸附合一），<b>单击 = 设置 / 刷新 ETA</b>。期望早于 ETA 时两点之间画红线并标 <b>+Nd</b>；同一任务多个依赖时 hover 任一节点高亮成对节点。打开页只镜像 Jira status / Target End，不自动改 ETA，有变化时显示琥珀色「Jira 有变更」</li>
+    <li><b>依赖视图</b>（工具栏「任务 / 人员 / 依赖」）：只列出带依赖的任务，按风险排序；每行完整展示 <b>ETA ● / 期望 ◌ / 晚 Nd 红色带 / 余量点线 / Ticket Target Start→End 斜纹条 / Jira 新日期琥珀箭头</b>。可过滤「晚于期望 / 缺 ETA / Jira 有变更」，行内一键刷新 ETA、催一下（附期望日）、接受 ETA；拖动节点或 ← → 键改期望，改后 toast 可撤销。甘特依赖浮层底部「在依赖视图中查看」可直接定位</li>
     <li><b>Backlog 搜索</b>：按标题 / Key / 备注名 / 类型 / Quarter 过滤，多个关键词空格分隔需全部命中；Esc 清空</li>
     <li><b>新建条目</b>：弹窗含 <b>手动创建</b> 与 <b>使用 AI 批量创建</b>。AI 路径默认先预览，勾选「直接创建 Draft」才一次写入；不创建 Jira；无扩展也能用。创建 Jira 仍走原弹窗。要用自己的 Agent 生成 Draft 有两条路：Codex Plugin 导入 <code>https://github.com/ee01/Personal-AI</code>（Path <code>roadmap-service</code>，Branch <code>develop</code>）后装 <code>roadmap-planning</code>；或把 GitHub/线上 Skill 交给 Agent，远程 MCP 默认 <code>http://roadmap.xmnup.com/mcp</code>。</li>
     <li>任务可选 Owner：标题里输入 <b>@</b> 触发建议（可手输自定义），或点输入框左侧头像；直接 Enter 则跳过。Owner 数据来自<b>团队成员表</b>，新名字自动加入；双击任务条可改 Owner。选人浮层<b>搜索框置顶、打开即聚焦</b>，列表限高可滚动，↑↓ + Enter 快速选择，下方空间不足时自动向上翻转</li>
@@ -2275,8 +2452,16 @@ function buildBrandy(){
   t.items.unshift(legacy);
   /* 预排期三个，演示三种状态；前两个带备注名（alias）演示换行/增高 */
   const a = get(18117); a.scheduled = true; a.start = addD(q0,-2); a.days = 22; a.alias = '统一会话时间线';
-  /* 外部依赖：缺 ETA，但 Jira 已有 Target End —— hover 提示单击可同步，不自动写 ETA */
-  a.deps = [ { id:'dep'+(markerSeq++), title:'Legal/Brand 团队完成 AI 免责声明文案审核', jiraKey:'LEGAL-441', eta:null, etaSource:null, jiraStatus:'In Progress', jiraTargetEnd: addD(today, 8) } ];
+  /* 外部依赖（2 条）：
+     · LEGAL-441 已读到 ETA，但我们期望更早 → 晚于期望（红）
+     · 品牌素材：没有 ticket，对方口头 ETA 早于期望 → 有余量 */
+  a.deps = [
+    { id:'dep'+(markerSeq++), title:'Legal/Brand 团队完成 AI 免责声明文案审核', team:'Legal & Brand', jiraKey:'LEGAL-441',
+      eta: addD(today, 12), etaSource:'jira', etaAt: addD(today,-2), need: addD(today, 5),
+      jiraStatus:'In Progress', jiraTargetStart: addD(today,-6), jiraTargetEnd: addD(today, 12) },
+    { id:'dep'+(markerSeq++), title:'品牌部提供时间线新版图标与空状态插画', team:'Brand Design', jiraKey:null,
+      eta: addD(today, 3), etaSource:'manual', etaAt: addD(today,-4), need: addD(today, 7) },
+  ];
   const b = get(18102); b.scheduled = true; b.start = addD(q0,13); b.days = 39; b.expanded = true;
   b.alias = '智能快捷回复 Smart Replies（含建议 chips 与实验开关）';
   b.subs = [
@@ -2295,11 +2480,23 @@ function buildBrandy(){
     { id:'ph'+(markerSeq++), phaseKind:'stage',      label:'Stage',      date: addD(today, 9) },
     { id:'ph'+(markerSeq++), phaseKind:'production', label:'Production', date: addD(today,28) },
   ];
-  /* 外部依赖：已有 ETA，但与镜像的 Jira Target End 不一致 —— 角标琥珀色。
-     第二条没有 Target End 缓存：浮层必须仍能打开（不能因 fmtMD(undefined) 变成空白条）。 */
+  /* 外部依赖（4 条，演示多依赖）：
+     · PLAT-2091：ETA 已读取，但打开页面镜像到 Jira Target End 又往后推了 → Jira 有变更（琥珀）
+     · SEC-1203：对方 ETA 晚于我们期望 8 天 → 晚于期望（红）
+     · DES-88：绑了 ticket 但对方没填 Target End → 与无 ticket 相同：只有期望点，缺 ETA
+     · INFRA-5521：已交付（Done） */
   b.deps = [
-    { id:'dep'+(markerSeq++), title:'平台团队需先完成建议接口的限流额度提升', jiraKey:'PLAT-2091', eta: addD(today,15), etaSource:'jira', jiraStatus:'In Progress', jiraTargetEnd: addD(today, 22) },
-    { id:'dep'+(markerSeq++), title:'等待设计走查结论', jiraKey:'DES-88', eta: addD(today,10), etaSource:'manual' },
+    { id:'dep'+(markerSeq++), title:'平台团队完成建议接口的限流额度提升', team:'Platform API', jiraKey:'PLAT-2091',
+      eta: addD(today,15), etaSource:'jira', etaAt: addD(today,-5), need: addD(today,18),
+      jiraStatus:'In Progress', jiraTargetStart: addD(today,2), jiraTargetEnd: addD(today, 22) },
+    { id:'dep'+(markerSeq++), title:'安全团队完成 LLM 输出内容的 PII 脱敏评审', team:'Security', jiraKey:'SEC-1203',
+      eta: addD(today,20), etaSource:'jira', etaAt: addD(today,-1), need: addD(today,12),
+      jiraStatus:'In Review', jiraTargetStart: addD(today,-3), jiraTargetEnd: addD(today, 20) },
+    { id:'dep'+(markerSeq++), title:'设计走查结论（建议 chips 交互）', team:'UX', jiraKey:'DES-88',
+      eta: null, etaSource:null, need: addD(today,10), jiraStatus:'To Do', jiraTargetStart:null, jiraTargetEnd:null },
+    { id:'dep'+(markerSeq++), title:'Feature flag 平台开通 Brandy 命名空间', team:'Infra', jiraKey:'INFRA-5521',
+      eta: addD(today,-4), etaSource:'jira', etaAt: addD(today,-4), need: null,
+      jiraStatus:'Done', jiraTargetStart: addD(today,-12), jiraTargetEnd: addD(today,-4) },
   ];
   const c = get(18124); c.scheduled = true; c.start = addD(today,-8); c.days = 34;
   /* 子任务：进行中 / 下周一前将开始 / 长任务贴近 Epic 结束（钳制）/ 远任务（下周后，不动）/
@@ -2323,7 +2520,14 @@ function buildBrandy(){
   /* 阶段节点示例：仅一个 Production 节点 */
   c.phases = [ { id:'ph'+(markerSeq++), phaseKind:'production', label:'Production', date: addD(c.start, c.days+10) } ];
   /* 外部依赖示例：手动填写（未绑定 Jira），ETA 已知 */
-  c.deps = [ { id:'dep'+(markerSeq++), title:'第三方情感分析模型 License 采购完成后启用高级评分', jiraKey:null, eta: addD(today,40), etaSource:'manual' } ];
+  /* 外部依赖：手动（无 ticket），供应商邮件给的 ETA 晚于我们期望 10 天；
+     LEGAL-460：ticket 已有 Target End，但还没点过刷新 → ETA 待刷新 */
+  c.deps = [
+    { id:'dep'+(markerSeq++), title:'第三方情感分析模型 License 采购完成后启用高级评分', team:'Procurement', jiraKey:null,
+      eta: addD(today,40), etaSource:'manual', etaAt: addD(today,-9), need: addD(today,30) },
+    { id:'dep'+(markerSeq++), title:'数据合规确认会话摘要可保留 90 天', team:'Legal & Brand', jiraKey:'LEGAL-460',
+      eta: null, etaSource:null, need: addD(today,14), jiraStatus:'In Progress', jiraTargetStart: addD(today,1), jiraTargetEnd: addD(today, 11) },
+  ];
   /* Bernard Ye + 一个快收尾的 Epic：演示「其余延至下周」在下周一到 Epic 结束日
      连最小人天（Original Estimate，空则 3 天）都摆不下时，弹出延长 Epic 确认框；
      以及 Closed/Resolved 状态该如何标色 + 从候选里剔除 */
@@ -3072,13 +3276,14 @@ function rowEl(it){
   const labelIn = wrapMode || w >= 110;
   const nSubs = it.subs.filter(s => !s.cleared).length;   // 已清理的过期子任务不计数
   const nDeps = it.deps.length;
-  const depsMissing = it.deps.some(d => !d.eta);
-  const depsDrift = it.deps.some(d => d.jiraKey && d.jiraTargetEnd && d.eta && toISOInput(d.eta) !== toISOInput(d.jiraTargetEnd));
-  const canAdopt = it.deps.some(d => d.jiraKey && !d.eta && d.jiraTargetEnd);
+  const depSts = it.deps.map(depState);
+  const depsMissing = depSts.includes('missing');
+  const depsLate = depSts.filter(x => x === 'late').length;
+  const depsDrift = depSts.includes('drift') || depSts.includes('stale');
   bar.innerHTML = `
     ${wrapMode ? `<div class="wrap-label">${donePrefix}${esc(disp)}</div>` : (labelIn ? `<span class="in-label">${donePrefix}${esc(disp)}</span>` : '')}
     ${(nDeps || nSubs) ? `<span class="badge-cluster">
-      ${nDeps ? `<span class="dep-badge${depsMissing?' pending':(depsDrift?' drift':'')}" data-role="dep-badge">${ICON.link}${nDeps}</span>` : ''}
+      ${nDeps ? `<span class="dep-badge${depsMissing?' pending':depsLate?' late':(depsDrift?' drift':'')}" data-role="dep-badge">${ICON.link}${nDeps}</span>` : ''}
       ${nSubs ? `<span class="sub-badge"><svg class="chev ${it.expanded?'up':''}" width="8" height="8" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>${nSubs}</span>` : ''}
     </span>` : ''}
     <div class="hdl l"></div><div class="hdl r"></div>`;
@@ -3099,13 +3304,9 @@ function rowEl(it){
   bar.addEventListener('pointerdown', e => barDragStart(e, it, null, bar, row));
   const depBadgeEl = bar.querySelector('[data-role="dep-badge"]');
   if (depBadgeEl){
-    depBadgeEl.dataset.tip = (depsMissing
-      ? `${nDeps} 个外部依赖 · 有依赖缺少交付时间 ETA`
-      : depsDrift
-        ? `${nDeps} 个外部依赖 · 有依赖 ETA 与 Jira Target End 不一致`
-        : `${nDeps} 个外部依赖`)
-      + '||外部依赖||'
-      + (canAdopt ? 'Jira 已有 Target End，单击可同步为 ETA' : depsDrift ? '单击可改用 Jira Target End 或保留 Roadmap ETA' : '点击查看 / 添加外部依赖');
+    const bits = [depsMissing && '有依赖缺 ETA', depsLate && `${depsLate} 个晚于期望`, depsDrift && 'Jira 有变更'].filter(Boolean);
+    depBadgeEl.dataset.tip = `${nDeps} 个外部依赖${bits.length ? ' · ' + bits.join(' · ') : ''}`
+      + '||外部依赖 · 实心点 = 对方 ETA，虚线环 = 我们期望||单击查看 · 依赖视图里可看完整对照';
     depBadgeEl.onpointerdown = e => e.stopPropagation();
     depBadgeEl.onclick = e => { e.stopPropagation(); openDepPopover(depBadgeEl, it); };
   }
@@ -3138,14 +3339,12 @@ function rowEl(it){
   bp.onpointerdown = e => e.stopPropagation();
   bp.onclick = () => expandAnimated(it, () => focusEditor(it.key));
   lane.appendChild(bp);
-  /* 标记轨：阶段节点 + 已获得 ETA 的外部依赖，按日期定位于 bar 下方（不受 bar 宽度限制） */
-  const markerDefs = [
-    ...it.phases.map(p => ({ kind:'phase', obj:p })),
-    ...it.deps.filter(d => d.eta).map(d => ({ kind:'dep', obj:d })),
-  ];
-  if (markerDefs.length){
+  /* 标记轨：阶段节点 + 外部依赖（ETA 实心点 / 期望虚线环 / 连线），按日期定位于 bar 下方 */
+  const trackDeps = it.deps.filter(d => d.eta || d.need);
+  if (it.phases.length || trackDeps.length){
     const track = document.createElement('div'); track.className = 'marker-track';
-    markerDefs.forEach(md => track.appendChild(markerEl(it, md.kind, md.obj)));
+    it.phases.forEach(p => track.appendChild(markerEl(it, 'phase', p)));
+    trackDeps.forEach(d => depTrackEls(it, d, track).forEach(el => track.appendChild(el)));
     lane.appendChild(track);
   }
   /* bar 右侧 ◆＋：添加阶段节点 / 外部依赖 */
@@ -3226,31 +3425,19 @@ const clipTxt = (s, n = 150) => { const t = String(s).replace(/\s+/g,' ').trim()
 function closeFloats(){
   document.querySelectorAll('.owner-float,.marker-menu,.marker-editor,.dep-form,.dep-popover').forEach(x => x.remove());
 }
+/* 阶段节点；外部依赖的节点见 depTrackEls（ETA / 期望两个时间） */
 function markerEl(it, kind, obj){
   const el = document.createElement('div');
-  const date = kind === 'phase' ? obj.date : obj.eta;
+  const date = obj.date;
   el.style.left = (X(date) + DAY_W/2) + 'px';
   const isDone = date < today;
-  if (kind === 'phase'){
+  {
     const def = PHASE_DEFS[obj.phaseKind] || PHASE_DEFS.custom;
     const glyph = obj.phaseKind === 'custom' ? (obj.label.trim()[0]||'★').toUpperCase() : def.glyph;
     el.className = 'marker' + (isDone ? ' done' : '');
     el.style.background = def.color;
     el.innerHTML = `<span class="m-glyph">${esc(glyph)}</span>`;
     el.dataset.tip = `${esc(obj.label)} · ${fmtMD(date)}${isDone?' · 已完成':' · 待完成'}||阶段节点||左右拖动改期 · 单击编辑或删除`;
-  } else {
-    el.className = 'marker dep' + (isDone ? ' done' : '') + (obj.jiraKey && obj.jiraTargetEnd && obj.eta && toISOInput(obj.eta) !== toISOInput(obj.jiraTargetEnd) ? ' drift' : '');
-    el.style.background = '#7C8794';
-    el.innerHTML = ICON.link.replace('width="8" height="8"','width="9" height="9"');
-    const status = obj.jiraStatus ? (' · ' + obj.jiraStatus) : '';
-    const keyBit = obj.jiraKey ? (' · ' + obj.jiraKey + status) : ' · 手动填写';
-    let hint = '左右拖动改 ETA · 单击查看该依赖';
-    if (obj.jiraKey && obj.jiraTargetEnd && toISOInput(obj.eta) !== toISOInput(obj.jiraTargetEnd)) {
-      hint = `Jira Target End ${fmtMD(obj.jiraTargetEnd)} · 不一致 · 单击可同步`;
-    } else if (obj.jiraKey && obj.jiraTargetEnd) {
-      hint = '与 Jira Target End 一致 · ' + hint;
-    }
-    el.dataset.tip = `外部依赖 ETA ${fmtMD(date)}${keyBit}||${obj.title}||${hint}`;
   }
   el.addEventListener('pointerdown', e => markerDragStart(e, it, kind, obj, el));
   return el;
@@ -3261,7 +3448,7 @@ function markerDragStart(e, it, kind, obj, el){
   if (e.button !== 0) return;
   e.preventDefault();
   e.stopPropagation();                 // 不要冒泡成 bar 的拖动 / 展开
-  const origDate = kind === 'phase' ? obj.date : obj.eta;
+  const origDate = obj.date;
   const origX = e.clientX;
   const hint = $('#dragHint'), gsEl = $('#gScroll'), track = el.parentElement;
   let moved = false, cur = origDate, scrolled = 0, guide = null;
@@ -3294,7 +3481,7 @@ function markerDragStart(e, it, kind, obj, el){
     hint.style.display = 'block';
     hint.style.left = ev.clientX + 14 + 'px';
     hint.style.top = ev.clientY - 34 + 'px';
-    hint.textContent = `${kind === 'phase' ? obj.label : 'ETA'} · ${fmtMD(cur)}`;
+    hint.textContent = `${obj.label} · ${fmtMD(cur)}`;
   };
   const onUp = () => {
     try { el.releasePointerCapture(e.pointerId); } catch(_){}
@@ -3304,18 +3491,11 @@ function markerDragStart(e, it, kind, obj, el){
     document.body.classList.remove('no-select');
     if (guide) guide.remove();
     el.classList.remove('dragging');
-    if (!moved){                       // 单击
-      if (kind === 'phase') openPhaseEditor(el, it, obj);
-      else openDepPopover(el, it);
-      return;
-    }
+    if (!moved){ openPhaseEditor(el, it, obj); return; }   // 单击
     if (diffD(origDate, cur) === 0){ renderGantt(); return; }
-    if (kind === 'phase') obj.date = cur;
-    else { obj.eta = cur; obj.etaSource = 'manual'; }
+    obj.date = cur;
     renderGantt();
-    toast(kind === 'phase'
-      ? `${esc(obj.label)} 已改到 ${fmtMD(cur)}`
-      : `<span class="ok">✓</span> 外部依赖 ETA 已改到 ${fmtMD(cur)}（手动调整）`);
+    toast(`${esc(obj.label)} 已改到 ${fmtMD(cur)}`);
   };
   el.addEventListener('pointermove', onMove);
   el.addEventListener('pointerup', onUp);
@@ -3409,47 +3589,245 @@ function openPhaseEditor(anchor, it, obj){
     toast('节点已删除');
   });
 }
-/* ---- 添加外部依赖：标题 + 可选 Jira Key（可模拟读取 ETA）+ 可留空的 ETA ---- */
+/* =====================================================================
+   外部依赖：ETA（对方承诺）与 期望（我们需要）是两个时间
+   · ETA  = d.eta：绑定 ticket → 读取 Target End（添加时自动读，之后只在「单击 → 刷新 ETA」时更新）；
+            没有 ticket / ticket 没填 Target End → 手动填写对方给的日期
+   · 期望 = d.need：拖动节点修改；null 表示与 ETA 相同（单点）
+   · 打开页面的静默刷新只更新镜像（jiraTargetEnd / status），不改 ETA → 表现为「Jira 有变更」
+   交互约定：拖动 = 改我们的时间；单击 = 改对方的时间。完整规则表见 dependency-view-plan.md
+   ===================================================================== */
+/* 模拟依赖 ticket 在 Jira 上的「当前值」（刷新 ETA 时读取）；表外的 key 按哈希生成，约 30% 未填 Target End */
+const DEP_JIRA = {
+  'LEGAL-441':  { status:'In Progress', s:-6, e:12 },
+  'LEGAL-460':  { status:'In Progress', s:1,  e:11 },
+  'PLAT-2091':  { status:'In Progress', s:2,  e:22 },
+  'SEC-1203':   { status:'In Review',   s:-3, e:20 },
+  'DES-88':     { status:'To Do',       s:null, e:null },
+  'INFRA-5521': { status:'Done',        s:-12, e:-4 },
+};
+function depJiraLookup(key){
+  const k = key.trim().toUpperCase(), hit = DEP_JIRA[k];
+  const off = n => n == null ? null : addD(today, n);
+  if (hit) return { status: hit.status, tStart: off(hit.s), tEnd: off(hit.e) };
+  const h = [...k].reduce((a, c) => a + c.charCodeAt(0), 0);
+  if (h % 10 >= 7) return { status:'To Do', tStart:null, tEnd:null };
+  const e = 6 + h % 24;
+  return { status: ['To Do','In Progress','In Review'][h % 3], tStart: off(e - 5 - h % 9), tEnd: off(e) };
+}
+const DEP_DONE = ['Done','Closed','Resolved'];
+const depNeed = d => d.need || d.eta;                                   // 未单独设置期望 = 与 ETA 相同
+const depGap = d => (d.eta && d.need) ? diffD(d.need, d.eta) : 0;        // >0：对方晚于我们期望
+const depDriftDays = d => (d.jiraKey && d.eta && d.jiraTargetEnd) ? diffD(d.eta, d.jiraTargetEnd) : 0;
+function depState(d){
+  if (DEP_DONE.includes(d.jiraStatus)) return 'done';
+  if (!d.eta) return (d.jiraKey && d.jiraTargetEnd) ? 'stale' : 'missing';
+  if (depGap(d) > 0) return 'late';
+  if (depDriftDays(d)) return 'drift';
+  return 'ok';
+}
+const DEP_RANK = { late:0, missing:1, stale:2, drift:3, ok:4, done:5 };
+function depStLabel(d){
+  const st = depState(d), g = depGap(d);
+  return { late:`晚 ${g}d`, missing:'缺 ETA', stale:'ETA 待刷新', drift:'Jira 有变更',
+           ok: g < 0 ? `余量 ${-g}d` : '按期', done:'已交付' }[st];
+}
+/* 没有 ETA 时，新依赖的期望默认落在任务开始日；任务已开始则今天 + 7 */
+const depDefaultNeed = it => (it.start && it.start > today) ? it.start : addD(today, 7);
+/* 期望拖到距 ETA ±1 天内吸附到 ETA → 存为 null（两点合一） */
+const depSnapNeed = (d, date) => (d.eta && Math.abs(diffD(d.eta, date)) <= 1) ? null : date;
+function depGapText(d, need){
+  if (!d.eta) return '<span class="late">缺 ETA</span>';
+  const g = need ? diffD(need, d.eta) : 0;
+  return g > 0 ? `<span class="late">晚 ${g}d</span>` : g < 0 ? `<span class="ok">余量 ${-g}d</span>` : '<span class="ok">与 ETA 对齐</span>';
+}
+/* 依赖改动后：甘特 + 依赖视图一起刷新 */
+function depChanged(){ renderGantt(); if (state.view === 'deps') renderDeps(); }
+/* 单击 → 刷新 ETA：读 Target End 写入 ETA；ticket 没填 Target End 时保留手动 ETA */
+function refreshDepEta(d, done){
+  if (!d.jiraKey || !extGate('fetchEta')) return false;
+  setTimeout(() => {
+    const r = depJiraLookup(d.jiraKey), before = d.eta;
+    d.jiraStatus = r.status; d.jiraTargetStart = r.tStart; d.jiraTargetEnd = r.tEnd;
+    if (r.tEnd){ d.eta = r.tEnd; d.etaSource = 'jira'; d.etaAt = today; }
+    depChanged();
+    if (!r.tEnd) toast(`${esc(d.jiraKey)} 仍未填写 Target End${d.eta ? '，保留手动 ETA ' + fmtMD(d.eta) : '，可手动填写对方给的 ETA'}`);
+    else if (before && diffD(before, r.tEnd)) {
+      const dd = diffD(before, r.tEnd);
+      toast(`<span class="ok">✓</span> ${esc(d.jiraKey)} ETA ${fmtMD(before)} → <b>${fmtMD(r.tEnd)}</b>（${dd > 0 ? '+' : ''}${dd}d）${depGap(d) > 0 ? ` · <span style="color:#FF9C88">晚于期望 ${depGap(d)}d</span>` : ''}`);
+    } else toast(`<span class="ok">✓</span> 已从 ${esc(d.jiraKey)} 读取 Target End → ETA ${fmtMD(r.tEnd)}`);
+    if (done) done();
+  }, 600);
+  return true;
+}
+
+/* ---- 甘特标记轨上的依赖节点（轻量）：ETA 实心点 / 期望虚线环 / 连线 + 晚多少天 ---- */
+function depTrackEls(it, d, track){
+  const out = [], st = depState(d), cx = dt => X(dt) + DAY_W/2;
+  const late = st === 'late', split = d.eta && d.need && diffD(d.need, d.eta);
+  const keyBit = d.jiraKey ? `${d.jiraKey}${d.jiraStatus ? ' · ' + d.jiraStatus : ''}` : '手动';
+  const sum = `ETA ${d.eta ? fmtMD(d.eta) : '—'} · 期望 ${fmtMD(depNeed(d) || depDefaultNeed(it))} · ${depStLabel(d)}`;
+  if (split){
+    const a = cx(d.need), b = cx(d.eta);
+    const ln = document.createElement('div'); ln.className = 'dep-link' + (late ? ' late' : '');
+    ln.style.left = Math.min(a, b) + 'px'; ln.style.width = Math.abs(b - a) + 'px'; ln.dataset.dep = d.id;
+    out.push(ln);
+    if (late && Math.abs(b - a) > 26){
+      const tg = document.createElement('span'); tg.className = 'dep-gap-tag'; tg.dataset.dep = d.id;
+      tg.style.left = (a + b) / 2 + 'px'; tg.textContent = `+${depGap(d)}d`;
+      out.push(tg);
+    }
+  }
+  if (d.need && (!d.eta || split)){
+    const n = document.createElement('div');
+    n.className = 'marker dep-need' + (!d.eta ? ' missing' : late ? ' late' : ' slack');
+    n.style.left = cx(d.need) + 'px'; n.dataset.dep = d.id; n.tabIndex = 0;
+    n.dataset.tip = `期望 ${fmtMD(d.need)} · ${keyBit}||${d.title}||${d.eta ? sum + ' · 拖动改期望' : '对方还没给 ETA · 拖动改期望 · 单击填写 / 刷新 ETA'}`;
+    n.addEventListener('pointerdown', e => depGanttDrag(e, it, d, n, track));
+    n.addEventListener('keydown', e => depKeyNudge(e, it, d));
+    out.push(n);
+  }
+  if (d.eta){
+    const p = document.createElement('div');
+    p.className = 'marker dep' + (st === 'done' ? ' done' : late ? ' late' : '') + (depDriftDays(d) ? ' drift' : '');
+    p.style.left = cx(d.eta) + 'px'; p.dataset.dep = d.id;
+    p.innerHTML = ICON.link.replace('width="8" height="8"','width="9" height="9"');
+    p.dataset.tip = `ETA ${fmtMD(d.eta)} · ${keyBit}||${d.title}||${sum}${depDriftDays(d) ? ` · Jira 已改到 ${fmtMD(d.jiraTargetEnd)}，单击刷新` : ''} · 拖动 = 改期望（ETA 不动）`;
+    p.addEventListener('pointerdown', e => depGanttDrag(e, it, d, p, track));
+    out.push(p);
+  }
+  /* 多依赖配对：hover 任一元素 → 同一依赖高亮，其余淡化 */
+  out.forEach(el => {
+    el.addEventListener('pointerenter', () => {
+      track.classList.add('pairing');
+      track.querySelectorAll(`[data-dep="${d.id}"]`).forEach(x => x.classList.add('hl'));
+    });
+    el.addEventListener('pointerleave', () => {
+      track.classList.remove('pairing');
+      track.querySelectorAll('.hl').forEach(x => x.classList.remove('hl'));
+    });
+  });
+  return out;
+}
+/* 键盘：期望环获得焦点后 ← → 改 1 天，Shift 改 7 天，Enter 打开浮层 */
+function depKeyNudge(e, it, d){
+  if (e.key === 'Enter'){ openDepPopover(e.target, it, d.id); return; }
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault();
+  const step = (e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 7 : 1);
+  d.need = addD(depNeed(d) || depDefaultNeed(it), step);
+  if (d.eta && !diffD(d.need, d.eta)) d.need = null;
+  depChanged();
+  requestAnimationFrame(() => document.querySelector(`.marker-track [data-dep="${d.id}"].dep-need, .dv-pt.need[data-dep="${d.id}"]`)?.focus());
+}
+/* 拖动 = 改期望：从 ETA 实心点上拖会「剥离」出一个期望环，ETA 点不动 */
+function depGanttDrag(e, it, d, el, track){
+  if (e.button !== 0) return;
+  e.preventDefault(); e.stopPropagation();
+  const origX = e.clientX, from = depNeed(d) || depDefaultNeed(it);
+  const hint = $('#dragHint'), gsEl = $('#gScroll');
+  let moved = false, cur = from, scrolled = 0, ring = null, link = null, guide = null;
+  try { el.setPointerCapture(e.pointerId); } catch(_){}
+  const onMove = ev => {
+    const dx = ev.clientX - origX;
+    if (!moved && Math.abs(dx) < 3) return;
+    if (!moved){
+      moved = true; closeFloats(); document.body.classList.add('no-select');
+      ring = el.classList.contains('dep-need') ? el : track.querySelector(`.dep-need[data-dep="${d.id}"]`);
+      if (!ring){ ring = document.createElement('div'); ring.className = 'marker dep-need late'; track.appendChild(ring); }
+      ring.classList.add('dragging');
+      track.querySelectorAll(`.dep-link[data-dep="${d.id}"], .dep-gap-tag[data-dep="${d.id}"]`).forEach(x => x.style.display = 'none');
+      if (d.eta){ link = document.createElement('div'); track.appendChild(link); }
+      guide = document.createElement('div'); guide.className = 'marker-guide'; track.appendChild(guide);
+    }
+    const sr = gsEl.getBoundingClientRect();
+    if (ev.clientX > sr.right - 50){ gsEl.scrollLeft += 14; scrolled += 14; }
+    else if (ev.clientX < sr.left + 50){ const b0 = gsEl.scrollLeft; gsEl.scrollLeft = Math.max(0, b0 - 14); scrolled -= b0 - gsEl.scrollLeft; }
+    const dd = Math.round((dx + scrolled) / DAY_W);
+    cur = addD(from, clamp(dd, diffD(from, TL.start), diffD(from, TL.end)));
+    const snapped = depSnapNeed(d, cur) === null && d.eta;
+    const px = X(snapped ? d.eta : cur) + DAY_W/2;
+    ring.style.left = guide.style.left = px + 'px';
+    const g = d.eta ? diffD(snapped ? d.eta : cur, d.eta) : 0;
+    ring.classList.toggle('late', g > 0); ring.classList.toggle('missing', !d.eta);
+    if (link){
+      const b = X(d.eta) + DAY_W/2;
+      link.className = 'dep-link' + (g > 0 ? ' late' : '');
+      link.style.left = Math.min(px, b) + 'px'; link.style.width = Math.abs(b - px) + 'px';
+    }
+    hint.style.display = 'block'; hint.style.left = ev.clientX + 14 + 'px'; hint.style.top = ev.clientY - 34 + 'px';
+    hint.innerHTML = `期望 · ${fmtMD(snapped ? d.eta : cur)} · ${snapped ? '与 ETA 对齐' : depGapText(d, cur).replace(/<[^>]+>/g, '')}`;
+  };
+  const onUp = () => {
+    try { el.releasePointerCapture(e.pointerId); } catch(_){}
+    el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp);
+    hint.style.display = 'none'; document.body.classList.remove('no-select');
+    if (!moved){ openDepPopover(el, it, d.id); return; }
+    const prev = d.need;
+    d.need = depSnapNeed(d, cur);
+    if (!d.eta && !d.need) d.need = cur;                        // 没有 ETA 时期望不能为空
+    depChanged();
+    if (+(prev || 0) === +(d.need || 0)) return;
+    depUndoToast(d, prev, `期望改到 ${fmtMD(depNeed(d))} · ${depGapText(d, d.need)}`);
+  };
+  el.addEventListener('pointermove', onMove); el.addEventListener('pointerup', onUp);
+}
+/* 改期望后的 toast 带撤销（即时反馈 + 可撤销，降低拖错的焦虑） */
+function depUndoToast(d, prev, msg){
+  const id = 'u' + Date.now();
+  toast(`<span class="ok">✓</span> ${msg} <button class="toast-undo" id="${id}" style="margin-left:8px;color:#8FC9EA;font-weight:600">撤销</button>`);
+  setTimeout(() => { const b = document.getElementById(id); if (b) b.onclick = () => { d.need = prev; depChanged(); b.closest('.toast')?.remove(); }; });
+}
+
+/* ---- 添加外部依赖：内容 + 对方团队 + 可选 Jira Key（自动读取 ETA）+ 手动 ETA + 期望 ---- */
 function openDepForm(anchor, it){
-  const { p, close } = floatAt(anchor, 'dep-form', 280);
+  const { p, close } = floatAt(anchor, 'dep-form', 300);
   p.innerHTML = `
     <div style="padding:9px 10px 6px">
-      <input class="me-field df-title" placeholder="依赖描述，例如：等待平台团队接口就绪" style="margin-bottom:7px">
-      <div class="df-row" style="margin-bottom:7px">
+      <input class="me-field df-title" placeholder="依赖内容，例如：等待平台团队接口就绪" style="margin-bottom:7px">
+      <input class="me-field df-team" placeholder="对方团队（可选），如 Platform API" style="margin-bottom:7px">
+      <div class="df-row" style="margin-bottom:4px">
         <input class="me-field df-jira" placeholder="Jira Key（可选），如 PLAT-123" style="font-family:var(--mono)">
         <button class="df-fetch${extInstalled ? '' : ' locked'}"
-          data-tip="${extInstalled ? '' : '需要 Personal AI 扩展||点击查看安装指引'}">读取 ETA</button>
+          data-tip="${extInstalled ? '读取该 ticket 的 Target End 作为 ETA' : '需要 Personal AI 扩展||点击查看安装指引'}">读取</button>
       </div>
-      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">交付时间 ETA（可留空）</label>
-      <input type="date" class="me-field df-eta">
-      <div class="df-hint">留空则在任务条角标上持续提醒需要跟进获取 ETA</div>
+      <div class="df-hint df-read" style="margin:0 0 8px">填了 Key 会自动读取 Target End 作为 <b>ETA</b>，节点放在 ETA 上</div>
+      <div class="df-row">
+        <label style="flex:1"><span style="font-size:10.5px;color:var(--muted);display:block;margin-bottom:3px">对方 ETA</span>
+          <input type="date" class="me-field df-eta"></label>
+        <label style="flex:1"><span style="font-size:10.5px;color:var(--muted);display:block;margin-bottom:3px">我们期望（可选）</span>
+          <input type="date" class="me-field df-need"></label>
+      </div>
+      <div class="df-hint">期望留空 = 与 ETA 相同；都留空则节点放在任务开始日，持续提醒缺 ETA</div>
     </div>
     <div class="m-foot" style="padding:9px;gap:6px">
       <button class="btn btn-ghost df-cancel" style="padding:5px 12px;font-size:12px">取消</button>
       <button class="btn btn-primary df-save" style="padding:5px 12px;font-size:12px">保存</button>
     </div>`;
-  const jiraInp = p.querySelector('.df-jira'), etaInp = p.querySelector('.df-eta'), fetchBtn = p.querySelector('.df-fetch');
-  let etaFromJira = false;
-  etaInp.oninput = () => { etaFromJira = false; };   // 手动改过就不再标注「来自 Jira」
-  fetchBtn.onclick = () => {
-    if (!extGate('fetchEta')) return;
+  const jiraInp = p.querySelector('.df-jira'), etaInp = p.querySelector('.df-eta'), needInp = p.querySelector('.df-need');
+  const fetchBtn = p.querySelector('.df-fetch'), readEl = p.querySelector('.df-read');
+  let read = null;                                   // 最近一次读取结果 { key, status, tStart, tEnd }
+  const doRead = (silent) => {
     const key = jiraInp.value.trim();
-    if (!key) { jiraInp.focus(); return; }
+    if (!key || (read && read.key === key)) return;
+    if (!extInstalled){ if (!silent) extGate('fetchEta'); return; }
     fetchBtn.innerHTML = '<span class="mini-spin"></span>';
     setTimeout(() => {
-      /* 模拟：约 70% 概率对方 ticket 已填写 Target End */
-      const has = (key.length + it.key.length) % 10 < 7;
-      if (has){
-        const eta = addD(today, 5 + (key.length*3)%25);
-        etaInp.value = toISOInput(eta);
-        etaFromJira = true;
-        toast(`<span class="ok">✓</span> 已从 ${esc(key)} 读取 Target End 作为 ETA`);
+      read = { key, ...depJiraLookup(key) };
+      fetchBtn.textContent = '读取';
+      if (read.tEnd){
+        etaInp.value = toISOInput(read.tEnd); etaInp.readOnly = true;
+        readEl.innerHTML = `<span class="ok" style="color:var(--okc)">✓</span> ${esc(key)} · ${esc(read.status)} · Target End <b>${fmtMD(read.tEnd)}</b> → ETA`;
       } else {
-        toast(`${esc(key)} 尚未填写 Target End，可先留空，后续会持续提醒`);
+        etaInp.readOnly = false;
+        readEl.innerHTML = `${esc(key)} 未填写 Target End —— 按无 ticket 处理：可手动填对方给的 ETA，或先留空`;
       }
-      fetchBtn.textContent = '读取 ETA';
-    }, 700);
+    }, 600);
   };
+  jiraInp.addEventListener('blur', () => doRead(true));
+  jiraInp.addEventListener('keydown', e => { if (e.key === 'Enter') doRead(false); });
+  jiraInp.addEventListener('input', () => { read = null; etaInp.readOnly = false; });
+  fetchBtn.onclick = () => doRead(false);
   p.querySelector('.df-cancel').onclick = close;
   p.querySelector('.df-title').focus();
   p.querySelector('.df-save').onclick = () => {
@@ -3457,78 +3835,114 @@ function openDepForm(anchor, it){
     const title = titleInp.value.trim();
     if (!title){ titleInp.focus(); return; }
     const jiraKey = jiraInp.value.trim() || null;
+    const fromJira = !!(read && read.key === jiraKey && read.tEnd);
     const eta = etaInp.value ? fromISOInput(etaInp.value) : null;
-    it.deps.push({ id:'dep'+(markerSeq++), title, jiraKey, eta,
-                   etaSource: eta ? (etaFromJira ? 'jira' : 'manual') : null });
-    close(); renderGantt();
-    toast(eta ? `<span class="ok">✓</span> 已添加外部依赖，ETA ${fmtMD(eta)}` : '已添加外部依赖 · 缺少 ETA，将在任务条上持续提醒');
+    let need = needInp.value ? fromISOInput(needInp.value) : null;
+    if (eta && need && !diffD(eta, need)) need = null;
+    if (!eta && !need) need = depDefaultNeed(it);
+    const d = { id:'dep'+(markerSeq++), title, team: p.querySelector('.df-team').value.trim() || null, jiraKey,
+      eta, etaSource: eta ? (fromJira ? 'jira' : 'manual') : null, etaAt: eta ? today : null, need,
+      jiraStatus: read?.status || null, jiraTargetStart: read?.tStart || null, jiraTargetEnd: read?.tEnd || null };
+    it.deps.push(d);
+    close(); depChanged();
+    toast(eta
+      ? `<span class="ok">✓</span> 已添加外部依赖 · ETA ${fmtMD(eta)}${fromJira ? '（来自 ' + esc(jiraKey) + '）' : ''}${need ? ' · ' + depGapText(d, need).replace(/<[^>]+>/g,'') : ''}`
+      : `已添加外部依赖 · 缺 ETA，期望先放在 ${fmtMD(need)}，可拖动调整${jiraKey && !extInstalled ? ' · 装扩展后单击节点可读取 ETA' : ''}`);
   };
 }
-/* ---- 依赖列表浮层：查看 / 补齐 ETA / 催办 / 删除 / 继续添加 ---- */
-function openDepPopover(anchor, it){
-  const rows = it.deps.map(d => {
-    const mismatch = d.jiraKey && d.jiraTargetEnd && d.eta && toISOInput(d.eta) !== toISOInput(d.jiraTargetEnd);
-    const canAdopt = d.jiraKey && d.jiraTargetEnd && (!d.eta || mismatch);
-    const adoptLabel = canAdopt
-      ? (d.eta ? `改用 Jira ${fmtMD(d.jiraTargetEnd)}` : `采用 ${fmtMD(d.jiraTargetEnd)} 为 ETA`)
-      : '';
-    const stale = d.jiraKey && !d.jiraStatus;
-    const statusChip = d.jiraKey
-      ? `<span class="dep-status-cluster${stale ? ' stale' : ''}">
-        <span class="dep-tag status">${esc(d.jiraStatus || '未刷新')}</span>
-        <button class="dep-refresh" data-id="${d.id}" data-tip="刷新 Jira 状态和 Target End">${ICON.refresh}</button>
-      </span>`
-      : '';
-    const etaHtml = d.eta
-      ? `<span class="dep-eta${mismatch ? ' drift' : ''}">ETA ${fmtMD(d.eta)}${d.etaSource === 'jira' ? ' · 来自 Jira' : ''}${mismatch ? ` · Jira ${fmtMD(d.jiraTargetEnd)}` : ''}</span>`
-      : `<span class="dep-eta missing">需要 ETA${d.jiraTargetEnd ? ` · Jira ${fmtMD(d.jiraTargetEnd)}` : (d.jiraKey ? `<button class="dep-nudge" data-id="${d.id}">催一下</button>` : '')}</span>`;
-    return `
-    <div class="dep-row" data-id="${d.id}">
-      <div class="dep-row-top">
-        <span class="dep-title">${esc(d.title)}</span>
-        <button class="dep-del" data-id="${d.id}">×</button>
-      </div>
-      <div class="dep-row-meta">
-        ${d.jiraKey ? `<a class="dep-tag jira" href="${JIRA_BROWSE}${encodeURIComponent(d.jiraKey)}" target="_blank" rel="noopener" data-tip="在 Jira 打开">${esc(d.jiraKey)}${ICON.ext.replace('viewBox','width="8" height="8" viewBox')}</a>${statusChip}` : `<span class="dep-tag manual">手动</span>`}
-        ${etaHtml}
-        ${canAdopt ? `<button class="dep-adopt" data-id="${d.id}">${adoptLabel}</button>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-  const { p, close } = floatAt(anchor, 'dep-popover', 320);
-  p.innerHTML = `
-    <div class="dep-list">${rows || `<div class="owner-none">还没有外部依赖</div>`}</div>
-    <div class="divider"></div>
-    <div class="owner-item" data-add>${ICON.link.replace('width="8" height="8"','width="10" height="10" style="margin-right:7px"')}添加外部依赖…</div>`;
-  p.querySelectorAll('.dep-del').forEach(b => b.addEventListener('pointerdown', e => {
-    e.preventDefault(); e.stopPropagation();
-    it.deps = it.deps.filter(d => d.id !== b.dataset.id); close(); renderGantt();
-    toast('外部依赖已删除');
-  }));
-  p.querySelectorAll('.dep-nudge').forEach(b => b.addEventListener('pointerdown', e => {
-    e.preventDefault(); e.stopPropagation();
-    toast('<span class="ok">✓</span> 已在 Jira 评论区提醒相关方补充 ETA（模拟）');
-  }));
-  p.querySelectorAll('.dep-adopt').forEach(b => b.addEventListener('pointerdown', e => {
-    e.preventDefault(); e.stopPropagation();
-    const d = it.deps.find(x => x.id === b.dataset.id);
-    if (!d?.jiraTargetEnd) return;
-    d.eta = d.jiraTargetEnd; d.etaSource = 'jira';
-    close(); renderGantt();
-    toast(`<span class="ok">✓</span> 已把 ${esc(d.jiraKey)} 的 Target End 设为 ETA ${fmtMD(d.eta)}`);
-  }));
-  p.querySelectorAll('.dep-refresh').forEach(b => b.addEventListener('pointerdown', e => {
-    e.preventDefault(); e.stopPropagation();
-    if (!extGate('fetchEta')) return;
-    const d = it.deps.find(x => x.id === b.dataset.id);
-    if (!d?.jiraKey) return;
-    d.jiraStatus = d.jiraStatus === 'In Progress' ? 'Code Review' : 'In Progress';
-    toast(`<span class="ok">✓</span> 已同步 ${esc(d.jiraKey)} · ${esc(d.jiraStatus)}${d.jiraTargetEnd ? ' · Target End ' + fmtMD(d.jiraTargetEnd) : ''}。单击 🔗 可把该日期设为 ETA。`);
-    close(); renderGantt();
-  }));
-  p.querySelector('[data-add]').addEventListener('pointerdown', e => {
-    e.preventDefault(); e.stopPropagation(); close(); openDepForm(anchor, it);
-  });
+
+/* ---- 依赖浮层：列出该任务所有依赖；单击节点进入时聚焦并展开那一条 ---- */
+function openDepPopover(anchor, it, focusId){
+  const { p, close } = floatAt(anchor, 'dep-popover', 340);
+  let openId = focusId || (it.deps.length === 1 ? it.deps[0].id : null);
+  const sorted = () => [...it.deps].sort((a, b) => DEP_RANK[depState(a)] - DEP_RANK[depState(b)]);
+  const editHtml = d => {
+    const st = depState(d), g = depGap(d);
+    const etaV = d.jiraKey && (d.etaSource === 'jira' || d.jiraTargetEnd)
+      ? `${d.eta ? `<b>${fmtMD(d.eta)}</b>` : '<span style="color:var(--danger)">—</span>'}
+         <span class="src">${d.eta && d.etaSource === 'jira' ? `来自 Target End · ${d.etaAt ? fmtMD(d.etaAt) + ' 读取' : ''}` : d.eta ? '手动' : ''}</span>
+         <button class="dep-act" data-act="refresh">${ICON.refresh} 刷新 ETA</button>`
+      : `<input type="date" class="me-field" data-act="eta" value="${d.eta ? toISOInput(d.eta) : ''}">
+         ${d.jiraKey ? `<button class="dep-act" data-act="refresh">${ICON.refresh} 读取</button>` : '<span class="src">对方给的日期</span>'}`;
+    const needV = `<input type="date" class="me-field" data-act="need" value="${toISOInput(depNeed(d) || depDefaultNeed(it))}">
+      <span class="src">${d.need ? '拖动节点也可修改' : '与 ETA 相同'}</span>`;
+    const gapLine = st === 'missing' || st === 'stale'
+      ? `<div class="gapline missing">${st === 'stale' ? `${esc(d.jiraKey)} 已有 Target End ${fmtMD(d.jiraTargetEnd)}，点「刷新 ETA」写入` : '对方还没给 ETA —— 期望日先占位，跟进获取 ETA'}</div>`
+      : depDriftDays(d)
+        ? `<div class="gapline missing" style="background:#FBF1E1;color:#8A5A12">Jira Target End 已改到 <b>${fmtMD(d.jiraTargetEnd)}</b>（${depDriftDays(d) > 0 ? '+' : ''}${depDriftDays(d)}d），刷新后${(() => { const gg = diffD(depNeed(d), d.jiraTargetEnd); return gg > 0 ? `将晚于期望 ${gg}d` : '仍在期望内'; })()}</div>`
+        : g > 0 ? `<div class="gapline late">对方 ETA 比我们期望<b>晚 ${g} 天</b>——催一下，或接受 ETA 调整计划</div>`
+        : st !== 'done' && st !== 'stale' ? `<div class="gapline ok">${g < 0 ? `有 ${-g} 天余量` : '对方 ETA 与期望一致'}</div>` : '';
+    return `<div class="dep-edit">
+      <span class="k">ETA</span><span class="v">${etaV}</span>
+      <span class="k">期望</span><span class="v">${needV}</span>
+      ${gapLine}
+      <div class="acts">
+        ${g > 0 || st === 'missing' ? `<button class="dep-act pri" data-act="nudge">催一下（附期望 ${fmtMD(depNeed(d))}）</button>` : ''}
+        ${g > 0 ? `<button class="dep-act" data-act="accept">接受 ETA</button>` : ''}
+        <button class="dep-act" data-act="del" style="margin-left:auto;color:var(--danger)">删除</button>
+      </div></div>`;
+  };
+  const paint = () => {
+    p.innerHTML = `
+      <div class="dep-list">${sorted().map(d => `
+        <div class="dep-row${d.id === openId ? ' open' : ''}" data-id="${d.id}">
+          <div class="dep-row-top">
+            <span class="dep-st ${depState(d)}">${depStLabel(d)}</span>
+            <span class="dep-title">${esc(d.title)}</span>
+          </div>
+          <div class="dep-row-meta">
+            ${d.jiraKey ? `<a class="dep-tag jira" href="${JIRA_BROWSE}${encodeURIComponent(d.jiraKey)}" target="_blank" rel="noopener" data-tip="在 Jira 打开">${esc(d.jiraKey)}${ICON.ext.replace('viewBox','width="8" height="8" viewBox')}</a>${d.jiraStatus ? `<span class="dep-tag status">${esc(d.jiraStatus)}</span>` : ''}` : `<span class="dep-tag manual">手动</span>`}
+            <span class="dep-eta">ETA ${d.eta ? fmtMD(d.eta) : '—'} · 期望 ${fmtMD(depNeed(d) || depDefaultNeed(it))}</span>
+          </div>
+          ${d.id === openId ? editHtml(d) : ''}
+        </div>`).join('') || `<div class="owner-none">还没有外部依赖</div>`}</div>
+      <div class="divider"></div>
+      <div class="owner-item" data-add>${ICON.link.replace('width="8" height="8"','width="10" height="10" style="margin-right:7px"')}添加外部依赖…</div>
+      ${state.view !== 'deps' && it.deps.length ? `<div class="owner-item dep-jump" data-jump>在依赖视图中查看 →</div>` : ''}`;
+    p.querySelectorAll('.dep-row').forEach(r => r.addEventListener('click', e => {
+      if (e.target.closest('a,button,input')) return;
+      if (openId !== r.dataset.id){ openId = r.dataset.id; paint(); }
+    }));
+    const d = it.deps.find(x => x.id === openId);
+    if (d){
+      const q = s => p.querySelector(`.dep-row.open [data-act="${s}"]`);
+      q('refresh')?.addEventListener('click', ev => {
+        const b = ev.currentTarget;
+        if (refreshDepEta(d, () => paint())) b.innerHTML = '<span class="mini-spin"></span> 读取中';
+      });
+      q('eta')?.addEventListener('change', ev => {
+        const v = ev.target.value;
+        d.eta = v ? fromISOInput(v) : null; d.etaSource = d.eta ? 'manual' : null; d.etaAt = d.eta ? today : null;
+        if (d.eta && d.need && !diffD(d.need, d.eta)) d.need = null;
+        if (!d.eta && !d.need) d.need = depDefaultNeed(it);
+        depChanged(); paint();
+      });
+      q('need')?.addEventListener('change', ev => {
+        if (!ev.target.value) return;
+        const prev = d.need; d.need = depSnapNeed(d, fromISOInput(ev.target.value));
+        if (!d.eta && !d.need) d.need = fromISOInput(ev.target.value);
+        depChanged(); paint();
+        if (+(prev||0) !== +(d.need||0)) depUndoToast(d, prev, `期望改到 ${fmtMD(depNeed(d))}`);
+      });
+      q('nudge')?.addEventListener('click', () => toast(`<span class="ok">✓</span> 已在 ${d.jiraKey ? esc(d.jiraKey) + ' 评论区' : '协作日志'}提醒${d.team ? ' ' + esc(d.team) : '对方'}：我们需要在 <b>${fmtMD(depNeed(d))}</b> 前交付（模拟）`));
+      q('accept')?.addEventListener('click', () => {
+        const prev = d.need; d.need = null; depChanged(); paint();
+        depUndoToast(d, prev, `期望已跟随 ETA ${fmtMD(d.eta)}`);
+      });
+      q('del')?.addEventListener('click', () => {
+        it.deps = it.deps.filter(x => x !== d); close(); depChanged(); toast('外部依赖已删除');
+      });
+    }
+    p.querySelector('[data-add]').addEventListener('pointerdown', e => {
+      e.preventDefault(); e.stopPropagation(); close(); openDepForm(anchor, it);
+    });
+    p.querySelector('[data-jump]')?.addEventListener('pointerdown', e => {
+      e.preventDefault(); e.stopPropagation(); close();
+      dv.flash = openId || sorted()[0].id; dv.filter = 'all';
+      state.view = 'deps'; syncView();
+    });
+  };
+  paint();
 }
 
 /* ---------- 备注名 / 草稿任务名编辑：双击 bar 触发 ---------- */
@@ -4142,7 +4556,7 @@ function tempTasks(){
   return out;
 }
 function renderCreateBtn(){
-  const res = state.view === 'resource';
+  const res = state.view !== 'gantt';             // 人员 / 依赖视图都不显示甘特专属操作
   const n = tempTasks().length;
   $('#createJiraBtn').style.display = (!res && n) ? 'inline-flex' : 'none';
   $('#cjCount').textContent = n;
@@ -4674,19 +5088,238 @@ $('#aiList').addEventListener('click', (event) => {
   $('#aiGo').click();
 });
 
+/* ---------- 依赖视图：只列出带外部依赖的任务，完整展示 ETA / 期望 / 差距 / Ticket 排期 ----------
+   时间轴自适应宽度（百分比定位，不横向滚动）：范围 = 所有相关日期 ± 留白。
+   行内交互与甘特一致：拖动 ETA 点或期望环 = 改期望；单击 = 打开依赖浮层改 / 刷新 ETA */
+const dv = { filter:'all', flash:null };
+const DV_FILTERS = [
+  ['all', '全部'], ['late', '晚于期望'], ['missing', '缺 ETA'], ['drift', 'Jira 有变更'],
+];
+const dvMatch = (d, f) => f === 'all' ? true
+  : f === 'missing' ? ['missing','stale'].includes(depState(d))
+  : f === 'drift' ? (depState(d) === 'drift' || (depDriftDays(d) !== 0) || depState(d) === 'stale')
+  : depState(d) === f;
+function dvGroups(){
+  const t = team();
+  return t.order.map(k => t.items.find(i => i.key === k))
+    .filter(it => it && it.scheduled && it.deps.length && msMatch(it));
+}
+function renderDepTools(groups){
+  const all = groups.flatMap(g => g.deps);
+  const cnt = f => all.filter(d => dvMatch(d, f)).length;
+  $('#depTools').innerHTML = DV_FILTERS.map(([f, lab]) => {
+    const n = cnt(f), tone = n && f === 'late' || n && f === 'missing' ? ' red' : n && f === 'drift' ? ' amber' : '';
+    return `<button class="vs-btn${dv.filter === f ? ' active' : ''}" data-f="${f}" aria-pressed="${dv.filter === f}">${lab}<span class="n${tone}">${n}</span></button>`;
+  }).join('');
+  $('#depTools').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { dv.filter = b.dataset.f; renderDeps(); });
+}
+function renderDeps(){
+  const host = $('#depView');
+  const groups = dvGroups();
+  renderDepTools(groups);
+  if (!groups.length){
+    host.innerHTML = `<div class="dv-empty"><div class="ico">${ICON.link.replace('width="8" height="8"','width="18" height="18"')}</div>
+      <b>甘特上还没有带外部依赖的任务</b><br>在任务视图 hover 任务条 → 右侧 ◆＋ → 添加外部依赖；<br>填 Jira Key 会自动读取对方的 Target End 作为 ETA</div>`;
+    return;
+  }
+  /* 组按最高风险排序，组内按风险排序 */
+  const rank = it => Math.min(...it.deps.map(d => DEP_RANK[depState(d)]));
+  const rows = groups.map(it => ({ it, deps: it.deps.filter(d => dvMatch(d, dv.filter))
+      .sort((a, b) => DEP_RANK[depState(a)] - DEP_RANK[depState(b)] || depGap(b) - depGap(a)) }))
+    .filter(g => g.deps.length)
+    .sort((a, b) => rank(a.it) - rank(b.it));
+  /* 时间范围：任务排期 + ETA + 期望 + Ticket 排期 + 今天 */
+  const ds = [today];
+  groups.forEach(it => {
+    ds.push(it.start, addD(it.start, it.days - 1));
+    it.deps.forEach(d => [d.eta, d.need, d.jiraTargetStart, d.jiraTargetEnd].forEach(x => x && ds.push(x)));
+  });
+  let s = addD(new Date(Math.min(...ds)), -3), e = addD(new Date(Math.max(...ds)), 4);
+  if (diffD(s, e) < 42) e = addD(s, 42);
+  const N = diffD(s, e) + 1;
+  const pct = d => ((diffD(s, d) + .5) / N * 100).toFixed(3) + '%';
+  const pctL = d => (diffD(s, d) / N * 100).toFixed(3) + '%';
+  const clampD = d => d < s ? s : d > e ? e : d;
+  /* 表头刻度：每周一 + 月初 */
+  let ticks = '', grid = '';
+  for (let i = 0; i < N; i++){
+    const d = addD(s, i), m1 = d.getDate() === 1;
+    /* 月份行在上（月初；首个不足一周的残月不标，避免与下月挤在一起），周一日期在下 */
+    if (m1 || (i === 0 && new Date(d.getFullYear(), d.getMonth()+1, 0).getDate() - d.getDate() >= 7))
+      ticks += `<div class="dv-mon" style="left:${pctL(d)}">${d.getFullYear() !== today.getFullYear() ? d.getFullYear() + '-' : ''}${d.getMonth()+1} 月</div>`;
+    if (d.getDay() === 1 && Math.abs(diffD(today, d)) > 2) ticks += `<div class="dv-tick" style="left:${pctL(d)}">${fmtMD(d)}</div>`;
+    if (d.getDay() === 1 || m1) grid += `<div class="gl${m1 ? ' m' : ''}" style="left:${pctL(d)}"></div>`;
+  }
+  const all = groups.flatMap(g => g.deps);
+  const nLate = all.filter(d => depState(d) === 'late').length;
+  host.innerHTML = `
+    <div class="dv-head">
+      <div class="dv-corner"><b>${all.length}</b> 个依赖 · <b>${groups.length}</b> 个任务${nLate ? ` · <span style="color:#B23A22"><b style="color:inherit">${nLate}</b> 个晚于期望</span>` : ''}</div>
+      <div class="dv-axis"><div class="dv-tr">${ticks}<span class="dv-today-h" style="left:${pct(today)}">今天</span></div></div>
+    </div>
+    <div class="dv-body">
+      <div class="dv-grid"><div class="dv-tr">${grid}<div class="td" style="left:${pct(today)}"></div></div></div>
+      ${rows.map(({ it, deps }, gi) => {
+        const end = addD(it.start, it.days - 1), col = EPIC_PALETTE[team().order.indexOf(it.key) % EPIC_PALETTE.length];
+        const late = it.deps.filter(d => depState(d) === 'late').length;
+        return `
+        <div class="dv-grp">
+          <div class="dv-grp-info">
+            <span class="dv-grp-stripe" style="background:${col}"></span>
+            <span class="dv-grp-title" title="${esc(it.title)}">${esc(it.alias || it.title)}</span>
+            <span class="dv-grp-meta">${esc(itemDisplayKey(it))} · ${it.deps.length} 依赖</span>
+            ${late ? `<span class="dv-grp-risk">${late} 晚</span>` : ''}
+          </div>
+          <div class="dv-grp-lane"><div class="dv-tr">
+            <span class="dv-task-l" style="left:${pctL(it.start)}">任务排期 ${fmtMD(it.start)} → ${fmtMD(end)}</span>
+            <div class="dv-task" style="left:${pctL(it.start)};width:${((it.days) / N * 100).toFixed(3)}%;background:${col}"></div>
+          </div></div>
+        </div>
+        ${deps.map(d => dvRowHtml(it, d, pct, pctL, clampD, N)).join('')}`;
+      }).join('') || `<div class="dv-empty" style="padding:48px 20px"><b>${dv.filter === 'late' ? '没有晚于期望的依赖' : dv.filter === 'missing' ? '所有依赖都有 ETA' : '没有 Jira 变更待处理'}</b><br>切回「全部」查看全部依赖</div>`}
+    </div>`;
+  /* 交互绑定 */
+  host.querySelectorAll('.dv-row').forEach(r => {
+    const it = team().items.find(i => i.key === r.dataset.key), d = it.deps.find(x => x.id === r.dataset.id);
+    r.querySelectorAll('.dv-pt.eta, .dv-pt.need').forEach(pt => {
+      pt.addEventListener('pointerdown', ev => dvDrag(ev, it, d, pt, r.querySelector('.dv-lane .dv-tr'), s, N));
+      pt.addEventListener('keydown', ev => depKeyNudge(ev, it, d));
+    });
+    r.querySelector('.dv-pt.ghost')?.addEventListener('click', ev => openDepPopover(ev.currentTarget, it, d.id));
+    r.querySelector('.dv-title').onclick = ev => openDepPopover(ev.currentTarget, it, d.id);
+    r.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
+      const act = b.dataset.act;
+      if (act === 'refresh'){ if (refreshDepEta(d)) b.innerHTML = '<span class="mini-spin"></span>'; }
+      else if (act === 'nudge') toast(`<span class="ok">✓</span> 已在 ${d.jiraKey ? esc(d.jiraKey) + ' 评论区' : '协作日志'}提醒${d.team ? ' ' + esc(d.team) : '对方'}：我们需要在 <b>${fmtMD(depNeed(d) || depDefaultNeed(it))}</b> 前交付（模拟）`);
+      else if (act === 'accept'){ const prev = d.need; d.need = null; depChanged(); depUndoToast(d, prev, `期望已跟随 ETA ${fmtMD(d.eta)}`); }
+      else if (act === 'edit') openDepPopover(b, it, d.id);
+    });
+  });
+  /* 带太窄时隐藏「晚 Nd / 余量 Nd」（左侧状态 pill 已有同样信息），避免与日期标签相撞 */
+  host.querySelectorAll('.dv-band').forEach(b => {
+    const l = b.nextElementSibling;
+    if (l?.classList.contains('dv-band-l')) l.style.display = b.offsetWidth < (b.classList.contains('ok') ? 110 : 52) ? 'none' : '';
+  });
+  if (dv.flash){
+    const r = host.querySelector(`.dv-row[data-id="${dv.flash}"]`);
+    dv.flash = null;
+    if (r){ r.scrollIntoView({ block:'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); r.classList.add('flash'); }
+  }
+}
+function dvRowHtml(it, d, pct, pctL, clampD, N){
+  const st = depState(d), g = depGap(d), need = depNeed(d) || depDefaultNeed(it), drift = depDriftDays(d);
+  const keyBit = d.jiraKey
+    ? `<a class="dep-tag jira" href="${JIRA_BROWSE}${encodeURIComponent(d.jiraKey)}" target="_blank" rel="noopener" data-tip="在 Jira 打开">${esc(d.jiraKey)}${ICON.ext.replace('viewBox','width="8" height="8" viewBox')}</a>${d.jiraStatus ? `<span class="dep-tag status">${esc(d.jiraStatus)}</span>` : ''}`
+    : `<span class="dep-tag manual">无 ticket</span>`;
+  const src = d.eta ? (d.etaSource === 'jira' ? `ETA 来自 Target End${d.etaAt ? ' · ' + fmtMD(d.etaAt) + ' 读取' : ''}` : `ETA 手动${d.etaAt ? ' · ' + fmtMD(d.etaAt) : ''}`) : '';
+  const acts = [
+    d.jiraKey && st !== 'done' && `<button class="dep-act" data-act="refresh" data-tip="读取 ${esc(d.jiraKey)} 的 Target End 写入 ETA">${ICON.refresh} 刷新 ETA</button>`,
+    (st === 'late' || st === 'missing') && `<button class="dep-act" data-act="nudge">催一下</button>`,
+    st === 'late' && `<button class="dep-act" data-act="accept" data-tip="期望改为跟随 ETA（两点合一）">接受 ETA</button>`,
+    !d.jiraKey && `<button class="dep-act" data-act="edit">填写 ETA</button>`,
+  ].filter(Boolean).join('');
+  /* 时间轴元素 */
+  let lane = '';
+  if (d.jiraTargetStart || d.jiraTargetEnd){
+    const ts = clampD(d.jiraTargetStart || d.jiraTargetEnd), te = clampD(d.jiraTargetEnd || d.jiraTargetStart);
+    lane += `<div class="dv-span" style="left:${pctL(ts)};width:${((diffD(ts, te) + 1) / N * 100).toFixed(3)}%"
+      data-tip="${esc(d.jiraKey)} Ticket 排期||Target Start ${d.jiraTargetStart ? fmtMD(d.jiraTargetStart) : '—'} → Target End ${d.jiraTargetEnd ? fmtMD(d.jiraTargetEnd) : '—'}||只读镜像，打开页面时刷新"></div>
+      <span class="dv-span-l" style="left:${pctL(ts)}">${esc(d.jiraKey)}</span>`;
+  }
+  if (d.eta && d.need && g){
+    const a = g > 0 ? d.need : d.eta, b = g > 0 ? d.eta : d.need;
+    lane += `<div class="dv-band${g > 0 ? '' : ' ok'}" style="left:${pct(a)};width:calc(${pct(b)} - ${pct(a)})"></div>
+      <span class="dv-band-l${g > 0 ? '' : ' ok'}" style="left:calc((${pct(a)} + ${pct(b)}) / 2)">${g > 0 ? `晚 ${g}d` : `余量 ${-g}d`}</span>`;
+  }
+  if (d.eta && drift){
+    const a = drift > 0 ? d.eta : d.jiraTargetEnd, b = drift > 0 ? d.jiraTargetEnd : d.eta;
+    lane += `<div class="dv-drift${drift < 0 ? ' back' : ''}" style="left:${pct(a)};width:calc(${pct(b)} - ${pct(a)})"></div>
+      <div class="dv-pt ghost" style="left:${pct(d.jiraTargetEnd)}" data-tip="Jira Target End 已改到 ${fmtMD(d.jiraTargetEnd)}（${drift > 0 ? '+' : ''}${drift}d）||当前 ETA 仍是 ${fmtMD(d.eta)}——页面刷新只更新镜像，不自动改 ETA||单击打开 · 点「刷新 ETA」写入"></div>
+      <span class="dv-lbl up drift" style="left:${pct(d.jiraTargetEnd)}">Jira ${fmtMD(d.jiraTargetEnd)}</span>`;
+  }
+  if (!d.eta) lane += `<div class="dv-tbd" style="left:${pct(need)}"></div>`;
+  if (d.eta && (!d.need || !g)){
+    lane += `<span class="dv-lbl up${st === 'late' ? ' late' : ''}" style="left:${pct(d.eta)}"><small>ETA=期望</small>${fmtMD(d.eta)}</span>`;
+  } else {
+    if (d.eta) lane += `<span class="dv-lbl up${g > 0 ? ' late' : ''}" style="left:${pct(d.eta)}"><small>ETA</small>${fmtMD(d.eta)}</span>`;
+    lane += `<span class="dv-lbl down" style="left:${pct(need)}"><small>期望</small>${fmtMD(need)}</span>`;
+  }
+  if (!d.eta || (d.need && g))
+    lane += `<div class="dv-pt need${!d.eta ? ' missing' : g > 0 ? ' late' : ''}" data-dep="${d.id}" tabindex="0" role="slider"
+      aria-label="期望日期 ${fmtMD(need)}，左右方向键调整" style="left:${pct(need)}"
+      data-tip="期望 ${fmtMD(need)}||我们需要对方在这天前交付||拖动或 ← → 调整（Shift 7 天）"></div>`;
+  if (d.eta)
+    lane += `<div class="dv-pt eta${st === 'done' ? ' done' : g > 0 ? ' late' : ''}" data-dep="${d.id}" tabindex="0" style="left:${pct(d.eta)}"
+      data-tip="ETA ${fmtMD(d.eta)}${d.etaSource === 'jira' ? ' · 来自 ' + esc(d.jiraKey) : ' · 手动'}||对方承诺的交付日||拖动 = 拉出期望（ETA 不动）· 单击 = 刷新 / 修改 ETA"></div>`;
+  return `
+  <div class="dv-row" data-key="${it.key}" data-id="${d.id}">
+    <div class="dv-info">
+      <div class="dv-top"><span class="dep-st ${st}">${depStLabel(d)}</span><span class="dv-title" role="button" tabindex="0" data-tip="单击编辑 ETA / 期望">${esc(d.title)}</span></div>
+      <div class="dv-meta">${keyBit}${d.team ? `<span class="who">· ${esc(d.team)}</span>` : ''}${src ? `<span>· ${src}</span>` : ''}</div>
+      <div class="dv-acts">${acts}</div>
+    </div>
+    <div class="dv-lane"><div class="dv-tr">${lane}</div></div>
+  </div>`;
+}
+/* 依赖视图内拖动：按 lane 宽度换算天数；吸附 / 撤销规则与甘特一致 */
+function dvDrag(e, it, d, el, tr, s, N){
+  if (e.button !== 0) return;
+  e.preventDefault();
+  const rect = tr.getBoundingClientRect(), from = depNeed(d) || depDefaultNeed(it), origX = e.clientX;
+  let moved = false, cur = from, ring = null, hint = null;
+  try { el.setPointerCapture(e.pointerId); } catch(_){}
+  const onMove = ev => {
+    if (!moved && Math.abs(ev.clientX - origX) < 3) return;
+    if (!moved){
+      moved = true; closeFloats(); document.body.classList.add('no-select');
+      ring = el.classList.contains('need') ? el : tr.querySelector('.dv-pt.need');
+      if (!ring){ ring = document.createElement('div'); ring.className = 'dv-pt need'; tr.appendChild(ring); }
+      ring.classList.add('dragging');
+      tr.querySelectorAll('.dv-band,.dv-band-l,.dv-lbl.down').forEach(x => x.style.opacity = '.15');
+      hint = document.createElement('div'); hint.className = 'dv-hint'; document.body.appendChild(hint);
+    }
+    const day = clamp(Math.floor((ev.clientX - rect.left) / rect.width * N), 0, N - 1);
+    cur = addD(s, day);
+    const snapped = d.eta && depSnapNeed(d, cur) === null;
+    const show = snapped ? d.eta : cur;
+    ring.style.left = ((diffD(s, show) + .5) / N * 100) + '%';
+    const gg = d.eta ? diffD(show, d.eta) : 0;
+    ring.classList.toggle('late', gg > 0); ring.classList.toggle('missing', !d.eta);
+    hint.style.left = ev.clientX + 14 + 'px'; hint.style.top = ev.clientY - 34 + 'px';
+    hint.innerHTML = `期望 ${fmtMD(show)} · ${snapped ? '<span class="ok">与 ETA 对齐</span>' : depGapText(d, cur)}`;
+  };
+  const onUp = () => {
+    try { el.releasePointerCapture(e.pointerId); } catch(_){}
+    el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp);
+    document.body.classList.remove('no-select'); hint?.remove();
+    if (!moved){ openDepPopover(el, it, d.id); return; }
+    const prev = d.need;
+    d.need = depSnapNeed(d, cur);
+    if (!d.eta && !d.need) d.need = cur;
+    depChanged();
+    if (+(prev || 0) !== +(d.need || 0)) depUndoToast(d, prev, `期望改到 ${fmtMD(depNeed(d))} · ${depGapText(d, d.need)}`);
+  };
+  el.addEventListener('pointermove', onMove); el.addEventListener('pointerup', onUp);
+}
+
 /* ---------- Resource view：按人查看任务（只读为主） ---------- */
 function syncView(){
-  const res = state.view === 'resource';
-  $('#gScroll').style.display = res ? 'none' : '';
+  const res = state.view === 'resource', dep = state.view === 'deps', gantt = !res && !dep;
+  closeFloats();
+  $('#gScroll').style.display = gantt ? '' : 'none';
   $('#resView').style.display = res ? '' : 'none';
-  $('#legend').style.display = res ? 'none' : '';
-  renderRelLegend(res ? null : activeRelParsed());
+  $('#depView').style.display = dep ? '' : 'none';
+  $('#legend').style.display = gantt ? '' : 'none';
+  renderRelLegend(gantt ? activeRelParsed() : null);
   renderRulerSwitch();
   $('#resTools').style.display = res ? 'flex' : 'none';
   $('#epicLegend').style.display = res ? 'flex' : 'none';
+  $('#depTools').style.display = dep ? 'flex' : 'none';
+  $('#depLegend').style.display = dep ? 'flex' : 'none';
   $('#viewSwitch').querySelectorAll('.vs-btn').forEach(b => b.classList.toggle('active', b.dataset.v === state.view));
   renderCreateBtn();
   if (res) renderResource();
+  if (dep) renderDeps();
 }
 $('#viewSwitch').querySelectorAll('.vs-btn').forEach(b => b.onclick = () => { state.view = b.dataset.v; syncView(); });
 $('#resTools').querySelectorAll('.vs-btn').forEach(b => b.onclick = () => {
@@ -6400,6 +7033,7 @@ function renderAll(newKeys){
   renderBacklog(newKeys);
   renderGantt();
   if (state.view === 'resource') renderResource();
+  if (state.view === 'deps') renderDeps();
 }
 renderAll();
 applyExtState();
