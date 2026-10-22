@@ -669,6 +669,52 @@ body.no-select,body.no-select *{user-select:none!important}
 .dep-legend .g.late{width:18px;height:8px;background:var(--late-bg);border-top:2px solid var(--late);border-radius:2px}
 .dep-legend .g.span{width:18px;height:5px;border-radius:3px;background:repeating-linear-gradient(-45deg,#C9D3DC 0 3px,#E8EDF1 3px 6px)}
 @media (max-width:1100px){ .dep-view{--dv-left:260px} .dep-legend{display:none!important} }
+
+/* ============ 跨视图定位：依赖 / 人员 → 甘特（⌖） ============
+   独立导航，不复用顶部搜索（搜索是过滤，定位是一次性视口跳转）。 */
+.loc-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;
+  color:var(--muted);flex:none;opacity:0;transition:opacity .15s,background .13s,color .13s}
+.dv-grp:hover .loc-btn,.loc-btn:focus-visible{opacity:1}
+.loc-btn:hover{background:#EAF3FA;color:var(--fut-deep)}
+.dv-grp-title.locatable{cursor:pointer;border-radius:4px;transition:color .13s}
+.dv-grp-title.locatable:hover{color:var(--fut-deep);text-decoration:underline;text-decoration-color:rgba(6,132,188,.35);text-underline-offset:3px}
+.dep-act .loc-ico{display:inline-flex;margin-right:1px}
+/* 人员视图：hover 任务条右端出现 ⌖ */
+.rb-locate{position:absolute;right:3px;top:50%;width:17px;height:17px;border-radius:50%;
+  background:rgba(255,255,255,.94);color:var(--ink);display:flex;align-items:center;justify-content:center;
+  opacity:0;transform:translateY(-50%) scale(.75);transition:opacity .14s,transform .14s cubic-bezier(.2,.8,.2,1),background .13s;
+  z-index:3;box-shadow:0 1px 3px rgba(32,36,42,.25)}
+.res-bar:hover .rb-locate,.rb-locate:focus-visible{opacity:1;transform:translateY(-50%) scale(1)}
+.rb-locate:hover{background:var(--ink);color:#fff}
+.res-bar:hover .rb-shift,.res-bar.sel:hover::after{opacity:0}
+.res-bar.flash{animation:locHit 1.8s cubic-bezier(.2,.8,.2,1)}
+/* 甘特落点：目标高亮脉冲 + 所在行底色 */
+.locate-hit{animation:locHit 2.4s cubic-bezier(.2,.8,.2,1);z-index:8!important}
+@keyframes locHit{0%{box-shadow:0 0 0 0 rgba(6,132,188,0)}12%,55%{box-shadow:0 0 0 4px rgba(6,132,188,.55),0 0 0 9px rgba(6,132,188,.14)}100%{box-shadow:0 0 0 0 rgba(6,132,188,0)}}
+.g-row.locate-row > .g-lane,.sub-lane.locate-row{animation:locRow 2.4s ease}
+@keyframes locRow{0%,50%{background:rgba(6,132,188,.07)}100%{background:transparent}}
+/* 目标被当前过滤隐藏 → 只临时显示这一行，不改过滤 */
+.g-row.pinned > .g-lane{background:repeating-linear-gradient(-45deg,rgba(6,132,188,.04) 0 6px,transparent 6px 12px)}
+.pin-tag{position:absolute;top:29px;transform:translateY(-50%);display:inline-flex;align-items:center;gap:6px;
+  font-size:10.5px;font-weight:600;color:var(--fut-deep);background:#EAF3FA;border:1px dashed #9FCBE3;
+  border-radius:99px;padding:2px 4px 2px 9px;white-space:nowrap;z-index:4}
+.pin-tag button{width:16px;height:16px;border-radius:50%;color:var(--fut-deep);display:flex;align-items:center;justify-content:center}
+.pin-tag button:hover{background:var(--fut);color:#fff}
+/* 工具栏「← 返回」：保留来源视图的滚动位置与筛选 */
+.loc-back{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 6px 0 11px;border-radius:9px;
+  background:#EAF3FA;border:1px solid #BFDFEF;color:var(--fut-deep);font-size:12px;font-weight:600;
+  white-space:nowrap;animation:chipIn .22s cubic-bezier(.2,.8,.2,1);max-width:360px}
+.loc-back .lb-main{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.loc-back .lb-main svg{width:12px;height:12px;flex:none}
+.loc-back .lb-what{font-weight:500;color:#3D6E8A;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.loc-back .lb-x{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex:none}
+.loc-back .lb-x:hover{background:#D9EBF6}
+.loc-back .lb-main:hover{text-decoration:underline;text-underline-offset:3px}
+@media (max-width:1560px){ .loc-back .lb-what{display:none} }
+@media (prefers-reduced-motion:reduce){
+  .locate-hit,.g-row.locate-row > .g-lane,.sub-lane.locate-row,.res-bar.flash,.loc-back{animation:none!important}
+  .locate-hit{box-shadow:0 0 0 3px rgba(6,132,188,.55)!important}
+}
 @media (prefers-reduced-motion:reduce){
   .dv-pt,.dv-row,.dep-link,.dep-edit{transition:none!important;animation:none!important}
 }
@@ -1580,6 +1626,7 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
         <button class="vs-btn" data-v="resource">人员</button>
         <button class="vs-btn" data-v="deps" data-tip="依赖视图||只列出带外部依赖的任务：对方 ETA vs 我们期望、晚多少天、Ticket 排期||拖动改期望 · 单击改 ETA">依赖</button>
       </div>
+      <div class="loc-back" id="locBack" style="display:none" role="group" aria-label="定位返回"></div>
       <div class="view-switch dep-tools" id="depTools" style="display:none" role="group" aria-label="依赖过滤"></div>
       <div class="legend dep-legend" id="depLegend" style="display:none">
         <span class="lg"><i class="g eta"></i>ETA（对方）</span>
@@ -1937,6 +1984,7 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
     <li>悬浮：bar <b>左侧 ＋ 添加任务</b>，<b>右侧 ◆＋ 添加阶段节点 / 外部依赖</b>，<b>右上角 × 退回 Backlog</b>（草稿为删除）</li>
     <li><b>阶段节点</b>（Design/Stage/Production/自定义）以菱形标记显示在 bar 下方的标记轨上，按日期定位、可超出 bar 范围；标记可<b>左右拖动改期</b>（按天吸附，拖到边缘自动滚动），<b>单击</b>则打开编辑器改日期 / 改名 / 删除</li>
     <li><b>外部依赖：ETA 与期望分开</b>。<b>ETA</b> = 对方承诺（实心点）：绑定 ticket 时添加即自动读取 <b>Target End</b> 并把节点放在 ETA 上；ticket 没填 Target End 或没有 ticket 时手动填写。<b>期望</b> = 我们需要的日期（虚线环）。<b>拖动 = 改期望</b>（从 ETA 点上拖会拉出期望环，ETA 不动；拖回 ±1 天内吸附合一），<b>单击 = 设置 / 刷新 ETA</b>。期望早于 ETA 时两点之间画红线并标 <b>+Nd</b>；同一任务多个依赖时 hover 任一节点高亮成对节点。打开页只镜像 Jira status / Target End，不自动改 ETA，有变化时显示琥珀色「Jira 有变更」</li>
+    <li><b>在甘特中定位 ⌖</b>：依赖视图里点<b>主任务名</b>或组头 ⌖ → 跳到任务视图高亮该主任务；依赖行 hover「⌖ 甘特」→ 高亮这条依赖的 ETA / 期望节点；人员视图 hover 任务条右端 ⌖ → 展开主任务并高亮该子任务。<b>独立导航，不写顶部搜索 / 不改 Milestone 与依赖筛选</b>；目标被当前过滤隐藏时只<b>临时显示</b>那一行。工具栏出现「← 返回依赖视图 / 人员视图」，回去时恢复滚动位置并闪烁来源行；Esc / × / 手动切视图即结束定位</li>
     <li><b>依赖视图</b>（工具栏「任务 / 人员 / 依赖」）：只列出带依赖的任务，按风险排序；每行完整展示 <b>ETA ● / 期望 ◌ / 晚 Nd 红色带 / 余量点线 / Ticket Target Start→End 斜纹条 / Jira 新日期琥珀箭头</b>。可过滤「晚于期望 / 缺 ETA / Jira 有变更」，行内一键刷新 ETA、催一下（附期望日）、接受 ETA；拖动节点或 ← → 键改期望，改后 toast 可撤销。甘特依赖浮层底部「在依赖视图中查看」可直接定位</li>
     <li><b>Backlog 搜索</b>：按标题 / Key / 备注名 / 类型 / Quarter 过滤，多个关键词空格分隔需全部命中；Esc 清空</li>
     <li><b>新建条目</b>：弹窗含 <b>手动创建</b> 与 <b>使用 AI 批量创建</b>。AI 路径默认先预览，勾选「直接创建 Draft」才一次写入；不创建 Jira；无扩展也能用。创建 Jira 仍走原弹窗。要用自己的 Agent 生成 Draft 有两条路：Codex Plugin 导入 <code>https://github.com/ee01/Personal-AI</code>（Path <code>roadmap-service</code>，Branch <code>develop</code>）后装 <code>roadmap-planning</code>；或把 GitHub/线上 Skill 交给 Agent，远程 MCP 默认 <code>http://roadmap.xmnup.com/mcp</code>。</li>
@@ -3095,7 +3143,7 @@ function renderGantt(){
   }
   renderMsLines(gb);
   const rows = t.order.map(k => t.items.find(i => i.key===k)).filter(Boolean);
-  if (rows.length && msActive() && state.msMode === 'hide' && !rows.some(msMatch)){
+  if (rows.length && msActive() && state.msMode === 'hide' && !rows.some(r => msMatch(r) || loc.pin === r.key)){
     const e = document.createElement('div'); e.className='g-empty ms-empty';
     e.innerHTML = `时间轴上没有属于 <b>${esc(msSelNames())}</b> 的条目<br>可从左侧 Backlog 拖入，或<br><button type="button" id="gClearMs">清除 milestone 过滤</button>`;
     gb.appendChild(e);
@@ -3249,6 +3297,7 @@ const ICON = {
   flag:'<svg viewBox="0 0 14 14"><path d="M3.2 12.5V2M3.2 2.5h6.8l-1.9 2.6L10 7.5H3.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
   ext:'<svg viewBox="0 0 14 14"><path d="M6 3H3.5A1.5 1.5 0 002 4.5v6A1.5 1.5 0 003.5 12h6A1.5 1.5 0 0011 10.5V8M8.5 2H12v3.5M12 2L6.8 7.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   refresh:'<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7A5 5 0 1 1 10.6 3.6"/><path d="M12 2.2V5H9.2"/></svg>',
+  locate:'<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="3.4"/><circle cx="7" cy="7" r=".6" fill="currentColor"/><path d="M7 .9v2.2M7 10.9v2.2M.9 7h2.2M10.9 7h2.2"/></svg>',
 };
 /* bar 左上角 ↗：打开对应 Jira issue（草稿没有 issue 不显示）；pointerdown 阻断拖拽 */
 function jiraLinkBtn(key){
@@ -3262,7 +3311,7 @@ function jiraLinkBtn(key){
 
 function rowEl(it){
   const row = document.createElement('div'); row.className='g-row'; row.dataset.key = it.key;
-  if (msActive() && !msMatch(it)) row.classList.add(state.msMode === 'hide' ? 'ms-hide' : 'ms-dim');
+  if (msActive() && !msMatch(it)) row.classList.add(loc.pin === it.key ? 'pinned' : state.msMode === 'hide' ? 'ms-hide' : 'ms-dim');
   const lane = document.createElement('div'); lane.className='g-lane';
   const bar = document.createElement('div');
   const w = it.days*DAY_W - 2;
@@ -3331,6 +3380,16 @@ function rowEl(it){
     lt.innerHTML = `<i></i>晚于 ${esc(msShort(late.ms))} ${late.days}d`;
     lt.dataset.tip = `${late.ms.key} · ${late.ms.name}||Milestone ${fmtMD(late.ms.date)}，本条结束于 ${fmtMD(addD(it.start, it.days-1))}，晚 ${late.days} 天||拖动或缩短排期到旗标线之前即可消除`;
     lane.appendChild(lt);
+  }
+  /* 定位落点被当前过滤隐藏时：只临时显示这一行，并说明原因（不改过滤条件） */
+  if (loc.pin === it.key){
+    const pt = document.createElement('span'); pt.className = 'pin-tag';
+    pt.style.left = X(addD(it.start, it.days - 1)) + DAY_W + (late ? 120 : 34) + 'px';
+    pt.innerHTML = `${ICON.locate} 临时显示 · 不在当前 Milestone 过滤内 <button type="button" aria-label="收起临时显示">×</button>`;
+    pt.dataset.tip = '定位不会改动你的过滤条件||这一行因为当前过滤本应隐藏，为了定位而临时显示||点 × 或返回原视图后恢复隐藏';
+    pt.querySelector('button').onclick = e => { e.stopPropagation(); clearLocate(); };
+    pt.onpointerdown = e => e.stopPropagation();
+    lane.appendChild(pt);
   }
   /* bar 左侧 ＋：添加任务 */
   const bp = document.createElement('button'); bp.className = 'bar-plus';
@@ -5166,8 +5225,11 @@ function renderDeps(){
         <div class="dv-grp">
           <div class="dv-grp-info">
             <span class="dv-grp-stripe" style="background:${col}"></span>
-            <span class="dv-grp-title" title="${esc(it.title)}">${esc(it.alias || it.title)}</span>
+            <span class="dv-grp-title locatable" role="button" tabindex="0" data-loc-epic="${it.key}"
+              data-tip="${esc(itemDisplayKey(it))} · 在甘特中定位||${esc(it.title)}||跳到任务视图并高亮这条主任务 · 不改变搜索与筛选">${esc(it.alias || it.title)}</span>
             <span class="dv-grp-meta">${esc(itemDisplayKey(it))} · ${it.deps.length} 依赖</span>
+            <button type="button" class="loc-btn" data-loc-epic="${it.key}" aria-label="在甘特中定位 ${esc(itemDisplayKey(it))}"
+              data-tip="在甘特中定位||跳到任务视图并高亮这条主任务||不改变搜索与筛选 · 工具栏可一键返回">${ICON.locate.replace('width="11" height="11"','width="13" height="13"')}</button>
             ${late ? `<span class="dv-grp-risk">${late} 晚</span>` : ''}
           </div>
           <div class="dv-grp-lane"><div class="dv-tr">
@@ -5193,12 +5255,17 @@ function renderDeps(){
       else if (act === 'nudge') toast(`<span class="ok">✓</span> 已在 ${d.jiraKey ? esc(d.jiraKey) + ' 评论区' : '协作日志'}提醒${d.team ? ' ' + esc(d.team) : '对方'}：我们需要在 <b>${fmtMD(depNeed(d) || depDefaultNeed(it))}</b> 前交付（模拟）`);
       else if (act === 'accept'){ const prev = d.need; d.need = null; depChanged(); depUndoToast(d, prev, `期望已跟随 ETA ${fmtMD(d.eta)}`); }
       else if (act === 'edit') openDepPopover(b, it, d.id);
+      else if (act === 'locate') locateInGantt({ epicKey: it.key, depId: d.id });
     });
   });
   /* 带太窄时隐藏「晚 Nd / 余量 Nd」（左侧状态 pill 已有同样信息），避免与日期标签相撞 */
   host.querySelectorAll('.dv-band').forEach(b => {
     const l = b.nextElementSibling;
     if (l?.classList.contains('dv-band-l')) l.style.display = b.offsetWidth < (b.classList.contains('ok') ? 110 : 52) ? 'none' : '';
+  });
+  host.querySelectorAll('[data-loc-epic]').forEach(b => {
+    b.onclick = () => locateInGantt({ epicKey: b.dataset.locEpic });
+    b.onkeydown = e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); locateInGantt({ epicKey: b.dataset.locEpic }); } };
   });
   if (dv.flash){
     const r = host.querySelector(`.dv-row[data-id="${dv.flash}"]`);
@@ -5217,6 +5284,7 @@ function dvRowHtml(it, d, pct, pctL, clampD, N){
     (st === 'late' || st === 'missing') && `<button class="dep-act" data-act="nudge">催一下</button>`,
     st === 'late' && `<button class="dep-act" data-act="accept" data-tip="期望改为跟随 ETA（两点合一）">接受 ETA</button>`,
     !d.jiraKey && `<button class="dep-act" data-act="edit">填写 ETA</button>`,
+    `<button class="dep-act" data-act="locate" data-tip="在甘特中定位||跳到任务视图，高亮这条依赖的 ETA / 期望节点||不改变搜索与筛选"><span class="loc-ico">${ICON.locate}</span>甘特</button>`,
   ].filter(Boolean).join('');
   /* 时间轴元素 */
   let lane = '';
@@ -5302,6 +5370,88 @@ function dvDrag(e, it, d, el, tr, s, N){
   el.addEventListener('pointermove', onMove); el.addEventListener('pointerup', onUp);
 }
 
+/* ---------- 跨视图定位：依赖 / 人员 → 甘特 ----------
+   为什么不复用顶部搜索：搜索是「过滤」——它同时改变 Backlog、甘特、依赖视图三处的结果集，
+   还被复制计数共用；拿它做跳转会覆盖用户原本的关键词，回到依赖视图时筛选已被污染。
+   定位是一次性的「视口导航」：
+   · 不写 state.search / milestone 过滤 / 依赖风险筛选；
+   · 切到任务视图 → 必要时展开父 Epic → 滚到目标居中 → 脉冲高亮 2.4s；
+   · 目标被当前过滤隐藏时只「临时显示」这一行（loc.pin），返回或 × 即恢复；
+   · 工具栏出现「← 返回依赖视图 / 人员视图」，回去时恢复来源视图的滚动位置并闪烁来源行。
+   真实实现：URL 用独立参数 `focus=KEY[:sub|dep]`（与 `q=` 搜索互不影响），刷新后可复现。 */
+const loc = { back: null, pin: null };
+const LOC_VIEW_NAME = { deps:'依赖视图', resource:'人员视图' };
+function locateInGantt({ epicKey, subId = null, depId = null }){
+  const t = team(), it = t.items.find(i => i.key === epicKey);
+  if (!it || !it.scheduled){ toast('这条任务已不在甘特上（可能已退回 Backlog）'); return; }
+  const from = state.view;
+  const sub = subId ? it.subs.find(x => x.id === subId) : null;
+  const dep = depId ? it.deps.find(x => x.id === depId) : null;
+  const srcEl = from === 'deps' ? $('#depView') : $('#resView');
+  loc.back = { view: from, scrollTop: srcEl.scrollTop, epicKey, subId, depId,
+               what: dep ? `依赖 · ${dep.jiraKey || dep.title}` : sub ? (sub.key || sub.alias || sub.title) : itemDisplayKey(it) };
+  loc.pin = (msActive() && state.msMode === 'hide' && !msMatch(it)) ? epicKey : null;
+  if (sub) it.expanded = true;                 // 子任务：展开父 Epic 才看得到
+  state.view = 'gantt';
+  syncView(); renderGantt();
+  renderLocBack();
+  requestAnimationFrame(() => {
+    const row = document.querySelector(`.g-row[data-key="${epicKey}"]`);
+    if (!row) return;
+    const el = sub ? row.querySelector(`.sbar[data-sid="${subId}"]`)
+      : dep ? (row.querySelector(`.marker.dep[data-dep="${depId}"]`) || row.querySelector(`.marker.dep-need[data-dep="${depId}"]`))
+      : row.querySelector(':scope > .g-lane > .bar');
+    const target = el || row.querySelector(':scope > .g-lane > .bar');
+    const gs = $('#gScroll'), r = target.getBoundingClientRect(), gr = gs.getBoundingClientRect();
+    gs.scrollTo({
+      left: Math.max(0, gs.scrollLeft + (r.left - gr.left) - gr.width * 0.3),
+      top: Math.max(0, gs.scrollTop + (r.top - gr.top) - gr.height * 0.35),
+      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    });
+    const lane = sub ? target.closest('.sub-lane') : row;
+    target.classList.add('locate-hit'); lane?.classList.add('locate-row');
+    /* 依赖：同时点亮成对的 ETA / 期望 / 连线（与 hover 配对效果一致） */
+    const track = dep && target.closest('.marker-track');
+    if (track){ track.classList.add('pairing'); track.querySelectorAll(`[data-dep="${depId}"]`).forEach(x => x.classList.add('hl')); }
+    setTimeout(() => {
+      target.classList.remove('locate-hit'); lane?.classList.remove('locate-row');
+      if (track){ track.classList.remove('pairing'); track.querySelectorAll('.hl').forEach(x => x.classList.remove('hl')); }
+    }, 2400);
+  });
+}
+function renderLocBack(){
+  const el = $('#locBack'), b = loc.back;
+  if (!b || state.view !== 'gantt'){ el.style.display = 'none'; return; }
+  el.style.display = 'inline-flex';
+  el.innerHTML = `<button type="button" class="lb-main" data-tip="返回${LOC_VIEW_NAME[b.view]}||回到原来的滚动位置，筛选与搜索都保持不变||Esc 关闭此提示">${ICON.back}返回${LOC_VIEW_NAME[b.view]}</button>
+    <span class="lb-what">· 已定位 ${esc(b.what)}</span>
+    <button type="button" class="lb-x" aria-label="关闭定位提示">×</button>`;
+  el.querySelector('.lb-main').onclick = locGoBack;
+  el.querySelector('.lb-x').onclick = () => clearLocate();
+}
+/** 结束定位：收起返回提示；若有临时显示的行，恢复其过滤状态 */
+function clearLocate(){
+  const hadPin = !!loc.pin;
+  loc.back = null; loc.pin = null;
+  renderLocBack();
+  if (hadPin && state.view === 'gantt') renderGantt();
+}
+function locGoBack(){
+  const b = loc.back; if (!b) return;
+  clearLocate();
+  if (b.view === 'deps' && b.depId) dv.flash = b.depId;
+  state.view = b.view; syncView();
+  const host = b.view === 'deps' ? $('#depView') : $('#resView');
+  if (!b.depId) host.scrollTop = b.scrollTop;          // 有 flash 时由 renderDeps 负责滚到来源行
+  if (b.view === 'resource' && b.subId){
+    const bar = host.querySelector(`.res-bar[data-sid="${b.subId}"]`);
+    if (bar){ bar.classList.add('flash'); setTimeout(() => bar.classList.remove('flash'), 1900); }
+  }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && loc.back && state.view === 'gantt' && !document.querySelector('.modal-back.show') && !e.target.closest?.('input,textarea')) clearLocate();
+});
+
 /* ---------- Resource view：按人查看任务（只读为主） ---------- */
 function syncView(){
   const res = state.view === 'resource', dep = state.view === 'deps', gantt = !res && !dep;
@@ -5315,13 +5465,20 @@ function syncView(){
   $('#resTools').style.display = res ? 'flex' : 'none';
   $('#epicLegend').style.display = res ? 'flex' : 'none';
   $('#depTools').style.display = dep ? 'flex' : 'none';
+  if (!gantt && (loc.back || loc.pin)){ loc.back = null; loc.pin = null; }   // 离开甘特 = 结束本次定位
+  renderLocBack();
   $('#depLegend').style.display = dep ? 'flex' : 'none';
   $('#viewSwitch').querySelectorAll('.vs-btn').forEach(b => b.classList.toggle('active', b.dataset.v === state.view));
   renderCreateBtn();
   if (res) renderResource();
   if (dep) renderDeps();
 }
-$('#viewSwitch').querySelectorAll('.vs-btn').forEach(b => b.onclick = () => { state.view = b.dataset.v; syncView(); });
+/* 手动切换视图 = 放弃本次定位（返回提示与临时显示一并收起，见 syncView） */
+$('#viewSwitch').querySelectorAll('.vs-btn').forEach(b => b.onclick = () => {
+  const pin = loc.pin;
+  state.view = b.dataset.v; syncView();
+  if (pin && state.view === 'gantt') renderGantt();
+});
 $('#resTools').querySelectorAll('.vs-btn').forEach(b => b.onclick = () => {
   state.resWin = b.dataset.w;
   if (b.dataset.w === '2w') state.resOffset = 0;   // 点「近 2 周」同时回到今天
@@ -5676,6 +5833,14 @@ function renderResource(){
         + `</span>`;
       b.dataset.epic = it.key;
       b.dataset.sid = s.id;
+      /* hover 右端 ⌖：定位到甘特上的这条子任务（独立按钮，不触发「正在做」选中） */
+      const lb = document.createElement('button');
+      lb.type = 'button'; lb.className = 'rb-locate'; lb.innerHTML = ICON.locate;
+      lb.setAttribute('aria-label', `在甘特中定位 ${s.key || s.title}`);
+      lb.dataset.tip = `在甘特中定位||${it.alias || it.title} › ${s.alias || s.title}||展开主任务并高亮这条子任务 · 不改变搜索与筛选`;
+      lb.onpointerdown = ev => ev.stopPropagation();
+      lb.onclick = ev => { ev.stopPropagation(); locateInGantt({ epicKey: it.key, subId: s.id }); };
+      b.appendChild(lb);
       {
         // 标题贴边：记下这条 bar 在当前（未平移）坐标系里的左右边界，供
         // updateStickyLabels() 用实时 pan 偏移换算出该不该贴、贴多少。
