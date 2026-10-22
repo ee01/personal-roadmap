@@ -415,7 +415,7 @@ const LINK_ICON =
                   class="dv-title"
                   role="button"
                   tabindex="0"
-                  data-tip="单击编辑 ETA / 期望"
+                  data-tip="单击编辑 Jira ticket / ETA / 期望"
                   @click="edit($event, it, d)"
                   @keydown.enter="edit($event, it, d)"
                   >{{ d.label }}</span
@@ -485,12 +485,12 @@ const LINK_ICON =
                   接受 ETA
                 </button>
                 <button
-                  v-if="!d.jiraKey && state.editable.value"
+                  v-if="state.editable.value"
                   type="button"
                   class="dep-act"
                   @click="edit($event, it, d)"
                 >
-                  {{ d.date ? '修改 ETA' : '填写 ETA' }}
+                  {{ d.jiraKey ? '编辑' : d.date ? '修改 ETA' : '填写 ETA' }}
                 </button>
               </div>
             </div>

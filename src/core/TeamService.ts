@@ -1915,35 +1915,43 @@ export function applyIntent(
           ? String(intent.jiraKey).trim() || null
           : null
         : marker.jira_key;
+    const jiraChanged = marker.kind === 'dep' &&
+      (nextJiraKey?.toUpperCase() || null) !== (marker.jira_key?.toUpperCase() || null);
+    // A new ticket cannot inherit the old ticket's confirmed Jira ETA.
+    // Unlinking preserves the known delivery date as a manual ETA.
+    if (jiraChanged && nextJiraKey && marker.eta_source === 'jira' && intent.date === undefined) {
+      nextDate = null;
+    }
     let nextEtaSource = marker.eta_source;
     if (marker.kind === 'dep') {
       if (!nextDate) nextEtaSource = null;
       else if (intent.etaSource === 'jira' || intent.etaSource === 'manual') {
         nextEtaSource = intent.etaSource;
-      } else if (!nextEtaSource) {
+      } else if (jiraChanged || !nextEtaSource) {
         nextEtaSource = 'manual';
       }
     } else {
       nextEtaSource = null;
     }
-    const rawNeed = intent.need !== undefined ? isoDateOrNull(intent.need) : marker.need;
+    const rawNeed = intent.need !== undefined ? isoDateOrNull(intent.need)
+      : jiraChanged ? marker.need || marker.date : marker.need;
     if (intent.need && !rawNeed) return { ok: false, error: 'invalid_need' };
     const nextNeed = marker.kind === 'dep' && rawNeed !== nextDate ? rawNeed : null;
-    const nextEtaAt = marker.kind === 'dep' && intent.date !== undefined
-      ? (nextDate ? ts : null) : marker.eta_at;
+    const nextEtaAt = !nextDate ? null : marker.kind === 'dep' && intent.date !== undefined
+      ? ts : marker.eta_at;
     const nextJiraStart = intent.jiraTargetStart !== undefined
-      ? isoDateOrNull(intent.jiraTargetStart) : marker.jira_target_start;
+      ? isoDateOrNull(intent.jiraTargetStart) : jiraChanged ? null : marker.jira_target_start;
     const cacheTouched =
       intent.jiraTargetStart !== undefined || intent.jiraStatus !== undefined || intent.jiraTargetEnd !== undefined;
     const nextJiraStatus =
       intent.jiraStatus !== undefined
         ? String(intent.jiraStatus || '').trim() || null
-        : marker.jira_status;
+        : jiraChanged ? null : marker.jira_status;
     const nextJiraTargetEnd =
       intent.jiraTargetEnd !== undefined
         ? isoDateOrNull(intent.jiraTargetEnd)
-        : marker.jira_target_end;
-    const nextJiraFetchedAt = cacheTouched ? ts : marker.jira_fetched_at;
+        : jiraChanged ? null : marker.jira_target_end;
+    const nextJiraFetchedAt = cacheTouched ? ts : jiraChanged ? null : marker.jira_fetched_at;
     db.prepare(
       `UPDATE item_markers SET
         label = ?, date = ?, jira_key = ?, eta_source = ?,

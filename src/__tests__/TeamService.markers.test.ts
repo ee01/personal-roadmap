@@ -250,3 +250,63 @@ describe('dependency expectation and ETA separation', () => {
     expect(itemOf(snapshot, 'NOVA-M1').markers.find(m => m.id === dep.id)).toMatchObject({ date: null, etaAt: null, etaSource: null });
   });
 });
+
+describe('editing dependency Jira tickets', () => {
+  it('does not invalidate a ticket when only key casing changes', () => {
+    const added = expectOk(apply(teamId, { op: 'add_marker', itemKey: 'NOVA-M1', kind: 'dep', label: 'Lowercase key', jiraKey: 'plat-21', date: '2026-11-05', etaSource: 'jira', jiraTargetEnd: '2026-11-05' })).snapshot;
+    const dep = itemOf(added, 'NOVA-M1').markers.find(m => m.label === 'Lowercase key')!;
+    const changed = expectOk(apply(teamId, { op: 'update_marker', markerId: dep.id, jiraKey: 'PLAT-21', baseVersion: dep.version })).snapshot;
+    expect(itemOf(changed, 'NOVA-M1').markers.find(m => m.id === dep.id)).toMatchObject({ date: dep.date, need: null, etaSource: 'jira', jiraTargetEnd: dep.jiraTargetEnd, jiraFetchedAt: dep.jiraFetchedAt });
+  });
+
+  it('clears the old ticket mirror and Jira ETA on rebind while retaining the effective expectation', () => {
+    const added = expectOk(apply(teamId, {
+      op: 'add_marker', itemKey: 'NOVA-M1', kind: 'dep', label: 'Rebind ticket',
+      jiraKey: 'PLAT-OLD', date: '2026-11-05', etaSource: 'jira',
+      jiraStatus: 'Done', jiraTargetStart: '2026-10-20', jiraTargetEnd: '2026-11-05',
+    })).snapshot;
+    const dep = itemOf(added, 'NOVA-M1').markers.find(m => m.label === 'Rebind ticket')!;
+    const changed = expectOk(apply(teamId, {
+      op: 'update_marker', markerId: dep.id, jiraKey: 'PLAT-NEW', baseVersion: dep.version,
+    })).snapshot;
+    const next = itemOf(changed, 'NOVA-M1').markers.find(m => m.id === dep.id)!;
+    expect(next).toMatchObject({
+      jiraKey: 'PLAT-NEW', date: null, etaSource: null, etaAt: null,
+      need: '2026-11-05', jiraStatus: null, jiraTargetStart: null,
+      jiraTargetEnd: null, jiraFetchedAt: null, version: dep.version + 1,
+    });
+  });
+
+  it('binds a manual dependency with freshly read dates, then unlinks without losing confirmed dates', () => {
+    const added = expectOk(apply(teamId, {
+      op: 'add_marker', itemKey: 'NOVA-M1', kind: 'dep', label: 'Bind and unlink', need: '2026-11-01',
+    })).snapshot;
+    const dep = itemOf(added, 'NOVA-M1').markers.find(m => m.label === 'Bind and unlink')!;
+    const bound = expectOk(apply(teamId, {
+      op: 'update_marker', markerId: dep.id, jiraKey: 'PLAT-10', date: '2026-11-08', etaSource: 'jira',
+      jiraStatus: 'Open', jiraTargetStart: '2026-10-22', jiraTargetEnd: '2026-11-08', baseVersion: dep.version,
+    })).snapshot;
+    const linked = itemOf(bound, 'NOVA-M1').markers.find(m => m.id === dep.id)!;
+    expect(linked).toMatchObject({ date: '2026-11-08', need: '2026-11-01', etaSource: 'jira', jiraStatus: 'Open', jiraTargetStart: '2026-10-22', jiraTargetEnd: '2026-11-08' });
+    expect(linked.jiraFetchedAt).toBeTypeOf('number');
+    const unbound = expectOk(apply(teamId, {
+      op: 'update_marker', markerId: dep.id, jiraKey: null, baseVersion: linked.version,
+    })).snapshot;
+    expect(itemOf(unbound, 'NOVA-M1').markers.find(m => m.id === dep.id)).toMatchObject({
+      jiraKey: null, date: linked.date, need: linked.need, etaSource: 'manual', etaAt: linked.etaAt,
+      jiraStatus: null, jiraTargetStart: null, jiraTargetEnd: null, jiraFetchedAt: null,
+    });
+    const conflict = apply(teamId, { op: 'update_marker', markerId: dep.id, jiraKey: 'PLAT-11', baseVersion: linked.version });
+    expect(conflict.ok).toBe(false);
+    if (!conflict.ok) expect(conflict.error).toBe('version_conflict');
+  });
+
+  it('preserves a manually confirmed ETA when adding a ticket without an available target date', () => {
+    const added = expectOk(apply(teamId, {
+      op: 'add_marker', itemKey: 'NOVA-M1', kind: 'dep', label: 'Manual ETA with ticket', date: '2026-11-05', need: '2026-11-01', etaSource: 'manual',
+    })).snapshot;
+    const dep = itemOf(added, 'NOVA-M1').markers.find(m => m.label === 'Manual ETA with ticket')!;
+    const changed = expectOk(apply(teamId, { op: 'update_marker', markerId: dep.id, jiraKey: 'PLAT-20', baseVersion: dep.version })).snapshot;
+    expect(itemOf(changed, 'NOVA-M1').markers.find(m => m.id === dep.id)).toMatchObject({ date: dep.date, need: dep.need, etaSource: 'manual', etaAt: dep.etaAt, jiraKey: 'PLAT-20' });
+  });
+});

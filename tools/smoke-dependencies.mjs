@@ -110,6 +110,39 @@ try {
   });
   assert.equal(markerOf(result).need, null);
   assert.equal(markerOf(await request(base)).date, '2026-11-08');
+  const current = markerOf(result);
+  result = await intent({
+    op: 'update_marker',
+    markerId: original.id,
+    jiraKey: 'PLAT-2',
+    baseVersion: current.version,
+  });
+  const rebound = markerOf(result);
+  assert.equal(rebound.date, null);
+  assert.equal(rebound.need, '2026-11-08');
+  assert.equal(rebound.jiraStatus, null);
+  assert.equal(rebound.jiraTargetEnd, null);
+  assert.equal(rebound.jiraFetchedAt, null);
+  result = await intent({
+    op: 'update_marker',
+    markerId: original.id,
+    jiraKey: 'PLAT-3',
+    date: '2026-11-10',
+    etaSource: 'jira',
+    jiraTargetEnd: '2026-11-10',
+    baseVersion: rebound.version,
+  });
+  const relinked = markerOf(result);
+  result = await intent({
+    op: 'update_marker',
+    markerId: original.id,
+    jiraKey: null,
+    baseVersion: relinked.version,
+  });
+  assert.equal(markerOf(result).date, '2026-11-10');
+  assert.equal(markerOf(result).need, '2026-11-08');
+  assert.equal(markerOf(result).etaSource, 'manual');
+  assert.equal(markerOf(result).jiraTargetEnd, null);
   const denied = await app.inject({
     method: 'POST',
     url: `${base}/intents`,
@@ -129,7 +162,7 @@ try {
   });
   assert.equal(conflict.statusCode, 409);
   console.log(
-    'PASS: deployed dependency intent fields, ETA separation, Jira mirror, readback, authorization and version conflicts',
+    'PASS: deployed dependency intent fields, ETA separation, Jira mirror, ticket rebind/unlink, readback, authorization and version conflicts',
   );
 } catch (error) {
   console.error(error);

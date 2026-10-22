@@ -102,7 +102,6 @@ export function openMarkerMenu(
   const { p, close } = floatAt(anchor, 'marker-menu', 220);
   p.innerHTML = `
     <div class="mm-sec-label">阶段节点</div>
-    <div class="owner-item" data-phase="design"><span class="mm-dot" style="background:${PHASE_DEFS.design.color}"></span>Design</div>
     <div class="owner-item" data-phase="stage"><span class="mm-dot" style="background:${PHASE_DEFS.stage.color}"></span>Stage</div>
     <div class="owner-item" data-phase="production"><span class="mm-dot" style="background:${PHASE_DEFS.production.color}"></span>Production</div>
     <div class="owner-item" data-phase="custom"><span class="mm-dot" style="background:${PHASE_DEFS.custom.color}"></span>自定义节点…</div>
@@ -586,30 +585,22 @@ export function openDepPopover(
       const canAdopt = canAdoptJiraTargetEnd(d);
       const adoptLabel = canAdopt ? depAdoptLabel(d) : null;
       const etaHtml = d.date
-        ? `<span class="dep-eta${mismatch ? ' drift' : ''}">ETA ${fmtMD(d.date)}${
-            d.etaSource === 'jira' ? ' · 来自 Jira' : ''
-          }${mismatch && d.jiraTargetEnd ? ` · Jira ${fmtMD(d.jiraTargetEnd)}` : ''}</span>`
-        : `<span class="dep-eta missing">需要 ETA${
-            d.jiraTargetEnd
-              ? ` · Jira ${fmtMD(d.jiraTargetEnd)}`
-              : d.jiraKey
-                ? `<button class="dep-nudge" data-id="${d.id}" type="button">催一下</button>`
-                : ''
-          }<input class="dep-eta-edit" data-id="${d.id}" type="date"></span>`;
-      const actions = [
-        d.date
-          ? `<input class="dep-eta-edit" data-id="${d.id}" type="date" value="${d.date}">`
-          : '',
-        canAdopt && handlers.editable && adoptLabel
-          ? `<button class="dep-adopt" data-id="${d.id}" type="button">${adoptLabel}</button>`
-          : '',
-      ]
-        .filter(Boolean)
-        .join('');
-      const needHtml = `<div class="dep-need-editor">期望 <input class="dep-need-edit" data-id="${d.id}" type="date" value="${d.need || d.date || ''}" ${handlers.editable ? '' : 'disabled'}>
-        <span>${dependencyTiming(d)}</span>${handlers.editable && d.date ? `<button class="dep-accept" data-id="${d.id}">接受 ETA</button>` : ''}
-        ${d.jiraKey ? `<button class="dep-follow" data-id="${d.id}">催一下</button>` : ''}
-        <button class="dep-view" data-id="${d.id}">在依赖视图中查看 →</button></div>`;
+        ? `<span class="dep-eta${mismatch ? ' drift' : ''}">ETA ${fmtMD(d.date)}${d.etaSource === 'jira' ? ' · 来自 Jira' : ' · 手动'}${mismatch && d.jiraTargetEnd ? ` · Jira ${fmtMD(d.jiraTargetEnd)}` : ''}</span>`
+        : `<span class="dep-eta missing">需要 ETA${d.jiraTargetEnd ? ` · Jira ${fmtMD(d.jiraTargetEnd)}` : ''}</span>`;
+      const editor = `<div class="dep-ticket-editor">
+        <label for="dep-jira-${d.id}">Jira ticket（可选）</label>
+        <div class="dep-ticket-fields"><input id="dep-jira-${d.id}" class="me-field dep-jira-edit" data-id="${d.id}" placeholder="如 PLAT-123；留空解除关联" autocomplete="off" ${handlers.editable ? '' : 'disabled'}>
+        ${handlers.editable ? `<button class="dep-ticket-save" data-id="${d.id}" type="button">保存</button>` : ''}</div>
+      </div>
+      <div class="dep-date-fields">
+        <label>对方 ETA<input class="me-field dep-date-edit dep-eta-edit" data-id="${d.id}" type="date" value="${d.date || ''}" ${handlers.editable ? '' : 'disabled'}></label>
+        <label>我们期望<input class="me-field dep-date-edit dep-need-edit" data-id="${d.id}" type="date" value="${d.need || d.date || ''}" ${handlers.editable ? '' : 'disabled'}></label>
+      </div>`;
+      const actions = `<div class="dep-editor-actions"><span class="dep-timing">${dependencyTiming(d)}</span>
+        ${canAdopt && handlers.editable && adoptLabel ? `<button class="dep-adopt" data-id="${d.id}" type="button">${adoptLabel}</button>` : ''}
+        ${handlers.editable && d.date ? `<button class="dep-accept" data-id="${d.id}" type="button">接受 ETA</button>` : ''}
+        ${d.jiraKey ? `<button class="dep-follow" data-id="${d.id}" type="button">催一下</button>` : ''}
+        <button class="dep-view" data-id="${d.id}" type="button">在依赖视图中查看 →</button></div>`;
       return `<div class="dep-row" data-id="${d.id}">
       <div class="dep-row-top">
         <span class="dep-title"></span>
@@ -622,12 +613,15 @@ export function openDepPopover(
             : `<span class="dep-tag manual">手动</span>`
         }
         ${etaHtml}
-        ${actions}
-      </div>${needHtml}
+      </div>${editor}${actions}
     </div>`;
     })
     .join('');
-  const { p, close } = floatAt(anchor, 'dep-popover', 320);
+  const { p, close } = floatAt(
+    anchor,
+    'dep-popover',
+    Math.min(360, window.innerWidth - 16),
+  );
   p.innerHTML = `
     <div class="dep-list">${rows || `<div class="owner-none">还没有外部依赖</div>`}</div>
     ${
@@ -640,11 +634,83 @@ export function openDepPopover(
     const row = p.querySelector(`.dep-row[data-id="${d.id}"]`);
     if (!row) return;
     (row.querySelector('.dep-title') as HTMLElement).textContent = d.label;
+    (row.querySelector('.dep-jira-edit') as HTMLInputElement).value =
+      d.jiraKey || '';
     if (d.jiraKey) {
       const keyEl = row.querySelector('.dep-jira-key') as HTMLElement | null;
       if (keyEl) keyEl.textContent = d.jiraKey;
     }
   });
+  p.querySelectorAll<HTMLButtonElement>('.dep-ticket-save').forEach(
+    (button) => {
+      const dep = deps.find((d) => d.id === button.dataset.id)!;
+      const input = p.querySelector<HTMLInputElement>(
+        `.dep-jira-edit[data-id="${dep.id}"]`,
+      )!;
+      const save = async () => {
+        if (!handlers.editable || button.disabled) return;
+        const key = input.value.trim().toUpperCase() || null;
+        if (key && !/^[A-Z][A-Z0-9_]*-\d+$/.test(key)) {
+          handlers.toast('请输入有效的 Jira Key，例如 PLAT-123');
+          input.focus();
+          return;
+        }
+        if (key === (dep.jiraKey?.trim().toUpperCase() || null)) return;
+        button.disabled = true;
+        input.disabled = true;
+        button.textContent = '保存中…';
+        try {
+          const intent: Record<string, unknown> = {
+            op: 'update_marker',
+            markerId: dep.id,
+            itemKey: item.key,
+            jiraKey: key,
+            baseVersion: dep.version,
+          };
+          let hasTarget = false;
+          if (key && handlers.hasExtension && handlers.fetchIssueDates) {
+            const info = await handlers.fetchIssueDates(key);
+            Object.assign(intent, {
+              jiraStatus: info.status,
+              jiraTargetStart: info.targetStart,
+              jiraTargetEnd: info.targetEnd,
+            });
+            if (info.targetEnd) {
+              Object.assign(intent, {
+                date: info.targetEnd,
+                etaSource: 'jira',
+              });
+              hasTarget = true;
+            }
+          }
+          await handlers.updateMarker(intent);
+          close();
+          handlers.toast(
+            !key
+              ? '已解除 Jira ticket 关联，保留期望与已确认日期'
+              : hasTarget
+                ? '已关联 Jira ticket，并读取 Target End 作为 ETA'
+                : '已关联 Jira ticket；可手动填写或刷新 ETA',
+          );
+        } catch (err) {
+          handlers.toast(
+            esc(err instanceof Error ? err.message : '保存失败，请重试'),
+          );
+        } finally {
+          button.disabled = false;
+          input.disabled = false;
+          button.textContent = '保存';
+        }
+      };
+      button.onclick = save;
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          void save();
+        }
+      };
+    },
+  );
   p.querySelectorAll('.dep-eta-edit').forEach((input) => {
     (input as HTMLInputElement).disabled = !handlers.editable;
   });
@@ -776,6 +842,7 @@ export function openDepPopover(
       close();
     });
   });
+  p.style.top = `${Math.max(8, Math.min(parseFloat(p.style.top), window.innerHeight - p.offsetHeight - 8))}px`;
   p.querySelector('[data-add]')?.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     e.stopPropagation();
