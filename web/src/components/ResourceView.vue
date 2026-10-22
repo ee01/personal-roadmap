@@ -18,6 +18,7 @@ import {
 import type { RoadmapItem, RoadmapSub, TeamMember } from '../types';
 import { dispName, teamAssigneeMap } from '../composables/useAssigneeMap';
 import { tooltipHintLine, epicColor, epicShort, isDoneStatus } from '../composables/useRoadmapContract';
+import { LOCATE_SVG } from '../composables/ganttLocate';
 import { planDeferToTarget } from '../composables/useDeferPlan';
 
 const props = defineProps<{ tl: Timeline }>();
@@ -142,7 +143,7 @@ const emit = defineEmits<{
 }>();
 
 const UNASSIGNED_KEY = '__un';
-const resSel = ref<{ person: string | null; ids: Set<string> }>({ person: null, ids: new Set() });
+const resSel = state.resourceSelection;
 let focusHintShown = false;
 
 function clearResSel() {
@@ -815,9 +816,11 @@ async function commitRename(m: TeamMember) {
               width: `${barSpan(s, end).frac * 100}%`,
               top: `${8 + li * 27}px`,
             }"
+            :data-sub-id="s.id"
             :data-tip="`${s.key || '草稿'} · ${it.key} · ${fmtMD(s.start!)} → ${fmtMD(end)} · ${s.days}d||${s.title}||${tooltipHintLine(s.description, focusTipHint(s, it, personKeyOf(row)))}`"
             @click="onBarClick(s, personKeyOf(row))"
           >
+            <button type="button" class="rb-locate" aria-label="在甘特中定位子任务" data-tip="在甘特中定位||保留当前搜索与筛选，可返回人员视图" @pointerdown.stop @click.stop="state.locateInGantt({ itemKey: it.key, subId: s.id })" v-html="LOCATE_SVG" />
             <i class="rb-stripe" :style="{ background: epicColor(orderedEpicKeys, it.key) }" />
             <span
               class="rb-title-group"

@@ -35,6 +35,8 @@ import {
   type ReleaseSheetConfig,
 } from '../composables/useReleaseRuler';
 import type { MilestoneValue, RoadmapItem, RoadmapSub, RulerMode } from '../types';
+import { locateTimeline, resolveGanttTarget } from '../composables/ganttLocate';
+import { closeMarkerFloats } from '../composables/useMarkerFloats';
 import GanttRow from './GanttRow.vue';
 import ResourceView from './ResourceView.vue';
 import DependencyView from './DependencyView.vue';
@@ -70,9 +72,10 @@ const dropDate = ref('');
 const dragHint = ref({ show: false, x: 0, y: 0, text: '' });
 let silentRefreshInFlight = false;
 
-const tl = computed<Timeline>(() =>
+const tl = computed<Timeline>(() => locateTimeline(
   computeTL(state.snapshot.value?.team.checkedQuarters || []),
-);
+  state.locate.value ? resolveGanttTarget(state.scheduledItems.value, state.locate.value.target)?.date : null,
+));
 
 /* ---------- Milestone 旗标线：选中的 milestone 作为截止线画在甘特上 ----------
    同一天的合并为一条；带日期的旗标钉在 milestone 当天的结束边界。 */
@@ -111,7 +114,7 @@ function msSelNames(): string {
 /** 隐藏模式下全部行都被过滤掉时，给出明确的空态而非空白画布。 */
 const msHideEmpty = computed(
   () =>
-    state.filterActive.value &&
+    !state.locate.value && state.filterActive.value &&
     state.msMode.value === 'hide' &&
     state.scheduledItems.value.length > 0 &&
     !state.scheduledItems.value.some((i) => state.viewMatch(i)),
@@ -676,7 +679,7 @@ watch(
   () => state.scheduledItems.value.length,
   () => {
     nextTick(() => {
-      if (gScroll.value) {
+      if (gScroll.value && !state.locate.value) {
         gScroll.value.scrollLeft = Math.max(0, X(tl.value, mStart) - 60);
       }
     });
@@ -1083,13 +1086,67 @@ async function onImportTasks() {
   }
 }
 
+/* Cross-view locate only affects the viewport; matching and copy scope remain unchanged. */
+let locateHighlightTimer: ReturnType<typeof setTimeout> | undefined;
+let clearHighlights = () => {};
+function highlightLocate(target: HTMLElement, row?: HTMLElement | null) {
+  clearHighlights();
+  target.classList.add('locate-hit'); row?.classList.add('locate-row');
+  clearHighlights = () => { target.classList.remove('locate-hit'); row?.classList.remove('locate-row'); };
+  clearTimeout(locateHighlightTimer);
+  locateHighlightTimer = setTimeout(clearHighlights, 2400);
+}
+watch(() => state.locate.value, async location => {
+  closeMarkerFloats(); clearHighlights();
+  if (!location) return;
+  await nextTick();
+  const row = gBody.value?.querySelector<HTMLElement>(`.g-row[data-key="${CSS.escape(location.target.itemKey)}"]`);
+  if (!row) return;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (location.target.subId && row.querySelector('.g-subs.opening') && !reduced) await new Promise(r => setTimeout(r, 350));
+  if (state.locate.value?.serial !== location.serial || !gScroll.value) return;
+  const { subId, depId } = location.target;
+  const dep = depId ? row.querySelector<HTMLElement>(`.dependency-track[data-dep-id="${CSS.escape(depId)}"]`) : null;
+  const target = (subId ? row.querySelector<HTMLElement>(`.sbar[data-sub-id="${CSS.escape(subId)}"]`)
+    : dep?.querySelector<HTMLElement>('.eta, .need')) || row.querySelector<HTMLElement>('.g-lane > .bar');
+  if (!target) return;
+  const sc = gScroll.value, r = target.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+  sc.scrollTo({ left: Math.max(0, sc.scrollLeft + r.left - sr.left - sr.width * .3),
+    top: Math.max(0, sc.scrollTop + r.top - sr.top - sr.height * .35), behavior: reduced ? 'auto' : 'smooth' });
+  highlightLocate(dep || target, subId ? target.closest<HTMLElement>('.sub-lane') : row);
+  if (!target.matches('button,a[href],[tabindex]')) target.tabIndex = -1;
+  target.focus({ preventScroll: true });
+}, { immediate: true, flush: 'post' });
+watch(() => state.locateReturn.value, async origin => {
+  if (!origin?.from) return;
+  await nextTick();
+  const host = document.querySelector<HTMLElement>(origin.from === 'dependency' ? '.dep-view' : '.res-view');
+  if (!host || state.view.value !== origin.from) return;
+  host.scrollTop = origin.scrollTop; host.scrollLeft = origin.scrollLeft;
+  const { itemKey, depId, subId } = origin.target;
+  const selector = origin.from === 'resource' ? `.res-bar[data-sub-id="${CSS.escape(subId || '')}"]`
+    : depId ? `.dv-row[data-id="${CSS.escape(depId)}"]` : `.dv-grp[data-item-key="${CSS.escape(itemKey)}"]`;
+  const source = host.querySelector<HTMLElement>(selector);
+  if (source) highlightLocate(source);
+  state.locateReturn.value = null;
+}, { flush: 'post' });
+function onLocateEscape(e: KeyboardEvent) {
+  if (e.key !== 'Escape' || !state.locate.value || e.defaultPrevented) return;
+  const el = e.target as HTMLElement | null;
+  if (el?.closest('input,textarea,select,[contenteditable="true"]') || document.querySelector('.modal-back.show')) return;
+  state.cancelLocate();
+}
+
 let gScrollEl: HTMLElement | null = null;
 onMounted(() => {
+  window.addEventListener('keydown', onLocateEscape);
   window.addEventListener('roadmap-card-drag-start', onCardDragStart);
   gScrollEl = gScroll.value;
   gScrollEl?.addEventListener('wheel', onGanttWheel, { passive: false });
 });
 onUnmounted(() => {
+  window.removeEventListener('keydown', onLocateEscape);
+  clearTimeout(locateHighlightTimer); clearHighlights();
   window.removeEventListener('roadmap-card-drag-start', onCardDragStart);
   gScrollEl?.removeEventListener('wheel', onGanttWheel);
   gScrollEl = null;
@@ -1128,6 +1185,11 @@ onUnmounted(() => {
         >
           依赖
         </button>
+      </div>
+      <div v-if="state.locate.value" class="loc-back" role="status">
+        <button v-if="state.locate.value.from" type="button" @click="state.returnFromLocate()">← 返回{{ state.locate.value.from === 'dependency' ? '依赖视图' : '人员视图' }}</button>
+        <span>已定位 {{ state.locate.value.label }}</span>
+        <button type="button" aria-label="结束定位" @click="state.cancelLocate()">×</button>
       </div>
       <!-- 依赖视图：过滤 + 图例与视图切换同一行 -->
       <DependencyTools v-if="state.view.value === 'dependency'" />

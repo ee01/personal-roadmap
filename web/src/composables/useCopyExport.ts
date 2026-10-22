@@ -477,7 +477,7 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
 
 /**
  * 依赖视图列表格式 = 可直接贴进聊天的一行：
- * `* Depends on PLAT-1 API ready ： NOVA-1 Alpha epic - Expect: 2026-10-31，ETA: 未确认`
+ * `- Depends on PLAT-1 API ready ： NOVA-1 Alpha epic - Expect: 2026-10-31，ETA: 未确认`
  * 依赖（有 ticket 带 Key）在前，所属任务在后；期望未单独设置时等于 ETA。
  */
 export function dependencyChatParts(r: CopyRow) {
@@ -490,7 +490,7 @@ export function dependencyChatParts(r: CopyRow) {
 }
 export function dependencyChatLine(r: CopyRow): string {
   const p = dependencyChatParts(r);
-  return `* Depends on ${p.dep} ： ${p.task} - Expect: ${p.need}，ETA: ${p.eta}`;
+  return `- Depends on ${p.dep} ： ${p.task} - Expect: ${p.need}，ETA: ${p.eta}`;
 }
 
 export interface CopyPayload {
@@ -619,9 +619,10 @@ export function buildCopyPayload(
     html = lines
       .map((r) => {
         const p = dependencyChatParts(r);
-        return `<p>* Depends on ${a(r.key, cpCell(r.summary))} ： ${a(r.taskKey, cpCell(r.taskTitle))} - Expect: ${esc(p.need)}，ETA: ${esc(p.eta)}</p>`;
+        return `<li>Depends on ${a(r.key, cpCell(r.summary))} ： ${a(r.taskKey, cpCell(r.taskTitle))} - Expect: ${esc(p.need)}，ETA: ${esc(p.eta)}</li>`;
       })
       .join('');
+    html = `<ul>${html}</ul>`;
     text = lines.map((r) => `${dependencyChatLine(r)}\n`).join('');
   } else {
     /** Key / Summary 之外的附加信息（Start/End 合并成一段人可读的区间） */

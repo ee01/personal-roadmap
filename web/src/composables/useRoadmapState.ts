@@ -36,6 +36,7 @@ import {
   today,
 } from './useGeometry';
 import { useRoadmapApi } from './useRoadmapApi';
+import { formatGanttFocus, parseGanttFocus, resolveGanttTarget, type GanttTarget, type GanttLocation } from './ganttLocate';
 import { bridgeFetchCustomLabelValues } from './useExtensionBridge';
 import { isDoneStatus, itemDisplayKey } from './useRoadmapContract';
 
@@ -131,6 +132,10 @@ export function createRoadmapState() {
   let toastSeq = 0;
 
   const view = ref<ViewMode>('gantt');
+  const locate = ref<GanttLocation | null>(null);
+  const locateReturn = ref<GanttLocation | null>(null);
+  let locateSerial = 0;
+  const resourceSelection = ref<{ person: string | null; ids: Set<string> }>({ person: null, ids: new Set() });
   const dependencyFilter = ref<import('./dependency').DependencyFilter>('all');
   const dependencyFocus = ref<string | null>(null);
   const resWin = ref<ResWindow>('2w');
@@ -395,6 +400,7 @@ export function createRoadmapState() {
       view: (p.get('view') as ViewMode) || 'gantt',
       expand: p.get('expand') || '',
       w: (p.get('w') as ResWindow) || '2w',
+      focus: p.get('focus'),
     };
   }
 
@@ -447,6 +453,7 @@ export function createRoadmapState() {
     p.set('team', teamId.value);
     if (focusQuarter.value) p.set('q', focusQuarter.value);
     if (view.value !== 'gantt') p.set('view', view.value);
+    if (locate.value) p.set('focus', formatGanttFocus(locate.value.target));
     const scheduledKeys = new Set(scheduledItems.value.map((i) => i.key));
     const expanded = [...expandedKeys.value].filter((k) => scheduledKeys.has(k));
     if (expanded.length) p.set('expand', expanded.join(','));
@@ -454,6 +461,36 @@ export function createRoadmapState() {
     const url = `${location.pathname}?${p.toString()}`;
     history.replaceState(null, '', url);
   }
+
+  function cancelLocate() { locate.value = null; syncUrl(); }
+
+  function locateInGantt(target: GanttTarget, fromUrl = false) {
+    const resolved = resolveGanttTarget(scheduledItems.value, target);
+    if (!resolved) { toast('目标已不在甘特上，可能已退回 Backlog 或被移除'); return false; }
+    const from = !fromUrl && (view.value === 'dependency' || view.value === 'resource') ? view.value : null;
+    const host = from ? document.querySelector<HTMLElement>(from === 'dependency' ? '.dep-view' : '.res-view') : null;
+    locate.value = { target, from, scrollTop: host?.scrollTop || 0, scrollLeft: host?.scrollLeft || 0, label: resolved.label, serial: ++locateSerial };
+    locateReturn.value = null;
+    if (target.subId) setItemExpanded(target.itemKey, true);
+    view.value = 'gantt';
+    syncUrl();
+    return true;
+  }
+
+  function returnFromLocate() {
+    const origin = locate.value;
+    cancelLocate();
+    if (!origin?.from) return;
+    locateReturn.value = origin;
+    view.value = origin.from;
+  }
+
+  watch(view, value => { if (value !== 'gantt' && locate.value) cancelLocate(); }, { flush: 'sync' });
+  watch(scheduledItems, items => {
+    if (locate.value && !resolveGanttTarget(items, locate.value.target)) {
+      cancelLocate(); toast('定位目标已被移除，已结束定位');
+    }
+  });
 
   async function loadTeams(preferredTeamId?: string) {
     const url = readUrlParams();
@@ -494,6 +531,10 @@ export function createRoadmapState() {
     id: string,
     opts: { fromUrl?: boolean; expand?: string } = {},
   ) {
+    const url = readUrlParams();
+    locate.value = null;
+    locateReturn.value = null;
+    resourceSelection.value = { person: null, ids: new Set() };
     loading.value = true;
     activity.value = [];
     api.unsubscribeEvents();
@@ -511,9 +552,14 @@ export function createRoadmapState() {
         expandedKeys.value = new Set();
       }
       commitSnapshot(snap);
-      focusQuarter.value = readUrlParams().q || CURQ;
-      view.value = readUrlParams().view || 'gantt';
-      resWin.value = readUrlParams().w || '2w';
+      focusQuarter.value = url.q || CURQ;
+      view.value = url.view || 'gantt';
+      resWin.value = url.w || '2w';
+      if (opts.fromUrl && url.focus) {
+        const target = parseGanttFocus(url.focus);
+        if (target) locateInGantt(target, true);
+        else toast('定位链接无效，已显示当前甘特');
+      }
       msSel.value = loadMsSel(id);
       searchQuery.value = '';
       activity.value = (await api.fetchActivity(id)).filter(
@@ -836,6 +882,12 @@ export function createRoadmapState() {
     newSubId,
     toasts,
     view,
+    locate,
+    locateReturn,
+    locateInGantt,
+    cancelLocate,
+    returnFromLocate,
+    resourceSelection,
     dependencyFilter,
     dependencyFocus,
     resWin,

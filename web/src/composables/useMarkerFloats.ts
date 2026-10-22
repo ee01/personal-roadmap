@@ -600,7 +600,7 @@ export function openDepPopover(
         ${canAdopt && handlers.editable && adoptLabel ? `<button class="dep-adopt" data-id="${d.id}" type="button">${adoptLabel}</button>` : ''}
         ${handlers.editable && d.date ? `<button class="dep-accept" data-id="${d.id}" type="button">接受 ETA</button>` : ''}
         ${d.jiraKey ? `<button class="dep-follow" data-id="${d.id}" type="button">催一下</button>` : ''}
-        <button class="dep-view" data-id="${d.id}" type="button">在依赖视图中查看 →</button></div>`;
+        <button class="dep-view-link" data-id="${d.id}" type="button">在依赖视图中查看 →</button></div>`;
       return `<div class="dep-row" data-id="${d.id}">
       <div class="dep-row-top">
         <span class="dep-title"></span>
@@ -759,7 +759,7 @@ export function openDepPopover(
       await nudgeDependency(dep, handlers);
     }),
   );
-  p.querySelectorAll('.dep-view').forEach((button) =>
+  p.querySelectorAll('.dep-view-link').forEach((button) =>
     button.addEventListener('click', () => {
       handlers.showDependency?.((button as HTMLElement).dataset.id!);
       close();

@@ -128,10 +128,11 @@ const barW = computed(() => (props.item.days || 0) * DAY_W.value - 2);
 
 /* ---------- 视图过滤（milestone + 文本）：未匹配行淡化 / 隐藏 ---------- */
 const msRowCls = computed(() => {
-  if (!state.filterActive.value || state.viewMatch(props.item)) return '';
+  if (state.locate.value?.target.itemKey === props.item.key || !state.filterActive.value || state.viewMatch(props.item)) return '';
   return state.msMode.value === 'hide' ? 'ms-hide' : 'ms-dim';
 });
 
+const locatePinned = computed(() => state.locate.value?.target.itemKey === props.item.key && state.filterActive.value && state.msMode.value === 'hide' && !state.viewMatch(props.item));
 const msLate = computed(() => state.msLateOf(props.item));
 
 function msShortName(name: string): string {
@@ -1003,8 +1004,9 @@ watch(
 </script>
 
 <template>
-  <div ref="rowRef" class="g-row" :class="msRowCls" :data-key="item.key">
+  <div ref="rowRef" class="g-row" :class="[msRowCls, { 'locate-pinned': locatePinned }]" :data-key="item.key">
     <div class="g-lane">
+      <div v-if="locatePinned" class="loc-pin-note" :style="{ left: `${Math.max(0, barLeft())}px` }">临时显示 · 不在当前{{ state.msActive.value ? ' Milestone' : '搜索' }}过滤内 <button type="button" aria-label="收起临时显示" @pointerdown.stop @click.stop="state.cancelLocate()">×</button></div>
       <div
         class="bar"
         :class="[

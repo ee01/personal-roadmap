@@ -416,22 +416,24 @@ describe('dependency view copy', () => {
     const list = buildCopyPayload(data, OPTS(), 'dependency', 'https://jira.example.com');
     /* 列表 = 聊天文本行：依赖在前（有 ticket 带 Key），所属任务用 Jira 标题，未确认 ETA 写「未确认」 */
     expect(list.text).toBe(
-      '* Depends on PLAT-1 API <ready> ： NOVA-1 Alpha epic - Expect: 2026-08-20，ETA: 2026-08-25\n'
-      + '* Depends on Approval ： NOVA-1 Alpha epic - Expect: 2026-08-18，ETA: 未确认\n',
+      '- Depends on PLAT-1 API <ready> ： NOVA-1 Alpha epic - Expect: 2026-08-20，ETA: 2026-08-25\n'
+      + '- Depends on Approval ： NOVA-1 Alpha epic - Expect: 2026-08-18，ETA: 未确认\n',
     );
     expect(list.lines).toBe(2);
     expect(list.html).toContain('<a href="https://jira.example.com/browse/PLAT-1">PLAT-1</a> API &lt;ready>');
     expect(list.html).toContain('<a href="https://jira.example.com/browse/NOVA-1">NOVA-1</a> Alpha epic');
     expect(list.text).not.toContain('DRAFT');
+    expect(list.html).toContain('<ul><li>Depends on');
+    expect(list.html).not.toContain('<p>*');
   });
   it('uses the Jira title (not the alias) and omits the key for draft tasks in chat lines', () => {
     const dep = [{ id: 'd', kind: 'dep' as const, label: 'Legal review', jiraKey: 'LEGAL-9', date: null, need: '2026-10-31', createdBy: 'x', version: 1 }];
     const aliased = collectCopyData(input({ view: 'dependency', items: [epic({ alias: '短名', markers: dep })] }));
     expect(buildCopyPayload(aliased, OPTS(), 'dependency', 'https://jira.example.com').text)
-      .toBe('* Depends on LEGAL-9 Legal review ： NOVA-1 Alpha epic - Expect: 2026-10-31，ETA: 未确认\n');
+      .toBe('- Depends on LEGAL-9 Legal review ： NOVA-1 Alpha epic - Expect: 2026-10-31，ETA: 未确认\n');
     const draft = collectCopyData(input({ view: 'dependency', items: [epic({ source: 'manual', jiraKey: null, markers: dep } as Partial<RoadmapItem>)] }));
     expect(buildCopyPayload(draft, OPTS(), 'dependency', 'https://jira.example.com').text)
-      .toBe('* Depends on LEGAL-9 Legal review ： Alpha epic - Expect: 2026-10-31，ETA: 未确认\n');
+      .toBe('- Depends on LEGAL-9 Legal review ： Alpha epic - Expect: 2026-10-31，ETA: 未确认\n');
   });
   it('follows dependency risk, search/milestone filters without copying tasks or subtasks', () => {
     const data = collectCopyData(input({ view: 'dependency', dependencyFilter: 'late', items: [epic({ markers }), epic({ key: 'excluded', markers: [{ ...markers[0], label: 'hidden' }] })], epicMatch: it => it.key !== 'excluded' }));

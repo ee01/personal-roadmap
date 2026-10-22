@@ -31,6 +31,7 @@ import {
   itemDisplayKey,
   jiraBrowseUrl,
 } from '../composables/useRoadmapContract';
+import { LOCATE_SVG } from '../composables/ganttLocate';
 import type { RoadmapItem, RoadmapMarker } from '../types';
 
 /**
@@ -377,10 +378,11 @@ const LINK_ICON =
         </div>
 
         <template v-for="{ item: it, deps } in rows" :key="it.key">
-          <div class="dv-grp">
+          <div class="dv-grp" :data-item-key="it.key">
             <div class="dv-grp-info">
               <span class="dv-grp-stripe" :style="{ background: epicColor(orderedKeys, it.key) }" />
-              <span class="dv-grp-title" :title="it.title">{{ it.alias || it.title }}</span>
+              <button type="button" class="dv-grp-title dv-locate-title" :title="`在甘特中定位 · ${it.title}`" @click="state.locateInGantt({ itemKey: it.key })">{{ it.alias || it.title }}</button>
+              <button type="button" class="dv-locate" aria-label="在甘特中定位主任务" @click="state.locateInGantt({ itemKey: it.key })" v-html="LOCATE_SVG" />
               <span class="dv-grp-meta">{{ itemDisplayKey(it) }} · {{ depCount(it) }} 依赖</span>
               <span v-if="lateIn(it)" class="dv-grp-risk">{{ lateIn(it) }} 晚</span>
             </div>
@@ -436,6 +438,7 @@ const LINK_ICON =
                 <span v-if="etaSource(d)">· {{ etaSource(d) }}</span>
               </div>
               <div class="dv-acts">
+                <button type="button" class="dep-act dv-locate-dep" @pointerdown.stop @click.stop="state.locateInGantt({ itemKey: it.key, depId: d.id })"><span v-html="LOCATE_SVG" />甘特</button>
                 <button
                   v-if="undo && undo.id === d.id && state.editable.value"
                   type="button"
