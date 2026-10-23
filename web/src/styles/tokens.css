@@ -259,7 +259,7 @@ input,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .res-day.today{background:#FFF6EA}
 .res-day.today b{color:var(--cur-deep)}
 .res-day.wkd{background:rgba(32,36,42,.03)}
-.res-row{display:grid;grid-template-columns:236px 1fr;border-bottom:1px solid var(--line2)}
+.res-row{position:relative;display:grid;grid-template-columns:236px 1fr;border-bottom:1px solid var(--line2)}
 .res-row:hover{background:rgba(32,36,42,.015)}
 .res-person{display:flex;align-items:center;gap:11px;padding:12px 16px;position:relative}
 .res-person .own-av{width:30px;height:30px;font-size:10.5px;flex:none}
@@ -1388,8 +1388,8 @@ textarea.f-input.f-desc{min-height:60px;font-family:var(--sans);font-size:12.5px
 .loc-back button{border:0;background:none;color:inherit;font:inherit;cursor:pointer;white-space:nowrap}
 .dv-locate-title{font:inherit;text-align:left;background:none;border:0;padding:0;cursor:pointer;color:inherit}.dv-locate-title:hover{text-decoration:underline;text-underline-offset:3px}
 .dv-locate{opacity:0;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:var(--muted);cursor:pointer;padding:3px}.dv-grp:hover .dv-locate,.dv-locate:focus-visible{opacity:1}
-.rb-locate{position:relative;flex:none;margin-left:3px;width:19px;height:19px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #c8d4df;border-radius:50%;color:#32617d;opacity:0;cursor:pointer;z-index:6;padding:0}
-.res-bar:hover .rb-locate,.rb-locate:focus-visible{opacity:1}.rb-locate:hover{background:#286082;color:#fff}
+.rb-locate{position:absolute;width:19px;height:19px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #c8d4df;border-radius:50%;color:#32617d;opacity:0;pointer-events:none;cursor:pointer;z-index:6;padding:0}
+.res-row:hover .rb-locate,.rb-locate:focus-visible{opacity:1;pointer-events:auto}.rb-locate:hover{background:#286082;color:#fff}
 .locate-hit{animation:roadmap-locate 2.4s ease;z-index:10!important;outline-offset:2px}
 .g-row.locate-row>.g-lane,.sub-lane.locate-row{background:#d7eefa66}
 .locate-pinned>.g-lane{background:repeating-linear-gradient(135deg,#e9f4fb88 0 6px,#fff8 6px 12px)}

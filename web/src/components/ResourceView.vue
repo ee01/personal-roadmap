@@ -172,7 +172,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
 /** Click on empty space exits focus; clicks on bars/dock/chips handle themselves. */
 function onBackgroundClick(e: MouseEvent) {
   const target = e.target as HTMLElement;
-  if (target.closest('.res-bar,.rp-focus,.rp-del,.rp-name,.rp-name-edit,.res-add,.res-chip,.res-today-btn,.modal-back')) return;
+  if (target.closest('.res-bar,.rb-locate,.rp-focus,.rp-del,.rp-name,.rp-name-edit,.res-add,.res-chip,.res-today-btn,.modal-back')) return;
   clearResSel();
 }
 
@@ -468,6 +468,12 @@ function showEpicPrefix(frac: number): boolean {
    panPx=0 用于渲染后的静止定位，拖动时 applyResPan() 用当前 resPanPx 重算，
    做到「不论左右滚动都固定」。 */
 const titleGroups = new Map<string, { el: HTMLElement; leftPx: number; rightPx: number }>();
+// Row-level overlays can cross the clipped timeline boundary into the member column.
+const locateButtons = new Map<string, HTMLElement>();
+function setLocateButtonEl(subId: string, el: Element | null) {
+  if (el) locateButtons.set(subId, el as HTMLElement);
+  else locateButtons.delete(subId);
+}
 function setTitleGroupEl(subId: string, el: Element | null, s: RoadmapSub, end: Date) {
   if (!el) {
     titleGroups.delete(subId);
@@ -479,9 +485,14 @@ function setTitleGroupEl(subId: string, el: Element | null, s: RoadmapSub, end: 
   titleGroups.set(subId, { el: el as HTMLElement, leftPx, rightPx });
 }
 function updateStickyLabels(panPx: number) {
-  titleGroups.forEach(({ el, leftPx, rightPx }) => {
+  titleGroups.forEach(({ el, leftPx, rightPx }, subId) => {
     const effLeft = leftPx - panPx;
     const effRight = rightPx - panPx;
+    const button = locateButtons.get(subId);
+    if (button) {
+      button.style.left = `${236 + Math.max(0, effLeft) - 24}px`;
+      button.style.visibility = effRight > 0 && effLeft < stripPx.value ? '' : 'hidden';
+    }
     if (effLeft < 0 && effRight > 0) {
       el.style.transform = `translateX(${-effLeft}px)`;
       el.style.maxWidth = `${effRight}px`;
@@ -825,7 +836,6 @@ async function commitRename(m: TeamMember) {
               class="rb-title-group"
               :ref="(el) => setTitleGroupEl(s.id, el as Element | null, s, end)"
             >
-            <button type="button" class="rb-locate" aria-label="在甘特中定位子任务" data-tip="在甘特中定位||保留当前搜索与筛选，可返回人员视图" @pointerdown.stop @click.stop="state.locateInGantt({ itemKey: it.key, subId: s.id })" v-html="LOCATE_SVG" />
               <span
                 v-if="showEpicPrefix(barSpan(s, end).frac)"
                 class="rb-parent"
@@ -881,6 +891,21 @@ async function commitRename(m: TeamMember) {
           {{ overflowCounts(row.placed).after }} 更晚 ▸
         </button>
       </div>
+      <template v-for="({ s, it, end, li }) in row.placed" :key="`locate-${s.id}`">
+        <button
+          v-if="inWindow(s, end)"
+          type="button"
+          class="rb-locate"
+          :ref="(el) => setLocateButtonEl(s.id, el as Element | null)"
+          :style="{ top: `${9 + li * 27}px` }"
+          :data-locate-sub-id="s.id"
+          aria-label="在甘特中定位子任务"
+          data-tip="在甘特中定位||保留当前搜索与筛选，可返回人员视图"
+          @pointerdown.stop
+          @click.stop="state.locateInGantt({ itemKey: it.key, subId: s.id })"
+          v-html="LOCATE_SVG"
+        />
+      </template>
     </div>
 
     <div v-if="state.editable.value" class="res-add">
