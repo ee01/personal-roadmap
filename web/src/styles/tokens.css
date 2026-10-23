@@ -1388,7 +1388,7 @@ textarea.f-input.f-desc{min-height:60px;font-family:var(--sans);font-size:12.5px
 .loc-back button{border:0;background:none;color:inherit;font:inherit;cursor:pointer;white-space:nowrap}
 .dv-locate-title{font:inherit;text-align:left;background:none;border:0;padding:0;cursor:pointer;color:inherit}.dv-locate-title:hover{text-decoration:underline;text-underline-offset:3px}
 .dv-locate{opacity:0;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:var(--muted);cursor:pointer;padding:3px}.dv-grp:hover .dv-locate,.dv-locate:focus-visible{opacity:1}
-.rb-locate{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:19px;height:19px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #c8d4df;border-radius:50%;color:#32617d;opacity:0;cursor:pointer;z-index:6;padding:0}
+.rb-locate{position:relative;flex:none;margin-left:3px;width:19px;height:19px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #c8d4df;border-radius:50%;color:#32617d;opacity:0;cursor:pointer;z-index:6;padding:0}
 .res-bar:hover .rb-locate,.rb-locate:focus-visible{opacity:1}.rb-locate:hover{background:#286082;color:#fff}
 .locate-hit{animation:roadmap-locate 2.4s ease;z-index:10!important;outline-offset:2px}
 .g-row.locate-row>.g-lane,.sub-lane.locate-row{background:#d7eefa66}

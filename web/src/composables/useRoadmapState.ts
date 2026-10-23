@@ -277,6 +277,7 @@ export function createRoadmapState() {
   }
 
   function setSearchQuery(q: string) {
+    if (q !== searchQuery.value) cancelLocate();
     searchQuery.value = q;
   }
 
@@ -289,7 +290,9 @@ export function createRoadmapState() {
   });
 
   function setMsSel(keys: string[]) {
-    msSel.value = [...new Set(keys)];
+    const next = [...new Set(keys)];
+    if (JSON.stringify([...next].sort()) !== JSON.stringify([...msSel.value].sort())) cancelLocate();
+    msSel.value = next;
     const id = teamId.value;
     if (id) {
       try {
@@ -304,6 +307,7 @@ export function createRoadmapState() {
   }
 
   function setMsMode(mode: MilestoneFilterMode) {
+    if (mode !== msMode.value) cancelLocate();
     msMode.value = mode;
     try {
       localStorage.setItem('personalroadmap.msMode', mode);

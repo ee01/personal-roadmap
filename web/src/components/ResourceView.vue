@@ -820,12 +820,12 @@ async function commitRename(m: TeamMember) {
             :data-tip="`${s.key || '草稿'} · ${it.key} · ${fmtMD(s.start!)} → ${fmtMD(end)} · ${s.days}d||${s.title}||${tooltipHintLine(s.description, focusTipHint(s, it, personKeyOf(row)))}`"
             @click="onBarClick(s, personKeyOf(row))"
           >
-            <button type="button" class="rb-locate" aria-label="在甘特中定位子任务" data-tip="在甘特中定位||保留当前搜索与筛选，可返回人员视图" @pointerdown.stop @click.stop="state.locateInGantt({ itemKey: it.key, subId: s.id })" v-html="LOCATE_SVG" />
             <i class="rb-stripe" :style="{ background: epicColor(orderedEpicKeys, it.key) }" />
             <span
               class="rb-title-group"
               :ref="(el) => setTitleGroupEl(s.id, el as Element | null, s, end)"
             >
+            <button type="button" class="rb-locate" aria-label="在甘特中定位子任务" data-tip="在甘特中定位||保留当前搜索与筛选，可返回人员视图" @pointerdown.stop @click.stop="state.locateInGantt({ itemKey: it.key, subId: s.id })" v-html="LOCATE_SVG" />
               <span
                 v-if="showEpicPrefix(barSpan(s, end).frac)"
                 class="rb-parent"

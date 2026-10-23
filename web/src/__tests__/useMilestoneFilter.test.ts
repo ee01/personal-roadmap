@@ -252,4 +252,37 @@ describe('milestone filter state', () => {
     const withDict = mount([item({ key: 'A' })], dict);
     expect(withDict.hasMsData.value).toBe(true);
   });
+  it('ends focus on explicit search/selection/display-mode changes, without changing filters on initial locate', () => {
+    const state = mount([item({ key: 'A', ms: ['LBL-291'] })], dict);
+    const historySpy = vi.spyOn(history, 'replaceState');
+    const focus = () => {
+      state.locate.value = { target: { itemKey: 'A' }, from: null, scrollTop: 0, scrollLeft: 0, label: 'Alpha', serial: 1 };
+      state.syncUrl();
+      expect(String(historySpy.mock.calls.at(-1)?.[2])).toContain('focus=A');
+    };
+    const cleared = () => {
+      expect(state.locate.value).toBeNull();
+      expect(String(historySpy.mock.calls.at(-1)?.[2])).not.toContain('focus=');
+    };
+    focus();
+    state.setSearchQuery('does-not-match');
+    cleared();
+    expect(state.viewMatch(state.snapshot.value!.items[0])).toBe(false);
+    state.setSearchQuery('');
+    focus();
+    state.setMsSel(['LBL-301']);
+    cleared();
+    expect(state.viewMatch(state.snapshot.value!.items[0])).toBe(false);
+    focus();
+    state.setMsMode(state.msMode.value === 'dim' ? 'hide' : 'dim');
+    cleared();
+    focus();
+    state.setSearchQuery(state.searchQuery.value);
+    state.setMsSel(['LBL-301', 'LBL-301']);
+    state.setMsMode(state.msMode.value);
+    expect(state.locate.value).not.toBeNull();
+    expect(state.msSel.value).toEqual(['LBL-301']);
+    historySpy.mockRestore();
+  });
+
 });

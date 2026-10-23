@@ -438,7 +438,6 @@ const LINK_ICON =
                 <span v-if="etaSource(d)">· {{ etaSource(d) }}</span>
               </div>
               <div class="dv-acts">
-                <button type="button" class="dep-act dv-locate-dep" @pointerdown.stop @click.stop="state.locateInGantt({ itemKey: it.key, depId: d.id })"><span v-html="LOCATE_SVG" />甘特</button>
                 <button
                   v-if="undo && undo.id === d.id && state.editable.value"
                   type="button"
