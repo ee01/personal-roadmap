@@ -1389,7 +1389,9 @@ textarea.f-input.f-desc{min-height:60px;font-family:var(--sans);font-size:12.5px
 .dv-locate-title{font:inherit;text-align:left;background:none;border:0;padding:0;cursor:pointer;color:inherit}.dv-locate-title:hover{text-decoration:underline;text-underline-offset:3px}
 .dv-locate{opacity:0;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:var(--muted);cursor:pointer;padding:3px}.dv-grp:hover .dv-locate,.dv-locate:focus-visible{opacity:1}
 .rb-locate{position:absolute;width:19px;height:19px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #c8d4df;border-radius:50%;color:#32617d;opacity:0;pointer-events:none;cursor:pointer;z-index:6;padding:0}
-.res-row:hover .rb-locate,.rb-locate:focus-visible{opacity:1;pointer-events:auto}.rb-locate:hover{background:#286082;color:#fff}
+.rb-locate.is-hovered,.rb-locate:focus-visible{opacity:1;pointer-events:auto}.rb-locate:hover{background:#286082;color:#fff}
+/* Bridge the gap to the bar so moving onto its external icon keeps the same task hovered. */
+.rb-locate::after{content:"";position:absolute;left:100%;top:-2px;width:8px;height:23px}
 .locate-hit{animation:roadmap-locate 2.4s ease;z-index:10!important;outline-offset:2px}
 .g-row.locate-row>.g-lane,.sub-lane.locate-row{background:#d7eefa66}
 .locate-pinned>.g-lane{background:repeating-linear-gradient(135deg,#e9f4fb88 0 6px,#fff8 6px 12px)}

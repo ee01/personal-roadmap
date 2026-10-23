@@ -470,6 +470,14 @@ function showEpicPrefix(frac: number): boolean {
 const titleGroups = new Map<string, { el: HTMLElement; leftPx: number; rightPx: number }>();
 // Row-level overlays can cross the clipped timeline boundary into the member column.
 const locateButtons = new Map<string, HTMLElement>();
+const hoveredSubId = ref<string | null>(null);
+function leaveLocateTarget(event: PointerEvent, subId: string) {
+  const next = event.relatedTarget instanceof Element
+    ? event.relatedTarget.closest('[data-sub-id], [data-locate-sub-id]')
+    : null;
+  if (next?.getAttribute('data-sub-id') === subId || next?.getAttribute('data-locate-sub-id') === subId) return;
+  if (hoveredSubId.value === subId) hoveredSubId.value = null;
+}
 function setLocateButtonEl(subId: string, el: Element | null) {
   if (el) locateButtons.set(subId, el as HTMLElement);
   else locateButtons.delete(subId);
@@ -828,6 +836,8 @@ async function commitRename(m: TeamMember) {
               top: `${8 + li * 27}px`,
             }"
             :data-sub-id="s.id"
+            @pointerenter="hoveredSubId = s.id"
+            @pointerleave="leaveLocateTarget($event, s.id)"
             :data-tip="`${s.key || '草稿'} · ${it.key} · ${fmtMD(s.start!)} → ${fmtMD(end)} · ${s.days}d||${s.title}||${tooltipHintLine(s.description, focusTipHint(s, it, personKeyOf(row)))}`"
             @click="onBarClick(s, personKeyOf(row))"
           >
@@ -896,12 +906,15 @@ async function commitRename(m: TeamMember) {
           v-if="inWindow(s, end)"
           type="button"
           class="rb-locate"
+          :class="{ 'is-hovered': hoveredSubId === s.id }"
           :ref="(el) => setLocateButtonEl(s.id, el as Element | null)"
           :style="{ top: `${9 + li * 27}px` }"
           :data-locate-sub-id="s.id"
           aria-label="在甘特中定位子任务"
           data-tip="在甘特中定位||保留当前搜索与筛选，可返回人员视图"
           @pointerdown.stop
+          @pointerenter="hoveredSubId = s.id"
+          @pointerleave="leaveLocateTarget($event, s.id)"
           @click.stop="state.locateInGantt({ itemKey: it.key, subId: s.id })"
           v-html="LOCATE_SVG"
         />
