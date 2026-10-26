@@ -218,8 +218,28 @@ function barDragStart(
   sub: RoadmapSub | null,
   barEl: HTMLElement,
 ) {
-  if (!props.editable || e.button !== 0) return;
+  if (e.button !== 0) return;
   if ((e.target as HTMLElement).closest('.bar-x, .bar-plus, .bar-link')) return;
+
+  // Read-only sessions keep the single-click expand/collapse interaction:
+  // expanding a row is per-viewer state (expandedKeys + URL), not an edit.
+  // Only drag/resize below stays edit-gated.
+  if (!props.editable) {
+    if (sub) return;
+    const cleanup = () => {
+      window.removeEventListener('pointerup', onUp, true);
+      window.removeEventListener('pointercancel', onCancel, true);
+    };
+    const onUp = (ev: PointerEvent) => {
+      cleanup();
+      if (Math.abs(ev.clientX - e.clientX) > 3 || Math.abs(ev.clientY - e.clientY) > 3) return;
+      void requestToggleExpand();
+    };
+    const onCancel = () => cleanup();
+    window.addEventListener('pointerup', onUp, true);
+    window.addEventListener('pointercancel', onCancel, true);
+    return;
+  }
 
   // ⌘/Ctrl+click opens Jira (modifier+click = new tab muscle memory).
   const jiraKey = sub ? sub.key : props.item.jiraKey;
