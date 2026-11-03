@@ -1404,3 +1404,94 @@ textarea.f-input.f-desc{min-height:60px;font-family:var(--sans);font-size:12.5px
 .dependency-track.locate-hit .dependency-gap{box-shadow:0 0 0 2px #1989bf55}
 .marker-track:has(.dependency-track.locate-hit) .dependency-track:not(.locate-hit){opacity:.25}
 @media(prefers-reduced-motion:reduce){.dependency-track.locate-hit .dependency-point{animation:none;outline:3px solid #1989bf}}
+
+/* ============ Quarter 过滤（Target Delivery Quarter · 与 Milestone 同一套管线，AND 组合） ============
+   快速候选（当前 + 下一个 Quarter）平铺为分段 chip，一次点击即生效；完整候选收进 ▾ 浮层。 */
+:root{ --qc:#11766F; --qc-soft:#E5F3F1; --qc-line:#BCDDD8 }
+.q-seg{display:flex;align-items:center;gap:2px;background:var(--bg);border:1.5px solid var(--line);border-radius:9px;padding:2px;height:32px;flex:none;margin-right:2px}
+.q-chip{position:relative;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px;border-radius:7px;
+  font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--muted);white-space:nowrap;
+  transition:background .16s var(--ms-ease),color .16s var(--ms-ease),box-shadow .16s var(--ms-ease)}
+.q-chip:hover{background:#ECEAE3;color:var(--ink)}
+.q-chip .yr{opacity:.6}
+.q-chip .n{font-size:10px;min-width:16px;text-align:center;border-radius:99px;background:#E7E5DD;color:var(--muted);line-height:15px;padding:0 4px}
+.q-chip.zero{opacity:.55}
+.q-chip.now::after{content:"";position:absolute;left:50%;bottom:1px;width:12px;height:2px;margin-left:-6px;border-radius:2px;background:var(--cur)}
+.q-chip[aria-pressed="true"]{background:var(--panel);color:var(--qc);font-weight:600;box-shadow:0 1px 2px rgba(32,36,42,.1),inset 0 0 0 1px var(--qc-line)}
+.q-chip[aria-pressed="true"] .n{background:var(--qc);color:#fff}
+.q-chip .ov{width:6px;height:6px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px var(--bg)}
+.q-chip[aria-pressed="true"] .ov{box-shadow:0 0 0 2px var(--panel)}
+.q-more{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.q-more:hover{background:#ECEAE3;color:var(--ink)}
+.q-more.on{background:var(--panel);color:var(--qc)}
+.q-more[aria-expanded="true"]{background:var(--panel);color:var(--qc)}
+.q-more[aria-expanded="true"] .car{transform:rotate(180deg)}
+.q-more .car{transition:transform .18s var(--ms-ease)}
+.q-clear{font-size:11.5px;font-weight:600;color:var(--muted);padding:4px 6px;border-radius:6px;flex:none}
+.q-clear:hover{color:var(--qc);background:var(--qc-soft)}
+.q-chip:focus-visible,.q-more:focus-visible,.q-clear:focus-visible,.q-opt:focus-visible,.q-retry:focus-visible{outline:2px solid var(--qc);outline-offset:2px}
+/* 浮层：完整候选 + 数据来源（Jira 字段选项 / 回落窗口） */
+.q-pop{position:fixed;z-index:60;width:344px;max-height:min(560px,calc(100vh - 120px));display:flex;flex-direction:column;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-lg);
+  opacity:0;transform:translateY(-6px) scale(.98);transform-origin:top left;pointer-events:none;
+  transition:opacity .18s var(--ms-ease),transform .22s var(--ms-ease)}
+.q-pop.show{opacity:1;transform:none;pointer-events:auto}
+.q-src{padding:12px 14px 10px;border-bottom:1px solid var(--line2)}
+.q-src .k{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.q-src .k b{color:var(--qc);font-weight:600}
+.q-src .st{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;border-radius:6px;padding:2px 7px;background:var(--qc-soft);color:var(--qc);font-weight:500}
+.q-src .st.fb{background:#FFF1DB;color:#9A5B00}
+.q-src .st i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.q-src p{font-size:11px;color:var(--muted);line-height:1.55;margin-top:6px}
+.q-retry{font-size:11px;font-weight:600;color:var(--qc);text-decoration:underline;text-underline-offset:2px}
+.q-retry:disabled{opacity:.5}
+.q-list{flex:1;overflow-y:auto;padding:4px 6px 6px}
+.q-sec{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);margin:10px 8px 4px;display:flex;align-items:center;gap:8px}
+.q-sec::after{content:"";flex:1;height:1px;background:var(--line2)}
+.q-opt{display:grid;grid-template-columns:16px 1fr auto;align-items:center;column-gap:10px;width:100%;text-align:left;padding:7px 8px;border-radius:8px}
+.q-opt:hover{background:#F1F6F5}
+.q-opt.kb,.q-opt:focus-visible{background:#F1F6F5}
+.q-opt .box{width:16px;height:16px;border-radius:4px;border:1.5px solid #B8BFC7;background:var(--panel);display:flex;align-items:center;justify-content:center;transition:all .14s var(--ms-ease)}
+.q-opt .box svg{opacity:0;transform:scale(.5);transition:all .14s var(--ms-ease)}
+.q-opt[aria-selected="true"] .box{background:var(--qc);border-color:var(--qc)}
+.q-opt[aria-selected="true"] .box svg{opacity:1;transform:none}
+.q-opt .nm{font-family:var(--mono);font-size:12.5px;font-weight:600}
+.q-opt .nm em{font-family:inherit;font-style:normal;font-size:10px;font-weight:600;color:var(--cur-deep);background:#FFF1E0;border-radius:4px;padding:0 5px;margin-left:6px}
+.q-opt .sub{font-size:10.5px;color:var(--muted);margin-top:1px;font-family:var(--mono)}
+.q-opt .rt{text-align:right;font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.45}
+.q-opt .rt .ov{color:var(--danger);font-weight:600}
+.q-opt.zero{opacity:.55}
+.q-show-more{display:block;margin:6px 8px 2px;font-size:11.5px;font-weight:600;color:var(--qc)}
+.q-foot{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid var(--line2)}
+.q-foot .hint{flex:1;font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-foot .clr{font-size:11.5px;font-weight:600;color:var(--muted);padding:4px 8px;border-radius:6px}
+.q-foot .clr:hover:not(:disabled){color:var(--qc);background:var(--qc-soft)}
+.q-foot .clr:disabled{opacity:.4}
+.q-foot .done{padding:5px 14px;font-size:12px}
+/* Backlog：卡片上的 Quarter 超界标注（与 milestone 标签同构）+ 分组头计数 */
+.card-q{display:flex;margin-top:7px}
+.card-q span{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:var(--danger);background:#FDECE8;
+  border:1px solid #F6C4B8;border-radius:5px;padding:1px 7px 1px 6px;font-weight:600}
+.card-q span i{width:8px;height:8px;border:1.5px solid currentColor;border-left:none;border-radius:0 2px 2px 0;flex:none}
+.card-q span em{font-style:normal;font-family:var(--mono);font-weight:500}
+.bl-group-label .q-ov{margin-left:8px;letter-spacing:0;color:var(--danger);font-weight:600}
+.bl-count.q-on{background:var(--qc-soft);color:var(--qc)}
+/* 甘特：所选 Quarter 的窗口底色 + 截止线；超出部分在 bar 上斜纹标出，末端给出天数 */
+.q-band{position:absolute;top:0;bottom:0;background:linear-gradient(180deg,rgba(17,118,111,.055),rgba(17,118,111,.025));
+  border-left:1px solid rgba(17,118,111,.18);pointer-events:none;z-index:0}
+.q-line{position:absolute;top:0;bottom:0;width:0;border-left:1.5px solid var(--qc);z-index:4;pointer-events:none;opacity:.9;
+  animation:msLineIn .32s var(--ms-ease) backwards}
+.q-flag{position:sticky;top:44px;display:inline-flex;align-items:center;gap:5px;margin-left:-1px;pointer-events:auto;
+  background:var(--qc);color:#fff;font-size:10.5px;font-weight:600;border-radius:0 6px 6px 0;padding:2px 8px 2px 6px;
+  white-space:nowrap;box-shadow:0 2px 8px rgba(17,118,111,.28);font-family:var(--mono)}
+.q-flag .d{font-weight:500;opacity:.85}
+.rel-on .q-flag{top:74px}
+.bar .q-over{position:absolute;top:0;bottom:0;pointer-events:none;z-index:1;
+  background:repeating-linear-gradient(-45deg,rgba(228,87,61,.55) 0 3px,rgba(255,255,255,.18) 3px 7px);
+  box-shadow:inset 1.5px 0 0 var(--danger)}
+.ms-late.q-late{top:19px}
+.ms-late.q-late.stacked{top:37px}
+@media (max-width: 1240px){ .q-chip .yr{display:none} }
+@media (prefers-reduced-motion: reduce){
+  .q-pop,.q-chip,.q-line,.q-opt .box svg{animation:none!important;transition:none!important}
+}

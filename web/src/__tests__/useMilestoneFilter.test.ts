@@ -200,7 +200,7 @@ describe('milestone filter state', () => {
       dict,
     );
     state.setMsSel(['LBL-291']);
-    expect(state.msStats.value).toEqual({ hits: 2, scheduled: 1, late: 1 });
+    expect(state.msStats.value).toEqual({ hits: 2, scheduled: 1, late: 1, qOver: 0 });
   });
 
   it('global text filter matches items and subtasks, ANDed with milestones', () => {

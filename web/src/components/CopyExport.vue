@@ -77,6 +77,7 @@ const mainTip = computed(() => {
     }||点击查看说明`;
   }
   const fl = [
+    state.qActive.value && 'Quarter',
     state.msActive.value && 'Milestone',
     state.searchQuery.value.trim() && '搜索',
   ]
@@ -100,7 +101,7 @@ const head = computed<{ title: string; sub: string }>(() => {
     return d.filtered
       ? {
           title: '筛选后没有可复制的条目',
-          sub: '复制只包含 Milestone / 搜索过滤后的结果，调整或清除筛选后再试',
+          sub: '复制只包含 Quarter / Milestone / 搜索过滤后的结果，调整或清除筛选后再试',
         }
       : cp.view.value === 'gantt'
         ? {

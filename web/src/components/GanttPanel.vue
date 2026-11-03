@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useRoadmapState, scheduleFromBacklog, targetWindow, fitTargetWindow } from '../composables/useRoadmapState';
+import { useRoadmapState, scheduleFromBacklog, targetWindow, fitTargetWindow, QUARTER_NONE } from '../composables/useRoadmapState';
 import {
   X,
   DAY_W,
@@ -17,6 +17,9 @@ import {
   mStart,
   parseDate,
   qOf,
+  qStart,
+  qEnd,
+  qCmp,
   type Timeline,
 } from '../composables/useGeometry';
 import {
@@ -111,6 +114,47 @@ function msSelNames(): string {
     .join(' / ');
 }
 
+/* ---------- Quarter 窗口底色 + 截止线：选中的 Quarter 画在甘特上 ----------
+   底色标出 Quarter 的时间范围；截止线（旗标）钉在 Quarter 最后一天。 */
+const qBands = computed(() => {
+  if (!state.qActive.value) {
+    return [] as Array<{ q: string; left: number; width: number; end: Date | null; over: number }>;
+  }
+  return state.qSel.value
+    .filter((q) => q !== QUARTER_NONE)
+    .map((q) => {
+      const s = qStart(q);
+      const e = qEnd(q);
+      const from = s < tl.value.start ? tl.value.start : s;
+      const to = e > tl.value.end ? tl.value.end : e;
+      if (to < from) return null;
+      const left = X(tl.value, from);
+      const width = X(tl.value, to) + DAY_W.value - left;
+      return {
+        q,
+        left,
+        width,
+        end: e <= tl.value.end ? e : null,
+        over: state.qOverCount(q),
+      };
+    })
+    .filter((b): b is NonNullable<typeof b> => Boolean(b));
+});
+
+function qFlagTip(b: { q: string; end: Date; over: number }): string {
+  return `${b.q} 截止 · ${fmtMD(b.end)}||${
+    b.over
+      ? `${b.over} 个 ${b.q} 条目的结束日越过这条线（bar 上斜纹部分）`
+      : `${b.q} 的条目都在这条线之前结束`
+  }||Target Delivery Quarter 取自 Jira`;
+}
+
+function qSelNames(): string {
+  return [...state.qSel.value].sort((a, b) =>
+    a === QUARTER_NONE ? 1 : b === QUARTER_NONE ? -1 : qCmp(a, b),
+  ).join(' / ');
+}
+
 /** 隐藏模式下全部行都被过滤掉时，给出明确的空态而非空白画布。 */
 const msHideEmpty = computed(
   () =>
@@ -122,6 +166,7 @@ const msHideEmpty = computed(
 
 function clearViewFilters() {
   state.setMsSel([]);
+  state.setQSel([]);
   state.setSearchQuery('');
 }
 
@@ -1474,6 +1519,12 @@ onUnmounted(() => {
             :style="{ left: `${X(tl, today) + DAY_W / 2}px` }"
           />
           <div
+            v-for="band in qBands"
+            :key="`qb-${band.q}`"
+            class="q-band"
+            :style="{ left: `${band.left}px`, width: `${band.width}px` }"
+          />
+          <div
             v-for="line in msLines"
             :key="`ms-${line.date.getTime()}`"
             class="ms-line"
@@ -1488,13 +1539,24 @@ onUnmounted(() => {
               <span class="d">{{ fmtMD(line.date) }}</span>
             </span>
           </div>
+          <div v-for="band in qBands" :key="`ql-${band.q}`">
+            <div
+              v-if="band.end"
+              class="q-line"
+              :style="{ left: `${X(tl, band.end) + DAY_W - 1}px` }"
+            >
+              <span class="q-flag" :data-tip="qFlagTip({ q: band.q, end: band.end, over: band.over })">
+                {{ band.q }}<span class="d">止 {{ fmtMD(band.end) }}</span>
+              </span>
+            </div>
+          </div>
           <div v-if="!state.scheduledItems.value.length" class="g-empty">
             时间轴还是空的<br />把左侧 <b>Backlog</b> 的卡片拖进来开始排期
           </div>
           <div v-else-if="msHideEmpty" class="g-empty ms-empty">
-            时间轴上没有<template v-if="state.msActive.value">属于 <b>{{ msSelNames() }}</b> </template><template
+            时间轴上没有<template v-if="state.qActive.value">属于 <b>{{ qSelNames() }}</b> </template><template v-if="state.msActive.value">{{ state.qActive.value ? '且属于 ' : '属于' }}<b>{{ msSelNames() }}</b> </template><template
               v-if="state.searchActive.value"
-            >{{ state.msActive.value ? '且' : '' }}匹配「<b>{{ state.searchQuery.value.trim() }}</b>」</template>的条目<br />
+            >{{ state.qActive.value || state.msActive.value ? '且' : '' }}匹配「<b>{{ state.searchQuery.value.trim() }}</b>」</template>的条目<br />
             可从左侧 Backlog 拖入，或<br />
             <button type="button" @click="clearViewFilters">清除过滤</button>
           </div>

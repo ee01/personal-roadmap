@@ -1,5 +1,5 @@
 import { computed, reactive } from 'vue';
-import { addD, dateMs, esc, fmtISO, fmtMD, today } from './useGeometry';
+import { addD, dateMs, esc, fmtISO, fmtMD, qCmp, today } from './useGeometry';
 import {
   isDraftItem,
   itemDisplayKey,
@@ -189,11 +189,13 @@ export interface CopyCollectInput {
   search: string;
   /** 选中的 milestone 名称（用于过滤说明）；null = 未开启 milestone 过滤 */
   msNames: string | null;
+  /** 选中的 Target Delivery Quarter（用于过滤说明）；null/未传 = 未开启 quarter 过滤 */
+  qNames?: string | null;
   /** 人员视图的时间窗（winOnly 生效时传入）；null = 不限 */
   win: { s: Date; e: Date } | null;
   /** 人员视图是否为「全部时间」模式 */
   resWinAll: boolean;
-  /** 与甘特行过滤同口径：milestone（OR）AND 文本（含子任务命中） */
+  /** 与甘特行过滤同口径：milestone（OR）AND quarter（OR）AND 文本（含子任务命中） */
   epicMatch: (it: RoadmapItem) => boolean;
   /** 系统名 → 显示名（Assignee 映射） */
   showName: (raw: string | null | undefined) => string;
@@ -255,8 +257,10 @@ function filterNote(
   unit: string,
   msNames: string | null,
   search: string,
+  qNames?: string | null,
 ): CopyNote | null {
   const parts: string[] = [];
+  if (qNames) parts.push(`Quarter「<b>${esc(qNames)}</b>」`);
   if (msNames) parts.push(`Milestone「<b>${esc(msNames)}</b>」`);
   const q = search.trim();
   if (q) parts.push(`搜索「<b>${esc(q)}</b>」`);
@@ -285,7 +289,8 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
     if (!tokens.length || epicSelfMatch(it, tokens)) return subs;
     return subs.filter((s) => subMatch(s, tokens));
   };
-  const filtered = Boolean(input.msNames) || Boolean(input.search.trim());
+  const filtered =
+    Boolean(input.msNames) || Boolean(input.qNames) || Boolean(input.search.trim());
 
   if (input.view === 'dependency') {
     const groups = dependencyGroups(
@@ -318,6 +323,7 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
       'Epic',
       input.msNames,
       input.search,
+      input.qNames,
     );
     if (note) notes.push(note);
     if (input.dependencyFilter && input.dependencyFilter !== 'all')
@@ -384,6 +390,7 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
       'Epic',
       input.msNames,
       input.search,
+      input.qNames,
     );
     if (note) notes.push(note);
     const draft = draftNote(drafts);
@@ -443,7 +450,7 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
   }
   const n = groups.reduce((a, g) => a + g.rows.length, 0);
   const notes: CopyNote[] = [];
-  const note = filterNote(n, total, 'Task', input.msNames, input.search);
+  const note = filterNote(n, total, 'Task', input.msNames, input.search, input.qNames);
   if (note) notes.push(note);
   if (!input.resWinAll) {
     notes.push(
@@ -743,6 +750,9 @@ export function useCopyExport() {
           .join(' / ')
       : null,
   );
+  const qNames = computed<string | null>(() =>
+    state.qActive.value ? [...state.qSel.value].sort((a, b) => qCmp(a, b)).join(' / ') : null,
+  );
   const win = computed<{ s: Date; e: Date } | null>(() => {
     if (
       view.value !== 'resource' ||
@@ -763,6 +773,7 @@ export function useCopyExport() {
       includeSubs: options.gantt.subs,
       search: state.searchQuery.value,
       msNames: msNames.value,
+      qNames: qNames.value,
       win: win.value,
       resWinAll: state.resWin.value === 'all',
       epicMatch: (it) => state.viewMatch(it),
@@ -783,5 +794,5 @@ export function useCopyExport() {
     return { ok: writeRichClipboard(payload.value) };
   }
 
-  return { state, view, options, data, payload, msNames, copyNow, setOpt };
+  return { state, view, options, data, payload, msNames, qNames, copyNow, setOpt };
 }

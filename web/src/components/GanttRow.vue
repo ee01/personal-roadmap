@@ -134,6 +134,18 @@ const msRowCls = computed(() => {
 
 const locatePinned = computed(() => state.locate.value?.target.itemKey === props.item.key && state.filterActive.value && state.msMode.value === 'hide' && !state.viewMatch(props.item));
 const msLate = computed(() => state.msLateOf(props.item));
+/* ---------- Quarter 过滤：结束日超出所属 Target Delivery Quarter ---------- */
+const qLate = computed(() => state.qOverOf(props.item));
+/** bar 上越过 Quarter 截止线的部分（斜纹），宽度按超出天数裁剪。 */
+const qOverStyle = computed(() => {
+  const ov = qLate.value;
+  if (!ov || !props.item.scheduled || !props.item.days) return null;
+  const overDays = Math.min(ov.days, props.item.days);
+  return {
+    left: `${(props.item.days - overDays) * DAY_W.value}px`,
+    width: `${Math.min(overDays * DAY_W.value, barW.value - (props.item.days - overDays) * DAY_W.value)}px`,
+  };
+});
 
 function msShortName(name: string): string {
   return name.length > 22 ? `${name.slice(0, 21)}…` : name;
@@ -1026,7 +1038,7 @@ watch(
 <template>
   <div ref="rowRef" class="g-row" :class="[msRowCls, { 'locate-pinned': locatePinned }]" :data-key="item.key">
     <div class="g-lane">
-      <div v-if="locatePinned" class="loc-pin-note" :style="{ left: `${Math.max(0, barLeft())}px` }">临时显示 · 不在当前{{ state.msActive.value ? ' Milestone' : '搜索' }}过滤内 <button type="button" aria-label="收起临时显示" @pointerdown.stop @click.stop="state.cancelLocate()">×</button></div>
+      <div v-if="locatePinned" class="loc-pin-note" :style="{ left: `${Math.max(0, barLeft())}px` }">临时显示 · 不在当前{{ state.msActive.value ? ' Milestone' : state.qActive.value ? ' Quarter' : '搜索' }}过滤内 <button type="button" aria-label="收起临时显示" @pointerdown.stop @click.stop="state.cancelLocate()">×</button></div>
       <div
         class="bar"
         :class="[
@@ -1097,6 +1109,7 @@ watch(
           </span>
         </span>
         <div class="hdl l" />
+        <div v-if="qOverStyle" class="q-over" :style="qOverStyle" aria-hidden="true" />
         <div class="hdl r" />
         <div class="pai-overlay-slot" />
         <button
@@ -1118,6 +1131,17 @@ watch(
       >
         <i />
         晚于 {{ msShortName(msLate.ms.name) }} {{ msLate.days }}d
+      </span>
+      <!-- 结束日超出所属 Target Delivery Quarter：bar 末端标出差值（与 milestone 晚于同构） -->
+      <span
+        v-if="qLate"
+        class="ms-late q-late"
+        :class="{ stacked: msLate }"
+        :style="{ left: `${barLeft() + barW + 8}px` }"
+        :data-tip="`结束日 ${fmtMD(qLate.end)} 超出 ${qLate.q} ${qLate.days} 天||Target Delivery Quarter ${qLate.q} 止 ${fmtMD(qLate.qEnd)}||缩短 / 前移排期到截止线之前，或在 Jira 把 Quarter 改到下一季`"
+      >
+        <i />
+        超出 {{ qLate.q }} {{ qLate.days }}d
       </span>
       <button
         v-if="editable"

@@ -1,20 +1,23 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRoadmapState } from '../composables/useRoadmapState';
-import { esc, fmtMD, parseDate, today, diffD } from '../composables/useGeometry';
+import { useRoadmapState, QUARTER_NONE } from '../composables/useRoadmapState';
+import { CURQ, esc, fmtMD, parseDate, qEnd, qStart, today, diffD } from '../composables/useGeometry';
 import type { MilestoneValue } from '../types';
 import MilestonePopover from './MilestonePopover.vue';
+import QuarterPopover from './QuarterPopover.vue';
 import CopyExport from './CopyExport.vue';
 
 /**
  * 视图过滤行（原 Quarter 导入栏）。横跨 Backlog 与甘特，只放「影响看什么」的
  * 过滤；Quarter 勾选与导入属于「拉什么数据」，移到了 Backlog 标题旁的「↻ 拉取」。
- * MILESTONE 与文本搜索是 AND，同时作用于 Backlog 与甘特；没有 Custom Label 数据时
- * 只显示搜索框。
+ * QUARTER / MILESTONE 与文本搜索是 AND，同时作用于 Backlog 与甘特；没有数据时
+ * 对应段不显示。
  */
 const state = useRoadmapState();
 const triggerEl = ref<HTMLElement | null>(null);
 const popOpen = ref(false);
+const qTriggerEl = ref<HTMLElement | null>(null);
+const qPopOpen = ref(false);
 
 const selMilestones = computed(() =>
   state.msSel.value
@@ -34,6 +37,29 @@ function openPop() {
 function closePop(refocus?: boolean) {
   popOpen.value = false;
   if (refocus) triggerEl.value?.focus();
+}
+
+/* ---------- Quarter 过滤（Target Delivery Quarter） ----------
+   当前 + 下一个 Quarter 直接平铺为 chip（一次点击即生效）；完整候选在 ▾ 浮层。 */
+function toggleQ(q: string) {
+  const sel = state.qSel.value;
+  state.setQSel(sel.includes(q) ? sel.filter((k) => k !== q) : [...sel, q]);
+}
+
+function qChipTip(q: string): string {
+  if (q === QUARTER_NONE) return '未设置 Target Delivery Quarter||单击切换 · 多选 = 命中任一';
+  const n = state.qCount(q);
+  const over = state.qOverCount(q);
+  return `${q}${q === CURQ ? ' · 当前 Quarter' : ''} · ${fmtMD(qStart(q))} → ${fmtMD(qEnd(q))}||${n} 个条目${over ? ' · 有条目的结束日超出该 Quarter' : ''}||单击切换 · 多选 = 命中任一`;
+}
+
+function openQPop() {
+  qPopOpen.value = true;
+}
+
+function closeQPop(refocus?: boolean) {
+  qPopOpen.value = false;
+  if (refocus) qTriggerEl.value?.focus();
 }
 
 function tokenTip(ms: MilestoneValue) {
@@ -74,6 +100,55 @@ function relOf(date: Date): string {
 <template>
   <div v-if="state.snapshot.value" class="import-bar filter-bar">
     <div class="ms-filter">
+      <template v-if="state.hasQData.value">
+        <span class="ib-label">QUARTER</span>
+        <div class="q-seg" role="group" aria-label="按 Target Delivery Quarter 过滤">
+          <button
+            v-for="q in state.quickQuarters.value"
+            :key="q"
+            type="button"
+            class="q-chip"
+            :class="{ zero: !state.qCount(q), now: q === CURQ }"
+            :aria-pressed="state.qSel.value.includes(q)"
+            :data-tip="qChipTip(q)"
+            @click="toggleQ(q)"
+          >
+            <template v-if="q === QUARTER_NONE">未设置</template>
+            <template v-else><span class="yr">{{ q.slice(0, 5) }}</span>{{ q.slice(5) }}</template>
+            <span class="n">{{ state.qCount(q) }}</span>
+            <span v-if="state.qOverCount(q)" class="ov" aria-label="有超界条目" />
+          </button>
+          <button
+            ref="qTriggerEl"
+            class="q-more"
+            :class="{ on: state.qActive.value }"
+            type="button"
+            aria-haspopup="listbox"
+            :aria-expanded="qPopOpen"
+            aria-controls="qPop"
+            data-tip="全部 Quarter||候选优先来自 Jira「Target Delivery Quarter」字段选项；读不到时按当前 Quarter 前 2 后 1 推算"
+            @click="qPopOpen ? closeQPop() : openQPop()"
+          >
+            <svg class="car" width="10" height="10" viewBox="0 0 12 12" aria-hidden="true">
+              <path
+                d="M2 4l4 4 4-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <button
+          v-if="state.qActive.value"
+          type="button"
+          class="q-clear"
+          @click="state.setQSel([])"
+        >
+          清除
+        </button>
+      </template>
       <template v-if="state.hasMsData.value">
         <span class="ib-label">MILESTONE</span>
         <button
@@ -197,6 +272,9 @@ function relOf(date: Date): string {
           <template v-if="state.msStats.value.late">
             · <span class="late">{{ state.msStats.value.late }} 项晚于 milestone</span>
           </template>
+          <template v-if="state.msStats.value.qOver">
+            · <span class="late">{{ state.msStats.value.qOver }} 项超出 Quarter</span>
+          </template>
         </span>
         <CopyExport />
       </div>
@@ -206,5 +284,10 @@ function relOf(date: Date): string {
     v-if="popOpen"
     :trigger-el="triggerEl"
     @close="(refocus?: boolean) => closePop(refocus)"
+  />
+  <QuarterPopover
+    v-if="qPopOpen"
+    :trigger-el="qTriggerEl"
+    @close="(refocus?: boolean) => closeQPop(refocus)"
   />
 </template>

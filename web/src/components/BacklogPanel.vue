@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRoadmapState } from '../composables/useRoadmapState';
+import { useRoadmapState, QUARTER_NONE } from '../composables/useRoadmapState';
 import {
   buildBacklogGroups,
   canDeleteItem,
@@ -347,6 +347,32 @@ function msSelNames(): string {
     .join(' / ');
 }
 
+/* ---------- Quarter 超界标注（卡片上） ----------
+   Quarter 过滤开启且该条目的结束日（未排期 = Jira Target End）超出其
+   Target Delivery Quarter 时标红，拖入时间轴前就值得留意。 */
+function cardQOver(item: RoadmapItem) {
+  return state.qOverOf(item);
+}
+
+function cardQTip(item: RoadmapItem): string {
+  const ov = cardQOver(item);
+  if (!ov) return '';
+  return `Target Delivery Quarter ${ov.q} · 截止 ${fmtMD(ov.qEnd)}||Jira Target End ${fmtMD(ov.end)}，超出 ${ov.q} ${ov.days} 天||要么把 Target End 收回到 ${fmtMD(ov.qEnd)} 之前，要么把 Quarter 改到下一季`;
+}
+
+/** 分组头上的超界计数（仅过滤开启时该组选中的 Quarter 有超界条目时显示）。 */
+function groupQOver(q: string): number {
+  return filteredBacklog.value.filter(
+    (it) => (it.quarter || QUARTER_NONE) === q && state.qOverOf(it),
+  ).length;
+}
+
+function qSelNames(): string {
+  return [...state.qSel.value].sort((a, b) =>
+    a === QUARTER_NONE ? 1 : b === QUARTER_NONE ? -1 : qCmp(a, b),
+  ).join(' / ');
+}
+
 function cardTipHead(item: RoadmapItem) {
   const bits = [
     itemDisplayKey(item),
@@ -406,7 +432,7 @@ onBeforeUnmount(() => {
         Backlog
         <span
           class="bl-count"
-          :class="{ 'ms-on': state.msActive.value }"
+          :class="{ 'ms-on': state.msActive.value, 'q-on': state.qActive.value }"
         >
           <template v-if="state.filterActive.value">
             {{ filteredBacklog.length }}/{{ state.backlogItems.value.length }}
@@ -475,7 +501,7 @@ onBeforeUnmount(() => {
     <div ref="bodyEl" class="bl-body">
       <template v-if="filteredBacklog.length">
         <template v-for="[q, items] in groups" :key="q">
-          <div class="bl-group-label">{{ q }}</div>
+          <div class="bl-group-label">{{ q === QUARTER_NONE ? '未设置 Quarter' : q }}<span v-if="groupQOver(q)" class="q-ov">{{ groupQOver(q) }} 超出</span></div>
           <div
             v-for="it in items"
             :key="it.key"
@@ -559,6 +585,12 @@ onBeforeUnmount(() => {
                 +{{ itemMsList(it).length - 2 }}
               </span>
             </div>
+            <div v-if="cardQOver(it)" class="card-q">
+              <span :data-tip="cardQTip(it)">
+                <i />超出 {{ cardQOver(it)!.q }}
+                <em>Target End {{ fmtMD(cardQOver(it)!.end) }} · +{{ cardQOver(it)!.days }}d</em>
+              </span>
+            </div>
             <span
               v-if="it.subs.length"
               class="card-subs"
@@ -579,14 +611,15 @@ onBeforeUnmount(() => {
         </template>
       </template>
       <div
-        v-else-if="state.msActive.value && state.backlogItems.value.length"
+        v-else-if="(state.msActive.value || state.qActive.value) && state.backlogItems.value.length"
         class="bl-empty"
       >
-        Backlog 中没有属于<br /><b>{{ msSelNames() }}</b><br />的未排期条目<template
+        Backlog 中没有属于<br />
+        <b v-if="state.qActive.value">{{ qSelNames() }}</b><template v-if="state.qActive.value && state.msActive.value"> 且 </template><b v-if="state.msActive.value">{{ msSelNames() }}</b><br />的未排期条目<template
           v-if="searchText"
         >（且匹配「{{ searchText }}」）</template><br />
-        <button class="bl-empty-link" type="button" @click="state.setMsSel([])">
-          清除 milestone 过滤
+        <button class="bl-empty-link" type="button" @click="state.setQSel([]); state.setMsSel([])">
+          清除 Quarter / Milestone 过滤
         </button>
       </div>
       <div v-else-if="searchText && state.backlogItems.value.length" class="bl-empty">

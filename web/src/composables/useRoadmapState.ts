@@ -32,12 +32,16 @@ import {
   CURQ,
   diffD,
   fmtISO,
+  nextQ,
   parseDate,
+  prevQ,
+  qCmp,
+  qEnd,
   today,
 } from './useGeometry';
 import { useRoadmapApi } from './useRoadmapApi';
 import { formatGanttFocus, parseGanttFocus, resolveGanttTarget, type GanttTarget, type GanttLocation } from './ganttLocate';
-import { bridgeFetchCustomLabelValues } from './useExtensionBridge';
+import { bridgeFetchCustomLabelValues, bridgeFetchQuarterOptions } from './useExtensionBridge';
 import { isDoneStatus, itemDisplayKey } from './useRoadmapContract';
 
 export const ROADMAP_STATE_KEY: InjectionKey<ReturnType<typeof createRoadmapState>> =
@@ -76,6 +80,9 @@ export type OptimisticRemoval = {
   kind: 'delete' | 'unschedule';
   itemKey: string;
 };
+
+/** 未设置 Target Delivery Quarter 的条目归入的分组值（不是合法 quarter，排序时垫底）。 */
+export const QUARTER_NONE = '—';
 
 /**
  * Project in-flight Gantt→Backlog and Backlog deletes onto a server snapshot.
@@ -155,6 +162,46 @@ export function createRoadmapState() {
   const MS_DICT_TTL_MS = 6 * 60 * 60 * 1000;
   const msSelStorageKey = (teamId: string) =>
     `personalroadmap.msSel.${teamId}`;
+
+  // ---------- Quarter 过滤（Target Delivery Quarter） ----------
+  // 与 milestone 过滤同构：一个多选状态（按团队记忆）+ 一个谓词 qMatch，Backlog /
+  // 甘特 / 依赖视图 / 复制导出共用（都走 viewMatch）；多选之间 OR，与 milestone /
+  // 文本 AND。未设置 Quarter 的条目归入 Q_NONE，可选「未设置」一并过滤。
+  const Q_NONE = QUARTER_NONE;
+  const Q_OPTS_CACHE_KEY = 'personalroadmap.qOpts';
+  const Q_OPTS_TTL_MS = 6 * 60 * 60 * 1000;
+  const qSel = ref<string[]>([]);
+  /** Jira「Target Delivery Quarter」字段选项；null = 未读到，按回落窗口推算。 */
+  const qOptions = ref<string[] | null>(readCachedQuarterOptions());
+  const qOptFetchedAt = ref(readCachedQuarterOptionsFetchedAt());
+  const qOptSyncing = ref(false);
+  const qSelStorageKey = (teamId: string) => `personalroadmap.qSel.${teamId}`;
+
+  function readCachedQuarterOptions(): string[] | null {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(Q_OPTS_CACHE_KEY) || 'null');
+      if (
+        parsed &&
+        Array.isArray(parsed.values) &&
+        Number(parsed.fetchedAt) &&
+        Date.now() - parsed.fetchedAt < Q_OPTS_TTL_MS
+      ) {
+        return parsed.values.map(String).filter(Boolean);
+      }
+    } catch {
+      /* private mode / corrupt cache */
+    }
+    return null;
+  }
+
+  function readCachedQuarterOptionsFetchedAt(): number {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(Q_OPTS_CACHE_KEY) || 'null');
+      return parsed && Number(parsed.fetchedAt) ? Number(parsed.fetchedAt) : 0;
+    } catch {
+      return 0;
+    }
+  }
 
   function readStoredMsMode(): MilestoneFilterMode {
     try {
@@ -242,12 +289,157 @@ export function createRoadmapState() {
     return worst;
   }
 
+  // ---------- Quarter 过滤（Target Delivery Quarter） ----------
+  const qActive = computed(() => qSel.value.length > 0);
+  /** 没有任何 Quarter 数据（全部条目未设置且团队无导入记录）时，QUARTER 段不显示。 */
+  const hasQData = computed(
+    () =>
+      (snapshot.value?.items.some((i) => Boolean(i.quarter)) || false) ||
+      (snapshot.value?.team.importedQuarters.length || 0) > 0,
+  );
+
+  function qMatch(item: Pick<RoadmapItem, 'quarter'>): boolean {
+    if (!qActive.value) return true;
+    return qSel.value.includes(item.quarter || Q_NONE);
+  }
+
+  /** 条目的结束日：已排期 = bar 结束；未排期 = Jira Target End。 */
+  function qEndOf(
+    item: Pick<RoadmapItem, 'scheduled' | 'start' | 'days' | 'targetEnd'>,
+  ): Date | null {
+    if (item.scheduled && item.start && item.days) {
+      return addD(item.start, item.days - 1);
+    }
+    return item.targetEnd ? parseDate(item.targetEnd) : null;
+  }
+
+  /**
+   * 结束日超出其 Target Delivery Quarter 最后一天的天数（Backlog 卡片标红 /
+   * 甘特 bar 斜纹用）。默认只看已选中的 Quarter；`force` 供 chip 上的红点在
+   * 未开启过滤时也能暴露风险。已完成 / 无日期 / 未设置 Quarter → null。
+   */
+  function qOverOf(
+    item: RoadmapItem,
+    force = false,
+  ): { q: string; days: number; end: Date; qEnd: Date } | null {
+    if (!item.quarter || isDoneStatus(item)) return null;
+    if (!force && (!qActive.value || !qSel.value.includes(item.quarter))) {
+      return null;
+    }
+    const end = qEndOf(item);
+    if (!end) return null;
+    const qe = qEnd(item.quarter);
+    const days = diffD(qe, end);
+    return days > 0 ? { q: item.quarter, days, end, qEnd: qe } : null;
+  }
+
+  /** 候选列表：Jira 字段选项（读不到 → 当前 Quarter 前 2 后 1 回落）+ 条目上出现的新值。 */
+  const qCandidates = computed<{
+    list: string[];
+    extra: string[];
+    source: 'jira' | 'fallback';
+  }>(() => {
+    const items = snapshot.value?.items || [];
+    const base = qOptions.value
+      ? [...qOptions.value]
+      : [prevQ(prevQ(CURQ)), prevQ(CURQ), CURQ, nextQ(CURQ)];
+    const extra = [...new Set(items.map((i) => i.quarter).filter(Boolean))]
+      .filter((q) => !base.includes(q));
+    const list = [...base, ...extra].sort(qCmp);
+    if (items.some((i) => !i.quarter)) list.push(Q_NONE);
+    return { list, extra, source: qOptions.value ? 'jira' : 'fallback' };
+  });
+
+  function qCount(q: string): number {
+    const items = snapshot.value?.items || [];
+    return items.filter((i) => (i.quarter || Q_NONE) === q).length;
+  }
+
+  /** 该 Quarter 下结束日超界的条目数（chip 红点 / 浮层计数；不受过滤开关影响）。 */
+  function qOverCount(q: string): number {
+    const items = snapshot.value?.items || [];
+    if (q === Q_NONE) return 0;
+    return items.filter((i) => i.quarter === q && qOverOf(i, true)).length;
+  }
+
+  /** 快速平铺的 Quarter：当前 + 下一个，外加已选中的其他 Quarter（便于一键取消）。 */
+  const quickQuarters = computed(() =>
+    [...new Set([CURQ, nextQ(CURQ), ...qSel.value])].sort((a, b) =>
+      a === Q_NONE ? 1 : b === Q_NONE ? -1 : qCmp(a, b),
+    ),
+  );
+
+  function setQSel(keys: string[]) {
+    const next = [...new Set(keys)];
+    if (
+      JSON.stringify([...next].sort()) !== JSON.stringify([...qSel.value].sort())
+    )
+      cancelLocate();
+    qSel.value = next;
+    const id = teamId.value;
+    if (id) {
+      try {
+        localStorage.setItem(qSelStorageKey(id), JSON.stringify(qSel.value));
+      } catch {
+        /* private mode */
+      }
+    }
+  }
+
+  function loadQSel(teamId: string): string[] {
+    try {
+      const parsed = JSON.parse(
+        localStorage.getItem(qSelStorageKey(teamId)) || '[]',
+      );
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * 经扩展读 Jira「Target Delivery Quarter」字段选项并缓存（6 小时 TTL，
+   * localStorage 兜底）；读不到（无扩展 / 未实现 / 失败）时保持回落窗口。
+   */
+  async function syncQuarterOptions(opts: { force?: boolean } = {}): Promise<void> {
+    if (qOptSyncing.value) return;
+    if (
+      !opts.force &&
+      qOptFetchedAt.value > 0 &&
+      Date.now() - qOptFetchedAt.value < Q_OPTS_TTL_MS
+    ) {
+      return;
+    }
+    if (!api.hasExtension()) return;
+    qOptSyncing.value = true;
+    try {
+      const values = await bridgeFetchQuarterOptions();
+      if (!values.length) return;
+      qOptions.value = values;
+      qOptFetchedAt.value = Date.now();
+      try {
+        localStorage.setItem(
+          Q_OPTS_CACHE_KEY,
+          JSON.stringify({ values, fetchedAt: qOptFetchedAt.value }),
+        );
+      } catch {
+        /* private mode */
+      }
+    } catch {
+      /* 扩展未实现 / 未登录：保持回落窗口，浮层里说明来源 */
+    } finally {
+      qOptSyncing.value = false;
+    }
+  }
+
   // ---------- 全局文本过滤 ----------
-  // 与 milestone 过滤 AND，同时作用于 Backlog 与甘特；仅本次会话，切换团队清空。
+  // 与 milestone / quarter 过滤 AND，同时作用于 Backlog 与甘特；仅本次会话，切换团队清空。
   const searchQuery = ref('');
   const searchActive = computed(() => searchQuery.value.trim().length > 0);
-  /** 任一视图过滤生效（milestone 或文本）；甘特据此决定是否淡化 / 隐藏未匹配行。 */
-  const filterActive = computed(() => msActive.value || searchActive.value);
+  /** 任一视图过滤生效（milestone / quarter / 文本）；甘特据此决定是否淡化 / 隐藏未匹配行。 */
+  const filterActive = computed(
+    () => msActive.value || qActive.value || searchActive.value,
+  );
 
   function textMatch(item: RoadmapItem): boolean {
     const tokens = searchQuery.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -271,9 +463,9 @@ export function createRoadmapState() {
     return tokens.every((token) => haystack.includes(token));
   }
 
-  /** Backlog / 甘特共用的最终谓词：milestone（OR）AND 文本。 */
+  /** Backlog / 甘特共用的最终谓词：milestone（OR）AND quarter（OR）AND 文本。 */
   function viewMatch(item: RoadmapItem): boolean {
-    return msMatch(item) && textMatch(item);
+    return msMatch(item) && qMatch(item) && textMatch(item);
   }
 
   function setSearchQuery(q: string) {
@@ -285,8 +477,9 @@ export function createRoadmapState() {
     const items = snapshot.value?.items || [];
     const hits = items.filter((i) => viewMatch(i));
     const late = hits.filter((i) => msLateOf(i) !== null).length;
+    const qOver = hits.filter((i) => qOverOf(i) !== null).length;
     const scheduled = hits.filter((i) => i.scheduled).length;
-    return { hits: hits.length, scheduled, late };
+    return { hits: hits.length, scheduled, late, qOver };
   });
 
   function setMsSel(keys: string[]) {
@@ -565,6 +758,7 @@ export function createRoadmapState() {
         else toast('定位链接无效，已显示当前甘特');
       }
       msSel.value = loadMsSel(id);
+      qSel.value = loadQSel(id);
       searchQuery.value = '';
       activity.value = (await api.fetchActivity(id)).filter(
         (entry) => !entry.teamId || entry.teamId === id,
@@ -907,6 +1101,19 @@ export function createRoadmapState() {
     msMatch,
     msLateOf,
     msStats,
+    qSel,
+    qActive,
+    hasQData,
+    qMatch,
+    qOverOf,
+    qCandidates,
+    qCount,
+    qOverCount,
+    quickQuarters,
+    setQSel,
+    syncQuarterOptions,
+    qOptSyncing,
+    qOptFetchedAt,
     searchQuery,
     searchActive,
     filterActive,

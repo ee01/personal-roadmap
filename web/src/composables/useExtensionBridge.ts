@@ -33,7 +33,8 @@ type BridgeResultType =
   | 'pai-roadmap-update-target-dates-result'
   | 'pai-roadmap-update-assignee-result'
   | 'pai-roadmap-refresh-jira-result'
-  | 'pai-roadmap-custom-labels-result';
+  | 'pai-roadmap-custom-labels-result'
+  | 'pai-roadmap-quarter-options-result';
 
 const ACK_TIMEOUT_MS = 4_000;
 /** Must cover one Epic Agent run (content script polls up to 30 min). */
@@ -404,6 +405,24 @@ export async function bridgeFetchCustomLabelValues(
   await Promise.race([acked, pending]);
   const result = await pending;
   return Array.isArray(result.values) ? result.values : [];
+}
+
+export async function bridgeFetchQuarterOptions(): Promise<string[]> {
+  const id = requestId();
+  const pending = waitForBridgeResult<{
+    ok: true;
+    values: string[];
+  }>('pai-roadmap-quarter-options-result', id, 15_000);
+  const acked = waitForBridgeAck('pai-roadmap-quarter-options-ack', id);
+  pending.catch(() => undefined);
+  acked.catch(() => undefined);
+  window.postMessage(
+    { type: 'pai-roadmap-quarter-options', requestId: id, field: 'Target Delivery Quarter' },
+    '*',
+  );
+  await Promise.race([acked, pending]);
+  const result = await pending;
+  return Array.isArray(result.values) ? result.values.map(String).filter(Boolean) : [];
 }
 
 /** Bulk refresh already supplies both Target dates; reuse its supported bridge protocol. */
