@@ -1501,6 +1501,97 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
   .ms-pop,.ms-tok,.ms-line,.ms-late,.g-row,.ms-opt .box svg,.ms-tl-dot{animation:none!important;transition:none!important}
 }
 @media (max-width: 1100px){ .ms-tokens,.ms-stat{display:none} }
+
+/* ============ Quarter 过滤（Target Delivery Quarter · 与 Milestone 同一套 Backlog + 甘特管线，AND 组合） ============
+   重新定义：Milestone 用「触发按钮 + 浮层」；Quarter 天然有序、最常看的是当前与下一个 → 这两个直接平铺成分段 chip，
+   一次点击即生效（费茨 + 希克）；完整候选（Jira 字段选项）收进 ▾ 浮层（渐进式披露）。 */
+:root{ --qc:#11766F; --qc-soft:#E5F3F1; --qc-line:#BCDDD8 }
+.q-filter{display:flex;align-items:center;gap:8px;flex:none;padding-right:14px;margin-right:4px;border-right:1px solid var(--line2)}
+.q-seg{display:flex;align-items:center;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:2px;height:32px}
+.q-chip{position:relative;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px;border-radius:7px;
+  font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--muted);white-space:nowrap;
+  transition:background .16s var(--ease),color .16s var(--ease),box-shadow .16s var(--ease)}
+.q-chip:hover{background:#ECEAE3;color:var(--ink)}
+.q-chip .yr{opacity:.6}
+.q-chip .n{font-size:10px;min-width:16px;text-align:center;border-radius:99px;background:#E7E5DD;color:var(--muted);line-height:15px;padding:0 4px}
+.q-chip.zero{opacity:.55}
+.q-chip.now::after{content:"";position:absolute;left:50%;bottom:1px;width:12px;height:2px;margin-left:-6px;border-radius:2px;background:var(--cur)}
+.q-chip[aria-pressed="true"]{background:var(--panel);color:var(--qc);font-weight:600;box-shadow:0 1px 2px rgba(32,36,42,.1),inset 0 0 0 1px var(--qc-line)}
+.q-chip[aria-pressed="true"] .n{background:var(--qc);color:#fff}
+.q-chip .ov{width:6px;height:6px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px var(--bg)}
+.q-chip[aria-pressed="true"] .ov{box-shadow:0 0 0 2px var(--panel)}
+.q-more{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.q-more:hover{background:#ECEAE3;color:var(--ink)}
+.q-more[aria-expanded="true"]{background:var(--panel);color:var(--qc)}
+.q-more[aria-expanded="true"] svg{transform:rotate(180deg)}
+.q-more svg{transition:transform .18s var(--ease)}
+.q-clear{font-size:11.5px;font-weight:600;color:var(--muted);padding:4px 6px;border-radius:6px}
+.q-clear:hover{color:var(--qc);background:var(--qc-soft)}
+.q-chip:focus-visible,.q-more:focus-visible,.q-clear:focus-visible,.q-opt:focus-visible,.q-pop button:focus-visible{outline:2px solid var(--qc);outline-offset:2px}
+
+/* 浮层：完整候选 + 数据来源（Jira 字段选项 / 回落窗口） */
+.q-pop{position:fixed;z-index:60;width:340px;max-height:min(560px,calc(100vh - 120px));display:flex;flex-direction:column;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-lg);
+  opacity:0;transform:translateY(-6px) scale(.98);transform-origin:top left;pointer-events:none;
+  transition:opacity .18s var(--ease),transform .22s var(--ease)}
+.q-pop.show{opacity:1;transform:none;pointer-events:auto}
+.q-src{padding:12px 14px 10px;border-bottom:1px solid var(--line2)}
+.q-src .k{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.q-src .k b{color:var(--qc);font-weight:600}
+.q-src .st{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;border-radius:6px;padding:2px 7px;background:var(--qc-soft);color:var(--qc);font-weight:500}
+.q-src .st.fb{background:#FFF1DB;color:#9A5B00}
+.q-src .st i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.q-src p{font-size:11px;color:var(--muted);line-height:1.55;margin-top:6px}
+.q-list{flex:1;overflow-y:auto;padding:4px 6px 6px}
+.q-sec{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);margin:10px 8px 4px;display:flex;align-items:center;gap:8px}
+.q-sec::after{content:"";flex:1;height:1px;background:var(--line2)}
+.q-opt{display:grid;grid-template-columns:16px 1fr auto;align-items:center;column-gap:10px;width:100%;text-align:left;padding:7px 8px;border-radius:8px}
+.q-opt:hover{background:#F1F6F5}
+.q-opt .box{width:16px;height:16px;border-radius:4px;border:1.5px solid #B8BFC7;background:#fff;display:flex;align-items:center;justify-content:center;transition:all .14s var(--ease)}
+.q-opt .box svg{opacity:0;transform:scale(.5);transition:all .14s var(--ease)}
+.q-opt[aria-selected="true"] .box{background:var(--qc);border-color:var(--qc)}
+.q-opt[aria-selected="true"] .box svg{opacity:1;transform:none}
+.q-opt .nm{font-family:var(--mono);font-size:12.5px;font-weight:600}
+.q-opt .nm em{font-family:var(--sans);font-style:normal;font-size:10px;font-weight:600;color:var(--cur-deep);background:#FFF1E0;border-radius:4px;padding:0 5px;margin-left:6px}
+.q-opt .sub{font-size:10.5px;color:var(--muted);margin-top:1px;font-family:var(--mono)}
+.q-opt .rt{text-align:right;font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.45}
+.q-opt .rt .ov{color:var(--danger);font-weight:600}
+.q-opt.zero{opacity:.55}
+.q-opt.past .nm{color:var(--past-ink)}
+.q-show-more{display:block;margin:6px 8px 2px;font-size:11.5px;font-weight:600;color:var(--qc)}
+.q-foot{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid var(--line2)}
+.q-foot .sim{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);flex:1;cursor:pointer}
+.q-foot .sim input{accent-color:var(--qc)}
+
+/* Backlog：卡片上的 Quarter 超界标注（与 milestone 标签同构）+ 分组头计数 */
+.card-q{display:flex;margin-top:7px}
+.card-q span{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:var(--danger);background:#FDECE8;
+  border:1px solid #F6C4B8;border-radius:5px;padding:1px 7px 1px 6px;font-weight:600}
+.card-q span i{width:8px;height:8px;border:1.5px solid currentColor;border-left:none;border-radius:0 2px 2px 0;flex:none}
+.card-q span em{font-style:normal;font-family:var(--mono);font-weight:500}
+.bl-group-label .q-ov{margin-left:8px;letter-spacing:0;color:var(--danger);font-weight:600}
+.bl-title .bl-sync,.bl-title .bl-add{white-space:nowrap;flex:none}
+.bl-count.q-on{background:var(--qc-soft);color:var(--qc)}
+
+/* 甘特：所选 Quarter 的窗口底色 + 截止线；超出部分在 bar 上斜纹标出，末端给出天数 */
+.q-band{position:absolute;top:0;bottom:0;background:linear-gradient(180deg,rgba(17,118,111,.055),rgba(17,118,111,.025));
+  border-left:1px solid rgba(17,118,111,.18);pointer-events:none;z-index:0;animation:qBandIn .3s var(--ease) backwards}
+@keyframes qBandIn{from{opacity:0}}
+.q-line{position:absolute;top:0;bottom:0;width:0;border-left:1.5px solid var(--qc);z-index:4;pointer-events:none;opacity:.9;
+  animation:msLineIn .32s var(--ease) backwards}
+.q-flag{position:sticky;top:68px;display:inline-flex;align-items:center;gap:5px;pointer-events:auto;transform:translateX(-100%);
+  background:var(--qc);color:#fff;font-size:10.5px;font-weight:600;border-radius:6px 0 0 6px;padding:2px 6px 2px 8px;
+  white-space:nowrap;box-shadow:0 2px 8px rgba(17,118,111,.28);font-family:var(--mono)}
+.q-flag .d{font-weight:500;opacity:.8}
+.rel-on .q-flag{top:98px}
+.bar .q-over{position:absolute;top:0;bottom:0;right:0;border-radius:0 8px 8px 0;pointer-events:none;z-index:1;
+  background:repeating-linear-gradient(-45deg,rgba(228,87,61,.55) 0 3px,rgba(255,255,255,.18) 3px 7px);
+  box-shadow:inset 1.5px 0 0 var(--danger)}
+.ms-late.q-late{color:var(--danger)}
+.ms-late.q-late i{width:7px;height:8px;transform:none;background:none;border:1.5px solid var(--danger);border-left:none;border-radius:0 2px 2px 0}
+.g-empty.ms-empty button.q{color:var(--qc)}
+@media (prefers-reduced-motion: reduce){ .q-pop,.q-chip,.q-band,.q-line,.q-opt .box svg{animation:none!important;transition:none!important} }
+@media (max-width: 1240px){ .q-chip .yr{display:none} }
 </style>
 </head>
 <body>
@@ -1536,6 +1627,12 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
 <!-- ===================== 视图过滤栏（原 Quarter 导入栏）=====================
      这一行横跨 Backlog 与甘特，只放「影响看什么」的过滤；「拉什么数据」的 Quarter 导入移到 Backlog 头部 -->
 <div class="import-bar filter-bar">
+  <!-- Quarter 过滤（Target Delivery Quarter）：当前 + 下一个 Quarter 平铺为分段 chip，完整候选在 ▾ 浮层；与 Milestone 为 AND -->
+  <div class="q-filter" id="qFilter">
+    <span class="ib-label">QUARTER</span>
+    <div class="q-seg" id="qSeg" role="group" aria-label="按 Target Delivery Quarter 过滤"></div>
+    <button class="q-clear" id="qClear" type="button" style="display:none">清除</button>
+  </div>
   <!-- Milestone 过滤：放在横跨两栏的这一行，表达「一个过滤，同时作用于 Backlog 与甘特」 -->
   <div class="ms-filter" id="msFilter">
     <span class="ib-label">MILESTONE</span>
@@ -1567,6 +1664,7 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
 </div>
 <div class="cp-pop" id="cpPop" role="dialog" aria-label="复制导出"></div>
 <div class="ms-pop" id="msPop" role="dialog" aria-label="按 Milestone 过滤"></div>
+<div class="q-pop" id="qPop" role="dialog" aria-label="按 Target Delivery Quarter 过滤"></div>
 
 <!-- 从 Jira 拉取：Quarter 是「数据源 JQL 的参数」，和 JQL、导入动作放在一起；锚定在 Backlog——结果落在哪，入口就在哪 -->
 <div class="sync-pop" id="syncPop" role="dialog" aria-labelledby="spTitle">
@@ -1972,6 +2070,7 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
   <h4>Demo 说明</h4>
   <ul>
     <li><b>从 Jira 拉取（调整位置）</b>：Quarter 勾选 + 导入从顶部移到 <b>Backlog 标题旁「↻ 拉取」</b>。浮层里是 Quarter、团队 JQL（可直接跳到编辑）和拉取按钮；结果落在 Backlog，入口就在 Backlog。有勾选但未拉取的 quarter 时按钮亮橙点；没有可拉取的内容时按钮显示「已是最新」</li>
+    <li><b>Quarter 过滤（新）</b>：过滤行最左「QUARTER」，按 Jira「Target Delivery Quarter」筛选，与 Milestone 为 AND。快速候选只平铺<b>当前与下一个 Quarter</b>，一次点击生效（选中的其他 Quarter 会临时出现在快速区）；▾ 浮层列出 Jira 字段选项全部候选（读取失败时回落为当前 Quarter 前 2 后 1，浮层底部可模拟）。筛选后：结束日（已排期 = bar 结束 / 未排期 = Target End）超出所属 Quarter 的条目，Backlog 卡片标「超出 Q · +Nd」、分组头计数；甘特画 Quarter 底色与截止线，超出部分斜纹 + 末端「超出 Nd」</li>
     <li><b>Milestone 过滤（新）</b>：顶部过滤行（原 QUARTERS 行）「MILESTONE」多选，数据来自 Jira Custom Labels（<code>customfield_33875</code> → LBL-288 AIR 2.0 Milestones）。<b>一个过滤同时作用于 Backlog 与甘特</b>：Backlog 只列匹配条目；甘特中未匹配行可<b>淡化 / 隐藏</b>，选中的 milestone 画紫色旗标线，晚于 milestone 的条目在 bar 末端标出天数。日期解析自 LBL description 首行「Milestone: 11/30/26」，识别不到时展示原描述</li>
     <li><b>Jira 查询 / 创建（直连 API 与 Agent 执行器双路径）/ AI 缩写 / 协作同步均为模拟</b></li>
     <li><b>需要 Jira 权限的操作要装 Personal AI 扩展</b>：锁定按钮点击弹出安装引导；拖动排期 / 改 Owner 会先保存在 Roadmap，并出现一行「没有同步到 Jira」+「安装插件开启同步」。打开页拉取在未安装时保持静默（顶栏 <b>扩展未安装 / 已安装</b> 可切换）<a class="help-install" href="https://chromewebstore.google.com/detail/personal-ai/kefnadjndpllbibeklhajjddgmlbafel" target="_blank" rel="noopener">前往安装 ↗</a></li>
@@ -2597,7 +2696,23 @@ function buildBrandy(){
       start:addD(today,0), days:4, temp:false, owner:bernard },
   ];
   t.items.push(d);
-  t.order = [legacy.key, a.key, b.key, c.key, d.key];
+  /* Quarter 超界演示：
+     · NOVA-18052：上季度（Target Delivery Quarter = 上一季）遗留、仍在进行，排期已越过上季度末 → 甘特斜纹 + 「超出」
+     · NOVA-18146：本季度条目，排期跨过本季度末
+     · NOVA-18131：Backlog 中本季度条目，Jira Target End 已落到下季度
+     · NOVA-18061：Backlog 中上季度遗留，Target End 在本季度 */
+  const qe0 = qEnd(CURQ);
+  const carry = mkItem('NOVA-18052', 'EPIC', 'Escalation routing rules v2 for AI-to-human handoff queues', prevQ(CURQ), 6);
+  carry.scheduled = true; carry.start = addD(q0, -38); carry.days = diffD(carry.start, addD(today, 9)) + 1;
+  carry.tStart = carry.start; carry.tEnd = addD(carry.start, carry.days - 1);
+  t.items.push(carry);
+  const e2 = get(18146); e2.scheduled = true; e2.start = addD(qe0, -24); e2.days = 34;
+  e2.tStart = e2.start; e2.tEnd = addD(e2.start, e2.days - 1);
+  const f2 = get(18131); f2.tStart = addD(qe0, -26); f2.tEnd = addD(qe0, 16);
+  const g2 = mkItem('NOVA-18061', 'EPIC', 'Brandy prompt library versioning and rollback for admins', prevQ(CURQ), 4);
+  g2.tStart = addD(q0, -21); g2.tEnd = addD(today, 6);
+  t.items.push(g2);
+  t.order = [legacy.key, carry.key, a.key, b.key, c.key, d.key, e2.key];
   /* 预配置发布时间表：标尺按发布 Sprint 展示（RCV Mobile 未配置，用于体验引导流程） */
   t.releaseSheet = {
     url: 'https://docs.google.com/spreadsheets/d/1sWRtByTquVLKeyv_kQG7nkSjP6-JBbSbNIVv4I3UzTM/edit#gid=0',
@@ -2778,17 +2893,18 @@ function renderBacklog(newKeys){
   const t = team(), body = $('#blBody'); body.innerHTML = '';
   const all = t.items.filter(i => !i.scheduled);
   const q = state.search.trim();
-  const msOn = msActive();
-  const items = all.filter(i => itemMatchesQuery(i, q) && msMatch(i));
+  const msOn = viewActive();
+  const items = all.filter(i => itemMatchesQuery(i, q) && viewMatch(i));
   $('#blCount').textContent = (q || msOn) ? `${items.length}/${all.length}` : all.length;
-  $('#blCount').classList.toggle('ms-on', msOn);
+  $('#blCount').classList.toggle('ms-on', msActive());
+  $('#blCount').classList.toggle('q-on', qActive() && !msActive());
   $('#blSearchClear').style.display = state.search ? 'flex' : 'none';
   if (!items.length){
-    if (msOn && all.length && !all.some(i => itemMatchesQuery(i, q) && msMatch(i))){
-      /* 由 milestone 过滤导致的空：说清楚是哪个过滤生效，并给出最短的撤销路径 */
-      body.innerHTML = `<div class="bl-empty">Backlog 中没有属于<br><b>${esc(msSelNames())}</b><br>的未排期条目${q ? `（且匹配「${esc(q)}」）` : ''}<br>
-        <button class="bl-empty-link" id="blClearMs">清除 milestone 过滤</button></div>`;
-      $('#blClearMs').onclick = () => setMsSel([]);
+    if (msOn && all.length && !all.some(i => itemMatchesQuery(i, q) && viewMatch(i))){
+      /* 由 milestone / quarter 过滤导致的空：说清楚是哪个过滤生效，并给出最短的撤销路径 */
+      body.innerHTML = `<div class="bl-empty">Backlog 中没有属于<br><b>${esc(viewSelNames())}</b><br>的未排期条目${q ? `（且匹配「${esc(q)}」）` : ''}<br>
+        <button class="bl-empty-link" id="blClearMs">清除过滤</button></div>`;
+      $('#blClearMs').onclick = clearViewFilters;
     } else if (q && all.length){
       body.innerHTML = `<div class="bl-empty">没有匹配「${esc(q)}」的条目<br>
         <button class="bl-empty-link" id="blClearInline">清除搜索</button></div>`;
@@ -2810,6 +2926,8 @@ function renderBacklog(newKeys){
   Object.keys(groups).sort(grpCmp).forEach(q2 => {
     const lb = document.createElement('div');
     lb.className = 'bl-group-label'; lb.textContent = q2;
+    const nOv = groups[q2].filter(i => qOverOf(i)).length;
+    if (nOv) lb.insertAdjacentHTML('beforeend', `<span class="q-ov">· ${nOv} 项超出</span>`);
     body.appendChild(lb);
     groups[q2].forEach((it, gi) => {
       const c = document.createElement('div');
@@ -2824,7 +2942,7 @@ function renderBacklog(newKeys){
           <span class="card-est">${it.estW}w</span>
         </div>
         <div class="card-title">${esc(it.title)}</div>
-        ${(it.tStart || it.tEnd) ? `<span class="card-target">${targetLabel(it)}</span>` : ''}${it.subs.length ? `<span class="card-subs" style="${(it.tStart||it.tEnd)?'':'margin-left:0'}">↺ ${it.subs.length} 个子任务记录</span>` : ''}${cardMsHtml(it)}`;
+        ${(it.tStart || it.tEnd) ? `<span class="card-target">${targetLabel(it)}</span>` : ''}${it.subs.length ? `<span class="card-subs" style="${(it.tStart||it.tEnd)?'':'margin-left:0'}">↺ ${it.subs.length} 个子任务记录</span>` : ''}${cardMsHtml(it)}${cardQHtml(it)}`;
       c.dataset.tip = itemDisplayKey(it) + ' · 预估 ' + it.estW + 'w' + (it.tStart || it.tEnd ? '' : ' · 无 Target 日期')
         + '||' + it.title
         + '||' + (it.desc ? clipTxt(it.desc) : ('拖到右侧时间轴排期' + (it.tStart || it.tEnd ? '（按 Target 日期落位）' : '')));
@@ -3141,13 +3259,14 @@ function renderGantt(){
     tl.style.left = X(today) + DAY_W/2 + 'px';
     gb.appendChild(tl);
   }
+  renderQBands(gb);
   renderMsLines(gb);
   const rows = t.order.map(k => t.items.find(i => i.key===k)).filter(Boolean);
-  if (rows.length && msActive() && state.msMode === 'hide' && !rows.some(r => msMatch(r) || loc.pin === r.key)){
+  if (rows.length && viewActive() && state.msMode === 'hide' && !rows.some(r => viewMatch(r) || loc.pin === r.key)){
     const e = document.createElement('div'); e.className='g-empty ms-empty';
-    e.innerHTML = `时间轴上没有属于 <b>${esc(msSelNames())}</b> 的条目<br>可从左侧 Backlog 拖入，或<br><button type="button" id="gClearMs">清除 milestone 过滤</button>`;
+    e.innerHTML = `时间轴上没有属于 <b>${esc(viewSelNames())}</b> 的条目<br>可从左侧 Backlog 拖入，或<br><button type="button" id="gClearMs">清除过滤</button>`;
     gb.appendChild(e);
-    e.querySelector('#gClearMs').onclick = () => setMsSel([]);
+    e.querySelector('#gClearMs').onclick = clearViewFilters;
   }
   if (!rows.length){
     const e = document.createElement('div'); e.className='g-empty';
@@ -3311,7 +3430,7 @@ function jiraLinkBtn(key){
 
 function rowEl(it){
   const row = document.createElement('div'); row.className='g-row'; row.dataset.key = it.key;
-  if (msActive() && !msMatch(it)) row.classList.add(loc.pin === it.key ? 'pinned' : state.msMode === 'hide' ? 'ms-hide' : 'ms-dim');
+  if (viewActive() && !viewMatch(it)) row.classList.add(loc.pin === it.key ? 'pinned' : state.msMode === 'hide' ? 'ms-hide' : 'ms-dim');
   const lane = document.createElement('div'); lane.className='g-lane';
   const bar = document.createElement('div');
   const w = it.days*DAY_W - 2;
@@ -3371,6 +3490,13 @@ function rowEl(it){
   };
   bar.appendChild(bx);
   if (!isDraftItem(it)) bar.appendChild(jiraLinkBtn(itemDisplayKey(it)));
+  /* Quarter 过滤生效时：bar 上越过 Quarter 截止线的部分画斜纹（一眼看到「超出了多少」） */
+  const qov = qOverOf(it);
+  if (qov){
+    const ov = document.createElement('span'); ov.className = 'q-over';
+    ov.style.width = Math.min(w, qov.days * DAY_W) + 'px';
+    bar.appendChild(ov);
+  }
   lane.appendChild(bar);
   /* Milestone 过滤生效时：结束日晚于所属 milestone 的条目，在 bar 末端给出差值 */
   const late = msLateOf(it);
@@ -3381,11 +3507,18 @@ function rowEl(it){
     lt.dataset.tip = `${late.ms.key} · ${late.ms.name}||Milestone ${fmtMD(late.ms.date)}，本条结束于 ${fmtMD(addD(it.start, it.days-1))}，晚 ${late.days} 天||拖动或缩短排期到旗标线之前即可消除`;
     lane.appendChild(lt);
   }
+  if (qov){
+    const qt = document.createElement('span'); qt.className = 'ms-late q-late';
+    qt.style.left = X(addD(it.start, it.days - 1)) + DAY_W + 10 + (late ? 26 + (msShort(late.ms).length + 8) * 6.4 : 0) + 'px';
+    qt.innerHTML = `<i></i>超出 ${qShort(qov.q)} ${qov.days}d`;
+    qt.dataset.tip = `Target Delivery Quarter ${qov.q} · 截止 ${fmtMD(qov.qe)}||本条结束于 ${fmtMD(qov.end)}，超出 ${qov.days} 天（bar 上斜纹部分）||缩短 / 前移排期到截止线之前，或在 Jira 把 Quarter 改到 ${nextQ(qov.q)}`;
+    lane.appendChild(qt);
+  }
   /* 定位落点被当前过滤隐藏时：只临时显示这一行，并说明原因（不改过滤条件） */
   if (loc.pin === it.key){
     const pt = document.createElement('span'); pt.className = 'pin-tag';
-    pt.style.left = X(addD(it.start, it.days - 1)) + DAY_W + (late ? 120 : 34) + 'px';
-    pt.innerHTML = `${ICON.locate} 临时显示 · 不在当前 Milestone 过滤内 <button type="button" aria-label="收起临时显示">×</button>`;
+    pt.style.left = X(addD(it.start, it.days - 1)) + DAY_W + (late || qov ? 120 + (late && qov ? 110 : 0) : 34) + 'px';
+    pt.innerHTML = `${ICON.locate} 临时显示 · 不在当前过滤内 <button type="button" aria-label="收起临时显示">×</button>`;
     pt.dataset.tip = '定位不会改动你的过滤条件||这一行因为当前过滤本应隐藏，为了定位而临时显示||点 × 或返回原视图后恢复隐藏';
     pt.querySelector('button').onclick = e => { e.stopPropagation(); clearLocate(); };
     pt.onpointerdown = e => e.stopPropagation();
@@ -5161,7 +5294,7 @@ const dvMatch = (d, f) => f === 'all' ? true
 function dvGroups(){
   const t = team();
   return t.order.map(k => t.items.find(i => i.key === k))
-    .filter(it => it && it.scheduled && it.deps.length && msMatch(it));
+    .filter(it => it && it.scheduled && it.deps.length && viewMatch(it));
 }
 function renderDepTools(groups){
   const all = groups.flatMap(g => g.deps);
@@ -5390,7 +5523,7 @@ function locateInGantt({ epicKey, subId = null, depId = null }){
   const srcEl = from === 'deps' ? $('#depView') : $('#resView');
   loc.back = { view: from, scrollTop: srcEl.scrollTop, epicKey, subId, depId,
                what: dep ? `依赖 · ${dep.jiraKey || dep.title}` : sub ? (sub.key || sub.alias || sub.title) : itemDisplayKey(it) };
-  loc.pin = (msActive() && state.msMode === 'hide' && !msMatch(it)) ? epicKey : null;
+  loc.pin = (viewActive() && state.msMode === 'hide' && !viewMatch(it)) ? epicKey : null;
   if (sub) it.expanded = true;                 // 子任务：展开父 Epic 才看得到
   state.view = 'gantt';
   syncView(); renderGantt();
@@ -6630,13 +6763,15 @@ function renderMsBar(){
     + (list.length > 2 ? `<span class="ms-tok more" role="button" tabindex="0">+${list.length - 2}</span>` : '');
   toks.querySelectorAll('.ms-tok-x').forEach(b => b.onclick = () => setMsSel(sel.filter(k => k !== b.dataset.k)));
   const more = toks.querySelector('.more'); if (more) more.onclick = () => openMsPop();
-  $('#msMode').style.display = on ? 'flex' : 'none';
+  /* 「其余 淡化/隐藏」与统计由 Milestone / Quarter 两个过滤共用 */
+  $('#msMode').style.display = viewActive() ? 'flex' : 'none';
   $('#msMode').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === state.msMode));
-  if (!on){ $('#msStat').innerHTML = ''; return; }
-  const hits = t.items.filter(msMatch);
+  if (!viewActive()){ $('#msStat').innerHTML = ''; return; }
+  const hits = t.items.filter(viewMatch);
   const late = hits.filter(msLateOf).length;
+  const qov = hits.filter(i => qOverOf(i)).length;
   const sched = hits.filter(i => i.scheduled).length;
-  $('#msStat').innerHTML = `${hits.length} 项 · 已排期 ${sched}${late ? ` · <span class="late">${late} 项晚于 milestone</span>` : ''}`;
+  $('#msStat').innerHTML = `${hits.length} 项 · 已排期 ${sched}${late ? ` · <span class="late">${late} 项晚于 milestone</span>` : ''}${qov ? ` · <span class="late">${qov} 项超出 Quarter</span>` : ''}`;
 }
 $('#msMode').onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -6775,6 +6910,182 @@ document.addEventListener('pointerdown', e => {
 }, true);
 addEventListener('resize', () => { if ($('#msPop').classList.contains('show')) placeMsPop(); });
 
+/* ---------- Quarter 过滤（Target Delivery Quarter） ----------
+   与 Milestone 共用同一条管线：viewMatch = msMatch AND qMatch，Backlog / 甘特 / 依赖视图 / 复制导出都从这里读；
+   「淡化 / 隐藏」开关也共用。多选之间为 OR。选择按团队存 localStorage（只影响自己的视图）。
+   超界：条目的结束日（已排期 = bar 结束；未排期 = Jira Target End）晚于其 Target Delivery Quarter 的最后一天。
+   候选列表：优先读 Jira 字段选项（扩展桥 → createmeta allowedValues / JQL autocomplete suggestions），
+             读不到时回落为「当前 Quarter 往前 2 个、往后 1 个」。条目上出现但不在候选里的值也会补进来。 */
+const Q_FIELD = { name:'Target Delivery Quarter' };
+const Q_NONE = '—';
+const Q_WINDOW = [prevQ(prevQ(CURQ)), prevQ(CURQ), CURQ, nextQ(CURQ)];   // Jira 选项读不到时的回落候选
+const Q_QUICK = [CURQ, nextQ(CURQ)];                                     // 快速候选：只平铺当前 + 下一个，其余在 ▾ 浮层
+/* 演示：Jira 字段选项（真实实现由扩展读取后缓存，TTL 同 JIRA_REFRESH_TTL_MS） */
+const JIRA_Q_OPTS = (() => { let q = CURQ; for (let i = 0; i < 6; i++) q = prevQ(q); const l = []; for (let i = 0; i < 12; i++){ l.push(q); q = nextQ(q); } return l; })();
+state.qSrcFail = localStorage.getItem('personalroadmap.qSrcFail') === '1';
+const qFetchedAt = new Date(Date.now() - 26*60000);
+const Q_SEL_KEY = t => 'personalroadmap.qSel.' + t.name;
+function qSel(t = team()){
+  if (!t.qSel){
+    try { t.qSel = JSON.parse(localStorage.getItem(Q_SEL_KEY(t)) || '[]'); } catch { t.qSel = []; }
+  }
+  return t.qSel;
+}
+const itemQ = it => it.quarter || Q_NONE;
+const qActive = () => qSel().length > 0;
+const qMatch = it => !qActive() || qSel().includes(itemQ(it));
+const qSelNames = () => [...qSel()].sort(qSortCmp).map(q => q === Q_NONE ? '未设置 Quarter' : q).join(' / ');
+const qSortCmp = (a, b) => a === Q_NONE ? 1 : b === Q_NONE ? -1 : qCmp(a, b);
+const qShort = q => q === Q_NONE ? '未设置' : q.replace(/^\d{2}(\d{2})-/, "'$1 ");
+const qCount = (t, q) => t.items.filter(i => itemQ(i) === q).length;
+/* 统一视图过滤：所有「看什么」的过滤都 AND 在这里 */
+const viewActive = () => msActive() || qActive();
+const viewMatch = it => msMatch(it) && qMatch(it);
+function viewSelNames(){
+  return [msActive() && `Milestone「${msSelNames()}」`, qActive() && `Quarter「${qSelNames()}」`].filter(Boolean).join(' + ');
+}
+function clearViewFilters(){ const t = team(); t.qSel = []; localStorage.setItem(Q_SEL_KEY(t), '[]'); setMsSel([]); }
+function setQSel(list){
+  const t = team(); t.qSel = [...new Set(list)];
+  localStorage.setItem(Q_SEL_KEY(t), JSON.stringify(t.qSel));
+  renderQBar(); renderMsBar(); renderBacklog(); renderGantt();
+  if (state.view === 'deps') renderDeps();
+  if ($('#qPop').classList.contains('show')) renderQPop();
+}
+/* 本条结束日超出其 Target Delivery Quarter 的天数（未选该 Quarter / 已完成 / 无日期 → null） */
+function qEndOf(it){ return it.scheduled ? addD(it.start, it.days - 1) : it.tEnd; }
+function qOverOf(it, force){
+  if ((!force && !qActive()) || !it.quarter || isDoneStatus(it)) return null;
+  if (!force && !qSel().includes(it.quarter)) return null;
+  const end = qEndOf(it);
+  if (!end) return null;
+  const d = diffD(qEnd(it.quarter), end);
+  return d > 0 ? { q: it.quarter, days: d, end, qe: qEnd(it.quarter) } : null;
+}
+function qCandidates(){
+  const t = team();
+  const base = state.qSrcFail ? [...Q_WINDOW] : [...JIRA_Q_OPTS];
+  const extra = [...new Set(t.items.map(itemQ))].filter(q => q !== Q_NONE && !base.includes(q));
+  const list = [...base, ...extra].sort(qCmp);
+  if (t.items.some(i => !i.quarter)) list.push(Q_NONE);
+  return { list, extra };
+}
+function cardQHtml(it){
+  const ov = qOverOf(it);
+  if (!ov) return '';
+  return `<div class="card-q"><span data-tip="Target Delivery Quarter ${ov.q} · 截止 ${fmtMD(ov.qe)}||Jira Target End ${fmtMD(ov.end)}，超出 ${ov.q} ${ov.days} 天||要么把 Target End 收回到 ${fmtMD(ov.qe)} 之前，要么把 Quarter 改到 ${nextQ(ov.q)}"><i></i>超出 ${qShort(ov.q)}<em>Target End ${fmtMD(ov.end)} · +${ov.days}d</em></span></div>`;
+}
+/* 甘特：所选 Quarter 的窗口底色 + 截止线（旗标贴在线左侧，读作「到这里为止」） */
+function renderQBands(gb){
+  if (!qActive()) return;
+  qSel().filter(q => q !== Q_NONE).forEach(q => {
+    const s = qStart(q), e = qEnd(q);
+    if (e < TL.start || s > TL.end) return;
+    const l = X(s < TL.start ? TL.start : s), r = X(e > TL.end ? TL.end : e) + DAY_W;
+    const band = document.createElement('div'); band.className = 'q-band';
+    band.style.left = l + 'px'; band.style.width = (r - l) + 'px';
+    gb.appendChild(band);
+    if (e > TL.end) return;
+    const ln = document.createElement('div'); ln.className = 'q-line';
+    ln.style.left = X(e) + DAY_W - 1 + 'px';
+    const n = team().items.filter(i => qOverOf(i) && i.quarter === q).length;
+    const flag = document.createElement('span'); flag.className = 'q-flag';
+    flag.innerHTML = `${q}<span class="d">止 ${fmtMD(e)}</span>`;
+    flag.dataset.tip = `${q} 截止 · ${fmtMD(e)}||${n ? `${n} 个 ${q} 条目的结束日越过这条线（bar 上斜纹部分）` : `${q} 的条目都在这条线之前结束`}||Target Delivery Quarter 取自 Jira`;
+    ln.appendChild(flag);
+    gb.appendChild(ln);
+  });
+}
+function qChipHtml(q, sel, t){
+  const on = sel.includes(q), n = qCount(t, q);
+  const ov = t.items.some(i => i.quarter === q && qOverOf(i, true));
+  const [y, qq] = q === Q_NONE ? ['', '未设置'] : q.split('-');
+  return `<button type="button" class="q-chip${n ? '' : ' zero'}${q === CURQ ? ' now' : ''}" data-q="${q}" aria-pressed="${on}"
+    data-tip="${q === Q_NONE ? '未设置 Target Delivery Quarter' : `${q}${q === CURQ ? ' · 当前 Quarter' : ''} · ${fmtMD(qStart(q))} → ${fmtMD(qEnd(q))}`}||${n} 个条目${ov ? ' · 有条目的结束日超出该 Quarter' : ''}||单击切换 · 多选 = 命中任一">
+    <span>${y ? `<span class="yr">${y}-</span>` : ''}${qq}</span><span class="n">${n}</span>${ov ? '<span class="ov" aria-label="有超界条目"></span>' : ''}</button>`;
+}
+function renderQBar(){
+  const t = team(), sel = qSel();
+  const inline = [...new Set([...Q_QUICK, ...sel])].sort(qSortCmp);   // 已选的其他 Quarter 也临时平铺，便于一键取消
+  $('#qSeg').innerHTML = inline.map(q => qChipHtml(q, sel, t)).join('')
+    + `<button type="button" class="q-more" id="qMore" aria-haspopup="dialog" aria-expanded="${$('#qPop').classList.contains('show')}" aria-controls="qPop"
+        data-tip="全部 Quarter||${state.qSrcFail ? '未能读取 Jira 字段选项，按当前 Quarter 前 2 后 1 推算' : `候选来自 Jira「${Q_FIELD.name}」字段选项`}">
+        <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>`;
+  $('#qSeg').querySelectorAll('.q-chip').forEach(b => b.onclick = () => {
+    const q = b.dataset.q; setQSel(sel.includes(q) ? sel.filter(x => x !== q) : [...sel, q]);
+  });
+  $('#qMore').onclick = () => $('#qPop').classList.contains('show') ? closeQPop() : openQPop();
+  $('#qClear').style.display = sel.length ? '' : 'none';
+}
+$('#qClear').onclick = () => setQSel([]);
+
+/* 浮层：完整候选（Jira 字段选项 / 回落窗口），附条目数与超界数 */
+let qShowZero = false;
+function renderQPop(){
+  const t = team(), sel = qSel(), { list, extra } = qCandidates();
+  const rows = list.map(q => ({ q, n: qCount(t, q), ov: t.items.filter(i => i.quarter === q && qOverOf(i, true)).length }));
+  const live = rows.filter(r => r.n || sel.includes(r.q)), zero = rows.filter(r => !(r.n || sel.includes(r.q)));
+  const showZero = qShowZero || !live.length;
+  const opt = r => {
+    const on = sel.includes(r.q), past = r.q !== Q_NONE && qCmp(r.q, CURQ) < 0;
+    return `<button type="button" class="q-opt${r.n ? '' : ' zero'}${past ? ' past' : ''}" role="option" aria-selected="${on}" data-q="${r.q}">
+      <span class="box"><svg width="10" height="10" viewBox="0 0 12 12"><path d="M2.5 6.2l2.4 2.4 4.6-5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span><div class="nm">${r.q === Q_NONE ? '未设置' : r.q}${r.q === CURQ ? '<em>当前</em>' : ''}</div>
+        <div class="sub">${r.q === Q_NONE ? '手动条目 / Jira 未填' : `${fmtMD(qStart(r.q))} → ${fmtMD(qEnd(r.q))}${extra.includes(r.q) ? ' · 仅见于条目' : ''}`}</div></span>
+      <span class="rt">${r.n} 项${r.ov ? `<br><span class="ov">${r.ov} 项超出</span>` : ''}</span></button>`;
+  };
+  $('#qPop').innerHTML = `
+    <div class="q-src">
+      <div class="k">候选来源 · <b>${Q_FIELD.name}</b></div>
+      ${state.qSrcFail
+        ? `<span class="st fb"><i></i>未能读取 Jira 字段选项 · 已回落</span><p>按当前 Quarter <b>${CURQ}</b> 往前 2 个、往后 1 个推算；条目上出现的其他值会自动补入。</p>`
+        : `<span class="st"><i></i>Jira 字段选项 · ${JIRA_Q_OPTS.length} 个 · 更新于 ${fmtHM(qFetchedAt)}</span>`}
+    </div>
+    <div class="q-list" role="listbox" aria-multiselectable="true">
+      ${live.length ? `<div class="q-sec">当前团队有条目</div>${live.map(opt).join('')}` : ''}
+      ${zero.length ? (showZero ? `<div class="q-sec">无条目</div>${zero.map(opt).join('')}`
+        : `<button type="button" class="q-show-more" id="qShowZero">显示其余 ${zero.length} 个（当前团队无条目）</button>`) : ''}
+    </div>
+    <div class="q-foot">
+      <label class="sim" data-tip="仅 Demo||模拟扩展未能读到 Jira 字段选项时的回落行为"><input type="checkbox" id="qSimFail"${state.qSrcFail ? ' checked' : ''}>模拟：Jira 选项读取失败</label>
+      <button type="button" class="btn btn-primary" id="qDone" style="padding:5px 14px;font-size:12px">完成</button>
+    </div>`;
+  $('#qPop').querySelectorAll('.q-opt').forEach(b => b.onclick = () => {
+    const q = b.dataset.q; setQSel(sel.includes(q) ? sel.filter(x => x !== q) : [...sel, q]);
+    const f = $('#qPop').querySelector(`.q-opt[data-q="${q}"]`); if (f) f.focus({ preventScroll:true });
+  });
+  const sz = $('#qShowZero'); if (sz) sz.onclick = () => { qShowZero = true; renderQPop(); };
+  $('#qSimFail').onchange = e => {
+    state.qSrcFail = e.target.checked; localStorage.setItem('personalroadmap.qSrcFail', state.qSrcFail ? '1' : '0');
+    renderQPop(); renderQBar();
+  };
+  $('#qDone').onclick = () => closeQPop(true);
+}
+function openQPop(){
+  qShowZero = false; renderQPop();
+  const r = $('#qMore').getBoundingClientRect(), pop = $('#qPop');
+  pop.style.top = r.bottom + 8 + 'px';
+  pop.style.left = clamp(r.right - 340, 12, innerWidth - 352) + 'px';
+  pop.classList.add('show'); $('#qMore').setAttribute('aria-expanded', 'true');
+  requestAnimationFrame(() => { const f = pop.querySelector('.q-opt'); if (f) f.focus(); });
+}
+function closeQPop(refocus){
+  $('#qPop').classList.remove('show');
+  const m = $('#qMore'); if (m){ m.setAttribute('aria-expanded', 'false'); if (refocus) m.focus(); }
+}
+$('#qPop').addEventListener('keydown', e => {
+  if (e.key === 'Escape'){ e.stopPropagation(); closeQPop(true); return; }
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const els = [...$('#qPop').querySelectorAll('.q-opt')], i = els.indexOf(document.activeElement);
+  if (!els.length) return;
+  e.preventDefault(); els[(i + (e.key === 'ArrowDown' ? 1 : -1) + els.length) % els.length].focus();
+});
+document.addEventListener('pointerdown', e => {
+  if (!$('#qPop').classList.contains('show') || e.target.closest('#qPop, #qMore')) return;
+  closeQPop();
+}, true);
+addEventListener('resize', () => { if ($('#qPop').classList.contains('show')) closeQPop(); });
+
 /* ---------- 复制导出（过滤行最右） ----------
    复制范围 = 当前视图看到的东西：
    - 任务视图：甘特上的 Epic
@@ -6807,7 +7118,7 @@ let cpFail = false;          // Demo：模拟浏览器拒绝剪贴板权限
 const cpQuery = () => state.search.trim();
 const cpSubHit = (s, q) => !q || q.toLowerCase().split(/\s+/).filter(Boolean)
   .every(tok => [s.title, s.key || '', s.alias || ''].join(' ').toLowerCase().includes(tok));
-const cpEpicHit = (it, q) => msMatch(it) && (!q || itemMatchesQuery(it, q) || it.subs.some(s => !s.cleared && cpSubHit(s, q)));
+const cpEpicHit = (it, q) => viewMatch(it) && (!q || itemMatchesQuery(it, q) || it.subs.some(s => !s.cleared && cpSubHit(s, q)));
 /* Epic 自身命中搜索 → 带上全部子任务；仅因子任务命中 → 只带命中的子任务 */
 const cpSubsOf = (it, q) => {
   const subs = it.subs.filter(s => !s.cleared);
@@ -6816,6 +7127,7 @@ const cpSubsOf = (it, q) => {
 function cpFilterNote(n, total, unit){
   const q = cpQuery(), parts = [];
   if (msActive()) parts.push(`Milestone「<b>${esc(msSelNames())}</b>」`);
+  if (qActive()) parts.push(`Quarter「<b>${esc(qSelNames())}</b>」`);
   if (q) parts.push(`搜索「<b>${esc(q)}</b>」`);
   if (!parts.length) return null;
   return { cls:'ms', html:`已按筛选复制：${parts.join(' + ')} · ${n} / ${total} 个 ${unit}` };
@@ -7194,6 +7506,7 @@ addEventListener('resize', () => { if (cpState.open) placeCopyPop(); });
 function renderAll(newKeys){
   renderTeamUI();
   renderChips();
+  renderQBar();
   renderMsBar();
   renderBacklog(newKeys);
   renderGantt();
