@@ -129,11 +129,14 @@ const barW = computed(() => (props.item.days || 0) * DAY_W.value - 2);
 /* ---------- 视图过滤（milestone + 文本）：未匹配行淡化 / 隐藏 ---------- */
 const msRowCls = computed(() => {
   if (state.locate.value?.target.itemKey === props.item.key || !state.filterActive.value || state.viewMatch(props.item)) return '';
-  return state.msMode.value === 'hide' ? 'ms-hide' : 'ms-dim';
+  return state.dimMode.value === 'hide' ? 'ms-hide' : 'ms-dim';
 });
 
-const locatePinned = computed(() => state.locate.value?.target.itemKey === props.item.key && state.filterActive.value && state.msMode.value === 'hide' && !state.viewMatch(props.item));
+const locatePinned = computed(() => state.locate.value?.target.itemKey === props.item.key && state.filterActive.value && state.dimMode.value === 'hide' && !state.viewMatch(props.item));
 const msLate = computed(() => state.msLateOf(props.item));
+/* E-171：Committed = No（自身字段，仅 Quarter / Milestone 过滤生效时出现） */
+const itemUc = computed(() => state.itemUc(props.item));
+const ucScope = () => state.ucScopeText();
 /* ---------- Quarter 过滤：结束日超出所属 Target Delivery Quarter ---------- */
 const qLate = computed(() => state.qOverOf(props.item));
 /** bar 上越过 Quarter 截止线的部分（斜纹），宽度按超出天数裁剪。 */
@@ -1043,7 +1046,7 @@ watch(
         class="bar"
         :class="[
           itemDone ? 'done' : item.start && item.days ? colorCls(item.start, item.days) : '',
-          { 'free-h': wrapMode, enter: enter, draft: isDraft && !itemDone, pop: isPop },
+          { 'free-h': wrapMode, enter: enter, draft: isDraft && !itemDone, pop: isPop, uncommitted: itemUc },
         ]"
         :style="{ left: `${barLeft()}px`, width: `${barW}px` }"
         :data-tip="`${dispKey} · ${item.start ? fmtMD(item.start) : ''} → ${item.start && item.days ? fmtMD(addD(item.start, item.days - 1)) : ''} · ${item.days}d${item.owner ? ` · Assignee ${showName(item.owner)}` : ''}${isDraft ? ' · 未创建 Jira' : ''}${barSprintTitle(item.start, item.days)}${itemDone ? ` · ${item.status}` : ''}||${item.title}||${tooltipHintLine(item.description, itemOpsHint())}`"
@@ -1142,6 +1145,16 @@ watch(
       >
         <i />
         超出 {{ qLate.q }} {{ qLate.days }}d
+      </span>
+      <!-- E-171：在范围内但自身 Committed = No，琥珀色虚线标注（区别于红色「超出」） -->
+      <span
+        v-if="itemUc"
+        class="ms-late uc-flag"
+        :class="{ stacked: msLate || qLate, stacked2: msLate && qLate }"
+        :style="{ left: `${barLeft() + barW + 8}px` }"
+        :data-tip="`${dispKey} · Committed: No||${dispKey} 自身的 Committed 字段为 No，且在 ${ucScope()} 范围内||只看这条 Epic 自身的字段，不受子任务或依赖影响 · 与 Owner 确认是否 commit`"
+      >
+        <i />Committed: No
       </span>
       <button
         v-if="editable"

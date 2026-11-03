@@ -100,6 +100,27 @@ function relOf(date: Date): string {
 <template>
   <div v-if="state.snapshot.value" class="import-bar filter-bar">
     <div class="ms-filter">
+      <!-- 层级（E-171）：横跨 Backlog 与甘特的过滤行最左 —— 它同时改变左右两侧的分组，
+           与「任务 / 人员 / 依赖」视图正交；切换只是本人的查看偏好 -->
+      <div class="tier-filter">
+        <span class="ib-label">层级</span>
+        <div class="tier-seg" role="group" aria-label="查看层级">
+          <button
+            type="button"
+            :aria-pressed="!state.isInit.value"
+            data-tip="Epic 层级||Backlog 按 Quarter 分组，甘特每行一个 Epic"
+            @click="state.setHierarchy('epic')"
+          >
+            <svg viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="4" width="10" height="2.4" rx="1.2" fill="currentColor" /><rect x="2" y="8.2" width="7" height="2.4" rx="1.2" fill="currentColor" opacity=".55" /></svg>Epic</button>
+          <button
+            type="button"
+            :aria-pressed="state.isInit.value"
+            data-tip="INIT 层级||按 Epic 的 Parent Link 汇总：INIT → Epic → 子任务||筛选仍按 Epic 判断，INIT 只是父级上下文 · 依赖仍归属原 Epic"
+            @click="state.setHierarchy('init')"
+          >
+            <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 3.2h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /><path d="M4.5 7h7.5M4.5 10.8h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".55" /><path d="M2.6 4.8v6h1.4M2.6 7h1.4" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".55" /></svg>INIT</button>
+        </div>
+      </div>
       <template v-if="state.hasQData.value">
         <span class="ib-label">QUARTER</span>
         <div class="q-seg" role="group" aria-label="按 Target Delivery Quarter 过滤">
@@ -247,20 +268,24 @@ function relOf(date: Date): string {
         class="ms-mode"
         role="group"
         aria-label="甘特中未匹配的条目"
-        data-tip="甘特中未匹配的条目||淡化：保留排期上下文，便于看清前后挤占 · 隐藏：只看相关条目||Backlog 始终只列出匹配条目"
+        :data-tip="
+          state.isInit.value
+            ? 'INIT 层级：同一 INIT 下未命中的兄弟 Epic||隐藏（默认）：只看范围内的 Epic，避免误读成同一季度 · 淡化：仅作上下文，不参与计数、汇总条与复制||Backlog 始终只列出匹配条目'
+            : '甘特中未匹配的条目||淡化：保留排期上下文，便于看清前后挤占 · 隐藏：只看相关条目||Backlog 始终只列出匹配条目'
+        "
       >
         <span>其余</span>
         <button
           type="button"
-          :class="{ on: state.msMode.value === 'dim' }"
-          @click="state.setMsMode('dim')"
+          :class="{ on: state.dimMode.value === 'dim' }"
+          @click="state.isInit.value ? state.setInitMode('dim') : state.setMsMode('dim')"
         >
           淡化
         </button>
         <button
           type="button"
-          :class="{ on: state.msMode.value === 'hide' }"
-          @click="state.setMsMode('hide')"
+          :class="{ on: state.dimMode.value === 'hide' }"
+          @click="state.isInit.value ? state.setInitMode('hide') : state.setMsMode('hide')"
         >
           隐藏
         </button>
@@ -274,6 +299,9 @@ function relOf(date: Date): string {
           </template>
           <template v-if="state.msStats.value.qOver">
             · <span class="late">{{ state.msStats.value.qOver }} 项超出 Quarter</span>
+          </template>
+          <template v-if="state.msStats.value.uc">
+            · <span class="uc">Committed: No ×{{ state.msStats.value.uc }}</span>
           </template>
         </span>
         <CopyExport />

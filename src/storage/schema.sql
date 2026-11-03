@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS items (
   /** Team member name; becomes the Jira assignee on create / write-back. */
   owner TEXT,
   status TEXT,
+  /** Mirrored Jira `Committed` field of the issue ('Yes'/'No'); null = unset. */
+  committed TEXT,
   /** Value keys of the Jira Custom Labels (`customfield_33875`) on this issue. */
   custom_labels_json TEXT NOT NULL DEFAULT '[]',
   version INTEGER NOT NULL DEFAULT 1,
@@ -70,6 +72,17 @@ CREATE TABLE IF NOT EXISTS custom_label_values (
   milestone_date TEXT,
   date_source TEXT,
   status TEXT,
+  fetched_at INTEGER NOT NULL,
+  PRIMARY KEY (team_id, key),
+  FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS init_details (
+  team_id TEXT NOT NULL,
+  key TEXT NOT NULL,
+  title TEXT,
+  quarter TEXT,
+  committed TEXT,
   fetched_at INTEGER NOT NULL,
   PRIMARY KEY (team_id, key),
   FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
@@ -118,6 +131,8 @@ CREATE TABLE IF NOT EXISTS item_markers (
   jira_status TEXT,
   jira_target_end TEXT,
   jira_fetched_at INTEGER,
+  /** Mirrored Jira `Committed` field of the dependency target ('Yes'/'No'). */
+  committed TEXT,
   created_by TEXT NOT NULL DEFAULT '',
   version INTEGER NOT NULL DEFAULT 1,
   created_at INTEGER NOT NULL,

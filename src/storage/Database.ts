@@ -363,6 +363,27 @@ const MIGRATIONS: Migration[] = [
       addColumn(database, 'item_markers', 'jira_target_start', 'TEXT');
     },
   },
+  {
+    id: '023_e171_init_view',
+    up: (database) => {
+      // Jira `Committed` field mirrored from the import / refresh.
+      addColumn(database, 'items', 'committed', 'TEXT');
+      addColumn(database, 'item_markers', 'committed', 'TEXT');
+      // Parent INIT (Epic `parent_link` target) details loaded along the way.
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS init_details (
+          team_id TEXT NOT NULL,
+          key TEXT NOT NULL,
+          title TEXT,
+          quarter TEXT,
+          committed TEXT,
+          fetched_at INTEGER NOT NULL,
+          PRIMARY KEY (team_id, key),
+          FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+        );
+      `);
+    },
+  },
 ];
 
 function runMigrations(database: Db): void {

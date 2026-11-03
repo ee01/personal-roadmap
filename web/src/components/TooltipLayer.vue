@@ -11,12 +11,7 @@ function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
 }
 
-function onOver(e: MouseEvent) {
-  const el = (e.target as HTMLElement).closest('[data-tip]') as HTMLElement | null;
-  if (!el) {
-    show.value = false;
-    return;
-  }
+function showTipFor(el: HTMLElement) {
   const [head, body, hint] = (el.dataset.tip || '').split('||');
   html.value =
     (body
@@ -24,6 +19,36 @@ function onOver(e: MouseEvent) {
       : `<div class="tt-body">${esc(head)}</div>`) +
     (hint ? `<div class="tt-hint">${esc(hint)}</div>` : '');
   show.value = true;
+}
+
+function onOver(e: MouseEvent) {
+  const el = (e.target as HTMLElement).closest('[data-tip]') as HTMLElement | null;
+  if (!el) {
+    show.value = false;
+    return;
+  }
+  showTipFor(el);
+}
+
+/* E-171：键盘 Tab 聚焦到带 data-tip 的元素时显示同样的浮层（依赖 Committed 等）。 */
+function onFocusIn(e: FocusEvent) {
+  const el = (e.target as HTMLElement).closest?.('[data-tip]') as HTMLElement | null;
+  if (!el) {
+    show.value = false;
+    return;
+  }
+  showTipFor(el);
+  const r = el.getBoundingClientRect();
+  const t = tip.value?.getBoundingClientRect();
+  pos.value = {
+    x: clamp(r.left + 14, 8, innerWidth - (t?.width || 220) - 10),
+    y: clamp(r.bottom + 8, 8, innerHeight - (t?.height || 60) - 10),
+  };
+}
+
+function onFocusOut(e: FocusEvent) {
+  const next = (e.relatedTarget as HTMLElement | null)?.closest?.('[data-tip]');
+  if (!next) show.value = false;
 }
 
 function onMove(e: MouseEvent) {
@@ -44,12 +69,16 @@ onMounted(() => {
   document.addEventListener('mousemove', onMove);
   document.addEventListener('mouseleave', hide);
   document.addEventListener('pointerdown', hide, true);
+  document.addEventListener('focusin', onFocusIn);
+  document.addEventListener('focusout', onFocusOut);
 });
 onUnmounted(() => {
   document.removeEventListener('mouseover', onOver);
   document.removeEventListener('mousemove', onMove);
   document.removeEventListener('mouseleave', hide);
   document.removeEventListener('pointerdown', hide, true);
+  document.removeEventListener('focusin', onFocusIn);
+  document.removeEventListener('focusout', onFocusOut);
 });
 </script>
 

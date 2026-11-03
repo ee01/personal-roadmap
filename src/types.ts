@@ -101,10 +101,27 @@ export interface MarkerRow {
   jira_status: string | null;
   jira_target_end: string | null;
   jira_fetched_at: number | null;
+  /** Mirrored Jira `Committed` field of the dependency target ticket ('Yes'/'No'). */
+  committed: string | null;
   created_by: string;
   version: number;
   created_at: number;
   updated_at: number;
+}
+
+/**
+ * Team-scoped cache of one parent INIT's own Jira details, populated when the
+ * import happens to load its children (Epic) rows. A key absent from this
+ * table simply means "details not loaded" — never fabricate a title.
+ */
+export interface InitDetail {
+  key: string;
+  title: string | null;
+  /** INIT's own Target Delivery Quarter; reference only, never a filter input. */
+  quarter: string | null;
+  /** INIT's own Jira `Committed` field; null = not loaded / unset. */
+  committed: string | null;
+  fetchedAt: number;
 }
 
 /**
@@ -184,6 +201,8 @@ export interface ItemRow {
   status: string | null;
   /** Value keys of the Jira Custom Labels (`customfield_33875`) on this issue. */
   custom_labels_json: string;
+  /** Mirrored Jira `Committed` field ('Yes'/'No'); null when unset / unknown. */
+  committed: string | null;
   version: number;
   created_at: number;
   updated_at: number;
@@ -307,6 +326,8 @@ export interface TeamSnapshot {
     status?: string | null;
     /** Value keys of the Jira Custom Labels on this issue (milestone filter). */
     ms: string[];
+    /** Mirrored Jira `Committed` field ('Yes'/'No'); null = unset / unknown. */
+    committed?: string | null;
     subs: Array<{
       id: string;
       key?: string | null;
@@ -340,10 +361,14 @@ export interface TeamSnapshot {
       jiraTargetEnd?: string | null;
       jiraStatus?: string | null;
       jiraFetchedAt?: number | null;
+      /** Mirrored Jira `Committed` of the dependency target ticket; null = unknown. */
+      committed?: string | null;
       createdBy: string;
       version: number;
     }>;
   }>;
+  /** Parent INIT details loaded so far (Epic `parentLink` targets). */
+  inits?: InitDetail[];
   members: Array<{ id: string; name: string; avatarColor: string }>;
   presence: Array<{
     clientId: string;

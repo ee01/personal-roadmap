@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRoadmapState, QUARTER_NONE } from '../composables/useRoadmapState';
+import { useRoadmapState, QUARTER_NONE, INIT_NONE, initKeyOf } from '../composables/useRoadmapState';
 import {
   buildBacklogGroups,
   canDeleteItem,
@@ -194,6 +194,8 @@ async function runPull() {
       overwrite: overwrite.value,
       checkedQuarters: team.value.checkedQuarters,
       items,
+      // 顺带拉到的父 INIT 详情（标题 / 自身 Quarter / 自身 Committed）→ 服务端缓存
+      inits,
     });
     closeSyncPop();
     state.toast(`<span class="ok">✓</span> 已拉取 <b>${items.length}</b> 个 issue → Backlog`);
@@ -367,6 +369,158 @@ function groupQOver(q: string): number {
   ).length;
 }
 
+/* ---------- Committed = No（E-171，卡片自身字段） ---------- */
+function cardUc(item: RoadmapItem): boolean {
+  return state.itemUc(item);
+}
+
+function cardUcTip(item: RoadmapItem): string {
+  const who = itemDisplayKey(item);
+  return `${who} · Committed: No||${who} 自身的 Committed 字段为 No，且在 ${state.ucScopeText()} 范围内||只看这条 Epic 自身的字段，不受子任务或依赖影响 · 与 Owner 确认是否 commit`;
+}
+
+/** 分组头上的「N 项 Committed: No」计数（Epic 层级，只统计 Epic 自身字段）。 */
+function groupUc(q: string): number {
+  return filteredBacklog.value.filter(
+    (it) => (it.quarter || QUARTER_NONE) === q && state.itemUc(it),
+  ).length;
+}
+
+/* ---------- 层级（E-171）：Backlog 的 INIT 分组 ----------
+   Backlog 与甘特共用同一命中集合（viewMatch，按 Epic 判断）；INIT 只是父级上下文：
+   同一 INIT 可以同时出现在 Backlog（待排期 Epic）与甘特（已排期 Epic），不是重复排期。 */
+interface BlInitStats {
+  all: RoadmapItem[];
+  hit: RoadmapItem[];
+  sched: RoadmapItem[];
+  back: RoadmapItem[];
+}
+
+type BlRenderOp =
+  | { kind: 'qlabel'; id: string; label: string; qOver: number; uc: number }
+  | { kind: 'inithead'; id: string; initKey: string; items: RoadmapItem[]; stats: BlInitStats }
+  | { kind: 'initqlabel'; id: string; label: string }
+  | { kind: 'initfoot'; id: string; allSched: string[]; zero: string[] }
+  | { kind: 'card'; id: string; item: RoadmapItem };
+
+/** 过滤口径名（组头计数前缀）：Quarter / Milestone / 搜索。 */
+function scopeLabel(): string {
+  return [
+    state.qActive.value ? state.qSel.value.join('/') : '',
+    state.msActive.value ? 'Milestone' : '',
+    state.searchActive.value ? '搜索' : '',
+  ]
+    .filter(Boolean)
+    .join(' + ');
+}
+
+function initHitCountTip(stats: BlInitStats): string {
+  const label = scopeLabel();
+  return label
+    ? `${label} 命中 ${stats.hit.length} 个 Epic||分母是当前团队「已加载」的子 Epic 数，不代表 INIT 在 Jira 中的全部 Epic`
+    : `已加载 ${stats.all.length} 个子 Epic||只统计当前团队已拉取的数据，不代表 INIT 在 Jira 中的全部 Epic`;
+}
+
+function initUcTip(key: string): string {
+  return `${key} · Committed: No||${key} 自身的 Committed 字段为 No，且在 ${state.ucScopeText()} 范围内||INIT 行只读 INIT 自身的字段，不从子 Epic 或依赖推导 · 与 Owner 确认是否 commit`;
+}
+
+function initKeyTip(key: string): string {
+  const info = state.initInfo(key);
+  return info.loaded
+    ? `${key} · INIT 自身 Quarter ${info.quarter || '未设置'}||${info.title || ''}||INIT 自身的 Quarter 仅作参考，不参与筛选；筛选按子 Epic 的 Target Delivery Quarter`
+    : '';
+}
+
+/** 统一的渲染指令列表：Epic 层级按 Quarter 分组；INIT 层级按 Parent Link 分组，
+ * 组内再按 Quarter 分小组；折叠的 INIT 只渲染组头。卡片本身只有一份标记。 */
+const renderOps = computed<BlRenderOp[]>(() => {
+  if (!filteredBacklog.value.length) return [];
+  const ops: BlRenderOp[] = [];
+  if (!state.isInit.value) {
+    for (const [q, items] of groups.value) {
+      ops.push({ kind: 'qlabel', id: `q:${q}`, label: q, qOver: groupQOver(q), uc: groupUc(q) });
+      for (const it of items) ops.push({ kind: 'card', id: it.key, item: it });
+    }
+    return ops;
+  }
+  const byInit = state.initGroups(filteredBacklog.value);
+  const keys = [...byInit.keys()].sort(state.initKeyCmp);
+  for (const k of keys) {
+    const items = byInit.get(k)!;
+    ops.push({ kind: 'inithead', id: `init:${k}`, initKey: k, items, stats: state.initStats(k) });
+    if (state.initFold.value.bl.has(k)) continue; // 折叠：只渲染组头
+    const byQ = new Map<string, RoadmapItem[]>();
+    for (const it of items) {
+      const q = it.quarter || QUARTER_NONE;
+      const list = byQ.get(q);
+      if (list) list.push(it);
+      else byQ.set(q, [it]);
+    }
+    const multi = byQ.size > 1;
+    for (const [q, sub] of [...byQ.entries()].sort(
+      ([a], [b]) => (a === QUARTER_NONE ? 1 : b === QUARTER_NONE ? -1 : qCmp(a, b)),
+    )) {
+      if (multi) ops.push({ kind: 'initqlabel', id: `initq:${k}:${q}`, label: q });
+      for (const it of sub) ops.push({ kind: 'card', id: it.key, item: it });
+    }
+  }
+  // 底部说明：命中 Epic 已全部排期、只剩甘特侧有组头的 INIT + 0 命中未显示的 INIT
+  const shown = new Set(keys);
+  const allSched = [
+    ...new Set(
+      state.scheduledItems.value.filter((i) => state.viewMatch(i)).map(initKeyOf),
+    ),
+  ]
+    .filter((k) => !shown.has(k))
+    .sort(state.initKeyCmp);
+  const zero = state.zeroHitInits().filter((k) => !shown.has(k) && !allSched.includes(k));
+  if (allSched.length || zero.length) {
+    ops.push({ kind: 'initfoot', id: 'initfoot', allSched, zero });
+  }
+  return ops;
+});
+
+function toggleBlInit(key: string) {
+  state.toggleInitFold('bl', key);
+}
+
+/** 组头互跳：Backlog ↔ 甘特的同一个 INIT。经 window 事件解耦两个面板。 */
+function jumpToGanttInit(key: string) {
+  window.dispatchEvent(
+    new CustomEvent('roadmap-init-jump', { detail: { key, side: 'gantt' } }),
+  );
+}
+
+function onInitJump(ev: Event) {
+  const detail = (ev as CustomEvent<{ key?: string; side?: string }>).detail;
+  if (detail?.side !== 'backlog' || !detail.key) return;
+  if (state.initFold.value.bl.has(detail.key)) state.toggleInitFold('bl', detail.key);
+  void nextTick(() => {
+    const el = bodyEl.value?.querySelector(
+      `.bl-init[data-init="${CSS.escape(detail.key!)}"]`,
+    );
+    if (!el) return;
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+    window.setTimeout(() => el.classList.remove('flash'), 1700);
+  });
+}
+
+/* 所选 Quarter 一个条目都没有、也没拉取过 → 「尚未拉取」而非「无匹配」。 */
+const unpulled = computed(() => state.unpulledSelectedQuarters());
+
+async function pullUnpulled() {
+  const checked = team.value?.checkedQuarters || [];
+  const next = [...new Set([...checked, ...unpulled.value])].sort(qCmp);
+  if (next.length !== checked.length) {
+    await state.applySnapshotFromIntent({ op: 'set_quarters', checkedQuarters: next });
+  }
+  openSyncPop();
+}
+
 function qSelNames(): string {
   return [...state.qSel.value].sort((a, b) =>
     a === QUARTER_NONE ? 1 : b === QUARTER_NONE ? -1 : qCmp(a, b),
@@ -413,12 +567,14 @@ function onPlanningCommitted() {
 
 onMounted(() => {
   window.addEventListener('roadmap-planning-committed', onPlanningCommitted);
+  window.addEventListener('roadmap-init-jump', onInitJump);
   document.addEventListener('pointerdown', onSyncOutsidePointerDown, true);
   document.addEventListener('keydown', onSyncKeydown, true);
   window.addEventListener('resize', onSyncResize);
 });
 onBeforeUnmount(() => {
   window.removeEventListener('roadmap-planning-committed', onPlanningCommitted);
+  window.removeEventListener('roadmap-init-jump', onInitJump);
   document.removeEventListener('pointerdown', onSyncOutsidePointerDown, true);
   document.removeEventListener('keydown', onSyncKeydown, true);
   window.removeEventListener('resize', onSyncResize);
@@ -499,12 +655,78 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <div ref="bodyEl" class="bl-body">
-      <template v-if="filteredBacklog.length">
-        <template v-for="[q, items] in groups" :key="q">
-          <div class="bl-group-label">{{ q === QUARTER_NONE ? '未设置 Quarter' : q }}<span v-if="groupQOver(q)" class="q-ov">{{ groupQOver(q) }} 超出</span></div>
+      <template v-if="renderOps.length">
+        <template v-for="op in renderOps" :key="op.id">
+          <div v-if="op.kind === 'qlabel'" class="bl-group-label">{{
+            op.label === QUARTER_NONE ? '未设置 Quarter' : op.label
+          }}<span v-if="op.qOver" class="q-ov">{{ op.qOver }} 超出</span><span v-if="op.uc" class="q-uc">{{ op.uc }} 项 Committed: No</span></div>
+          <section
+            v-else-if="op.kind === 'inithead'"
+            class="bl-init"
+            :class="{ collapsed: state.initFold.value.bl.has(op.initKey) }"
+            :data-init="op.initKey"
+          >
+            <div
+              class="bl-init-head"
+              role="button"
+              tabindex="0"
+              :aria-expanded="!state.initFold.value.bl.has(op.initKey)"
+              @click="toggleBlInit(op.initKey)"
+              @keydown.enter.prevent="toggleBlInit(op.initKey)"
+              @keydown.space.prevent="toggleBlInit(op.initKey)"
+            >
+              <svg class="chev" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5L7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              <div class="bi-main">
+                <div class="bi-line">
+                  <template v-if="op.initKey !== INIT_NONE">
+                    <span class="bi-key" :data-tip="initKeyTip(op.initKey) || undefined">{{ op.initKey }}</span>
+                    <span v-if="state.initInfo(op.initKey).loaded && state.initInfo(op.initKey).title" class="bi-title">{{ state.initInfo(op.initKey).title }}</span>
+                    <span v-else class="bi-unk" data-tip="INIT 详情未加载||只从 Epic 的 Parent Link 读到 Key；标题、Quarter、Committed 都未拉取||不显示猜测的标题，也不当作完整 INIT">详情未加载</span>
+                  </template>
+                  <span v-else class="bi-none" data-tip="未关联 INIT||这些 Epic 没有 Parent Link，单独成组，不会被隐藏">未关联 INIT</span>
+                  <span v-if="state.initUc(op.initKey)" class="bi-uc" :data-tip="initUcTip(op.initKey)"><i />Committed: No</span>
+                </div>
+                <div class="bi-meta">
+                  <span>待排期 <b>{{ op.items.length }}</b> 个</span>
+                  <span :class="{ q: state.filterActive.value }" :data-tip="initHitCountTip(op.stats)">
+                    <template v-if="state.filterActive.value">{{ scopeLabel() }} 命中 <b>{{ op.stats.hit.length }}</b> / 已加载 {{ op.stats.all.length }} Epic</template>
+                    <template v-else>已加载 <b>{{ op.stats.all.length }}</b> Epic</template>
+                  </span>
+                  <span
+                    v-if="op.stats.sched.length"
+                    class="bi-jump"
+                    role="button"
+                    tabindex="0"
+                    :data-tip="`同一 INIT 的已排期 Epic||${op.stats.sched.length} 个在甘特上（左边是待排期，右边是已排期，不是重复）||单击在甘特中定位该 INIT`"
+                    @click.stop="jumpToGanttInit(op.initKey)"
+                    @keydown.enter.prevent.stop="jumpToGanttInit(op.initKey)"
+                    @keydown.space.prevent.stop="jumpToGanttInit(op.initKey)"
+                  >另 {{ op.stats.sched.length }} 个已在甘特 →</span>
+                </div>
+              </div>
+            </div>
+          </section>
+          <div v-else-if="op.kind === 'initqlabel'" class="bl-init-q">{{
+            op.label === QUARTER_NONE ? '未设置 Quarter' : op.label
+          }}</div>
+          <div v-else-if="op.kind === 'initfoot'" class="scope-foot">
+            <div v-if="op.allSched.length">
+              命中 Epic 已全部排期：<template v-for="k in op.allSched" :key="k"><span
+                class="bi-jump"
+                role="button"
+                tabindex="0"
+                :data-tip="`在甘特中定位 ${state.initShortName(k)}`"
+                @click="jumpToGanttInit(k)"
+                @keydown.enter.prevent="jumpToGanttInit(k)"
+              >{{ state.initShortName(k) }} →</span> </template>
+            </div>
+            <div v-if="op.zero.length">
+              当前筛选下 0 命中、未显示：{{ op.zero.map((k) => state.initShortName(k)).join('、') }}
+            </div>
+          </div>
+          <template v-else>
           <div
-            v-for="it in items"
-            :key="it.key"
+            v-for="it in [op.item]"
             class="card"
             :class="{
               pop: state.popKeys.value.includes(it.key),
@@ -591,6 +813,9 @@ onBeforeUnmount(() => {
                 <em>Target End {{ fmtMD(cardQOver(it)!.end) }} · +{{ cardQOver(it)!.days }}d</em>
               </span>
             </div>
+            <div v-if="cardUc(it)" class="card-uc">
+              <span :data-tip="cardUcTip(it)"><i />Committed: No</span>
+            </div>
             <span
               v-if="it.subs.length"
               class="card-subs"
@@ -608,6 +833,7 @@ onBeforeUnmount(() => {
               ×
             </button>
           </div>
+          </template>
         </template>
       </template>
       <div
@@ -618,6 +844,12 @@ onBeforeUnmount(() => {
         <b v-if="state.qActive.value">{{ qSelNames() }}</b><template v-if="state.qActive.value && state.msActive.value"> 且 </template><b v-if="state.msActive.value">{{ msSelNames() }}</b><br />的未排期条目<template
           v-if="searchText"
         >（且匹配「{{ searchText }}」）</template><br />
+        <template v-if="unpulled.length">
+          <span class="empty-why"><b>{{ unpulled.join(' / ') }}</b> 尚未从 Jira 拉取 —— 筛选只作用于已加载的数据</span><br />
+          <button v-if="state.editable.value" class="bl-empty-link" type="button" @click="pullUnpulled">
+            拉取 {{ unpulled.join(' / ') }}…
+          </button><br />
+        </template>
         <button class="bl-empty-link" type="button" @click="state.setQSel([]); state.setMsSel([])">
           清除 Quarter / Milestone 过滤
         </button>

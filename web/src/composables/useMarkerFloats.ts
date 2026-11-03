@@ -49,7 +49,7 @@ export function closeMarkerFloats() {
     .forEach((el) => el.remove());
 }
 
-function floatAt(anchor: HTMLElement, cls: string, width?: number) {
+export function floatAt(anchor: HTMLElement, cls: string, width?: number) {
   closeMarkerFloats();
   const p = document.createElement('div');
   p.className = `owner-pop show ${cls}`;
@@ -86,6 +86,7 @@ export type MarkerHandlers = {
     targetStart?: string | null;
     targetEnd: string | null;
     status: string | null;
+    committed?: string | null;
   }>;
   hasExtension: boolean;
   editable: boolean;
@@ -397,6 +398,7 @@ export function openDepForm(
     targetStart?: string | null;
     targetEnd: string | null;
     status: string | null;
+    committed?: string | null;
   } | null = null;
   let fetchedKey = '';
   const needInp = p.querySelector('.df-need') as HTMLInputElement;
@@ -484,6 +486,7 @@ export function openDepForm(
         jiraStatus: mirror?.status,
         jiraTargetStart: mirror?.targetStart,
         jiraTargetEnd: mirror?.targetEnd,
+        ...(mirror?.committed ? { committed: mirror.committed } : {}),
       });
       close();
       handlers.toast(
@@ -523,6 +526,7 @@ export async function refreshDependencyEta(
       jiraStatus: info.status,
       jiraTargetStart: info.targetStart,
       jiraTargetEnd: info.targetEnd,
+      ...(info.committed ? { committed: info.committed } : {}),
       ...(info.targetEnd ? { date: info.targetEnd, etaSource: 'jira' } : {}),
       baseVersion: dep.version,
     });
@@ -674,6 +678,7 @@ export function openDepPopover(
               jiraStatus: info.status,
               jiraTargetStart: info.targetStart,
               jiraTargetEnd: info.targetEnd,
+              ...(info.committed ? { committed: info.committed } : {}),
             });
             if (info.targetEnd) {
               Object.assign(intent, {

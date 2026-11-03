@@ -1,5 +1,7 @@
 export type ActorSource = 'creator' | 'extension' | 'anonymous' | 'system';
 export type ViewMode = 'gantt' | 'resource' | 'dependency';
+/** 查看层级：Epic（默认）或按 Parent Link 聚合的 INIT。E-171 */
+export type HierarchyMode = 'epic' | 'init';
 export type ResWindow = '2w' | 'all';
 export type MarkerKind = 'phase' | 'dep';
 export type PhaseKind = 'design' | 'stage' | 'production' | 'custom';
@@ -84,8 +86,24 @@ export interface RoadmapMarker {
   /** Last mirrored Jira Target End; never auto-copied onto `date`. */
   jiraTargetEnd?: string | null;
   jiraFetchedAt?: number | null;
+  /** Mirrored Jira `Committed` of the dependency target ticket; null = unknown. */
+  committed?: string | null;
   createdBy: string;
   version: number;
+}
+
+/**
+ * Parent INIT details loaded so far (Epic `parentLink` targets). A key absent
+ * from the list means "details not loaded" — show the Key, never a fake title.
+ */
+export interface InitDetail {
+  key: string;
+  title: string | null;
+  /** INIT's own Target Delivery Quarter; reference only, never a filter input. */
+  quarter: string | null;
+  /** INIT's own Jira `Committed` field; null = not loaded / unset. */
+  committed: string | null;
+  fetchedAt: number;
 }
 
 export interface RoadmapSub {
@@ -143,6 +161,8 @@ export interface RoadmapItem {
   owner?: string | null;
   /** Mirrored Jira workflow status (e.g. 'Closed', 'Resolved'); null until first Jira refresh. */
   status?: string | null;
+  /** Mirrored Jira `Committed` field ('Yes'/'No'); null = unset / unknown. */
+  committed?: string | null;
   /** Value keys of the Jira Custom Labels on this issue (milestone filter). */
   ms?: string[];
   subs: RoadmapSub[];
@@ -211,6 +231,8 @@ export interface TeamSnapshot {
     /** Team-scoped Custom Label value cache (milestone dictionary). */
     customLabels?: MilestoneValue[];
   };
+  /** Parent INIT details loaded so far (Epic `parentLink` targets). E-171 */
+  inits?: InitDetail[];
   items: RoadmapItem[];
   members: TeamMember[];
   presence: PresenceEntry[];

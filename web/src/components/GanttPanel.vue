@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useRoadmapState, scheduleFromBacklog, targetWindow, fitTargetWindow, QUARTER_NONE } from '../composables/useRoadmapState';
+import { useRoadmapState, scheduleFromBacklog, targetWindow, fitTargetWindow, QUARTER_NONE, INIT_NONE, initKeyOf } from '../composables/useRoadmapState';
 import {
   X,
   DAY_W,
@@ -39,12 +39,13 @@ import {
 } from '../composables/useReleaseRuler';
 import type { MilestoneValue, RoadmapItem, RoadmapSub, RulerMode } from '../types';
 import { locateTimeline, resolveGanttTarget } from '../composables/ganttLocate';
-import { closeMarkerFloats } from '../composables/useMarkerFloats';
+import { closeMarkerFloats, openDepForm, floatAt, type MarkerHandlers } from '../composables/useMarkerFloats';
 import GanttRow from './GanttRow.vue';
 import ResourceView from './ResourceView.vue';
 import DependencyView from './DependencyView.vue';
 import DependencyTools from './DependencyTools.vue';
 import {
+  bridgeFetchDependencyDates,
   bridgeImportChildTasks,
   bridgeRefreshJiraIssues,
   bridgeUpdateAssignee,
@@ -62,11 +63,17 @@ import {
   collectUnsyncedTargetRefs,
   epicColor,
   epicShort,
+  isDoneStatus,
+  itemDisplayKey,
   refreshIssuesToIntent,
 } from '../composables/useRoadmapContract';
+import { dependencyState } from '../composables/dependency';
 
 const state = useRoadmapState();
 const gate = useExtensionGate();
+const jiraBase = computed(
+  () => state.snapshot.value?.team.jiraBaseUrl || 'https://jira.ringcentral.com',
+);
 const gScroll = ref<HTMLElement | null>(null);
 const gBody = ref<HTMLElement | null>(null);
 const dropVisible = ref(false);
@@ -159,10 +166,273 @@ function qSelNames(): string {
 const msHideEmpty = computed(
   () =>
     !state.locate.value && state.filterActive.value &&
-    state.msMode.value === 'hide' &&
+    state.dimMode.value === 'hide' &&
     state.scheduledItems.value.length > 0 &&
     !state.scheduledItems.value.some((i) => state.viewMatch(i)),
 );
+
+/* ---------- 层级（E-171）：甘特的 INIT 汇总行 ----------
+   INIT 汇总行是「只读覆盖范围」：当前命中、已排期 Epic 的最早开始 → 最晚结束，
+   不是 INIT 的官方承诺日期，不可拖动；排期仍改具体 Epic。同一 INIT 可以同时
+   在 Backlog（待排期）与甘特（已排期）出现，不是重复排期。 */
+interface GiOpInit {
+  kind: 'inithead';
+  id: string;
+  initKey: string;
+  hit: RoadmapItem[];
+  back: RoadmapItem[];
+  loadedCount: number;
+  done: number;
+  depLate: number;
+  depMiss: number;
+  span: { start: Date; end: Date; worst: { q: string; days: number; qe: Date } | null } | null;
+}
+type GRenderOp =
+  | GiOpInit
+  | { kind: 'row'; id: string; item: RoadmapItem }
+  | { kind: 'foot'; id: string; backOnly: string[]; zero: string[] };
+
+const ganttOps = computed<GRenderOp[]>(() => {
+  const rows = state.scheduledItems.value;
+  if (!state.isInit.value) {
+    return rows.map((item) => ({ kind: 'row' as const, id: item.key, item }));
+  }
+  const on = state.filterActive.value;
+  const ops: GRenderOp[] = [];
+  const groups = state.initGroups(rows);
+  const keys = [...groups.keys()].sort(
+    (a, b) => (a === INIT_NONE ? 1 : 0) - (b === INIT_NONE ? 1 : 0),
+  );
+  const backOnly: string[] = [];
+  const shownKeys = new Set<string>();
+  for (const k of keys) {
+    const list = groups.get(k)!;
+    const hit = list.filter((i) => state.viewMatch(i));
+    const hasPin = list.some((i) => state.locate.value?.target.itemKey === i.key);
+    if (on && !hit.length && !hasPin) {
+      // 命中都在 Backlog 的 INIT：不画组头，但给一个出口（foot）
+      if (state.initStats(k).hit.length) backOnly.push(k);
+      continue;
+    }
+    shownKeys.add(k);
+    ops.push(initHeadOp(k, hit));
+    if (!state.initFold.value.g.has(k)) {
+      for (const item of list) ops.push({ kind: 'row', id: item.key, item });
+    }
+  }
+  // Backlog 里有命中、甘特上没有排期的 INIT（给出口）+ 0 命中未显示的 INIT
+  for (const item of state.backlogItems.value) {
+    if (!state.viewMatch(item)) continue;
+    const k = initKeyOf(item);
+    if (!shownKeys.has(k) && !backOnly.includes(k)) backOnly.push(k);
+  }
+  const zero = state.zeroHitInits().filter((k) => !shownKeys.has(k) && !backOnly.includes(k));
+  if (backOnly.length || zero.length) {
+    ops.push({ kind: 'foot', id: 'ginitfoot', backOnly: backOnly.sort(state.initKeyCmp), zero });
+  }
+  return ops;
+});
+
+function initHeadOp(k: string, hit: RoadmapItem[]): GiOpInit {
+  const stats = state.initStats(k);
+  let start: Date | null = null;
+  let end: Date | null = null;
+  for (const i of hit) {
+    if (!i.start || !i.days) continue;
+    const a = parseDate(i.start);
+    const b = addD(a, i.days - 1);
+    if (!start || a < start) start = a;
+    if (!end || b > end) end = b;
+  }
+  let worst: { q: string; days: number; qe: Date } | null = null;
+  if (start && end) {
+    for (const i of hit) {
+      const ov = state.qOverOf(i);
+      if (ov && (!worst || ov.days > worst.days)) worst = { q: ov.q, days: ov.days, qe: ov.qEnd };
+    }
+  }
+  const deps = hit.flatMap((i) => i.markers.filter((m) => m.kind === 'dep'));
+  const states = deps.map(dependencyState);
+  return {
+    kind: 'inithead',
+    id: `gi:${k}`,
+    initKey: k,
+    hit,
+    back: stats.back,
+    loadedCount: stats.all.length,
+    done: stats.hit.filter(isDoneStatus).length,
+    depLate: states.filter((s) => s === 'late').length,
+    depMiss: states.filter((s) => s === 'missing' || s === 'stale').length,
+    span: start && end ? { start, end, worst } : null,
+  };
+}
+
+function initSpanStyle(span: NonNullable<GiOpInit['span']>): Record<string, string> {
+  return {
+    left: `${X(tl.value, span.start)}px`,
+    width: `${(diffD(span.start, span.end) + 1) * DAY_W.value}px`,
+  };
+}
+
+function initSpanOverStyle(span: NonNullable<GiOpInit['span']>): Record<string, string> | null {
+  const worst = span.worst;
+  if (!worst) return null;
+  const ovStart = addD(worst.qe, 1);
+  if (ovStart <= span.start) return null;
+  return {
+    left: `${X(tl.value, ovStart) - X(tl.value, span.start)}px`,
+    width: `${(diffD(ovStart, span.end) + 1) * DAY_W.value}px`,
+  };
+}
+
+function initSpanTip(op: GiOpInit): string {
+  const span = op.span!;
+  return `${state.initShortName(op.initKey)} · 只读覆盖范围 · ${fmtMD(span.start)} → ${fmtMD(span.end)}||${
+    state.filterActive.value ? '当前筛选下' : '甘特上'
+  } ${op.hit.length} 个已排期 Epic 的最早开始 → 最晚结束${
+    op.back.length ? `；另 ${op.back.length} 个待排期 Epic 不计入` : ''
+  }||不是 INIT 的官方承诺日期 · 不可拖动，排期请改具体 Epic`;
+}
+
+function initScopeLabel(): string {
+  return [
+    state.qActive.value ? state.qSel.value.join('/') : '',
+    state.msActive.value ? 'Milestone' : '',
+    state.searchActive.value ? '搜索' : '',
+  ]
+    .filter(Boolean)
+    .join(' + ');
+}
+
+function initHitTip(op: GiOpInit): string {
+  const label = initScopeLabel();
+  return label
+    ? `${label} 命中 ${op.hit.length} 个已排期 Epic||分母是当前团队「已加载」的子 Epic 数，不代表 INIT 在 Jira 中的全部 Epic`
+    : `已加载 ${op.loadedCount} 个子 Epic||只统计当前团队已拉取的数据，不代表 INIT 在 Jira 中的全部 Epic`;
+}
+
+function initUcTip(key: string): string {
+  return `${key} · Committed: No||${key} 自身的 Committed 字段为 No，且在 ${state.ucScopeText()} 范围内||INIT 行只读 INIT 自身的字段，不从子 Epic 或依赖推导 · 与 Owner 确认是否 commit`;
+}
+
+function initKeyTip(key: string): string {
+  const info = state.initInfo(key);
+  return info.loaded
+    ? `${key} · INIT 自身 Quarter ${info.quarter || '未设置'}||${info.title || ''}||INIT 自身的 Quarter 仅作参考，不参与筛选；筛选按子 Epic 的 Target Delivery Quarter`
+    : '';
+}
+
+function toggleGanttInit(key: string) {
+  state.toggleInitFold('g', key);
+}
+
+/** 组头互跳：甘特 → Backlog 的同一个 INIT（BacklogPanel 监听并展开定位）。 */
+function jumpToBacklogInit(key: string) {
+  window.dispatchEvent(
+    new CustomEvent('roadmap-init-jump', { detail: { key, side: 'backlog' } }),
+  );
+}
+
+function onInitJump(ev: Event) {
+  const detail = (ev as CustomEvent<{ key?: string; side?: string }>).detail;
+  if (detail?.side !== 'gantt' || !detail.key) return;
+  if (state.initFold.value.g.has(detail.key)) state.toggleInitFold('g', detail.key);
+  void nextTick(() => {
+    const el = gBody.value?.querySelector(
+      `.g-init[data-init="${CSS.escape(detail.key!)}"]`,
+    );
+    const sc = gScroll.value;
+    if (!el || !sc) {
+      state.toast(`${state.initShortName(detail.key!)} 在甘特上没有命中的 Epic`);
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    const view = sc.getBoundingClientRect();
+    const span = el.querySelector('.gi-span');
+    const left = span
+      ? sc.scrollLeft + (span.getBoundingClientRect().left - view.left) - view.width * 0.25
+      : sc.scrollLeft;
+    sc.scrollTo({
+      top: Math.max(0, sc.scrollTop + (rect.top - view.top) - 52),
+      left: Math.max(0, left),
+      behavior: 'smooth',
+    });
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+    window.setTimeout(() => el.classList.remove('flash'), 2400);
+  });
+}
+
+/** 从依赖 / 人员视图定位到甘特时，自动展开目标所属的 INIT 分组。 */
+watch(
+  () => state.locate.value,
+  (loc) => {
+    if (!loc || !state.isInit.value) return;
+    const item = state.scheduledItems.value.find(
+      (i) => i.key === loc.target.itemKey,
+    );
+    const key = item ? initKeyOf(item) : null;
+    if (key && state.initFold.value.g.has(key)) state.toggleInitFold('g', key);
+  },
+);
+
+/** INIT 组头「依赖」：先选归属 Epic，再沿用现有依赖表单（依赖始终记录在 Epic 上）。 */
+function openInitDepPick(ev: Event, op: GiOpInit) {
+  if (!state.editable.value) return;
+  const anchor = ev.currentTarget as HTMLElement;
+  const epics = op.hit.filter((i) => i.scheduled);
+  if (!epics.length) return;
+  const { p, close } = floatAt(anchor, 'marker-menu', 280);
+  p.innerHTML = `
+    <div class="mm-sec-label">依赖归属哪个 Epic？</div>
+    ${epics
+      .map(
+        (it) => `
+      <div class="owner-item" data-k="${it.key}" tabindex="0" style="gap:8px">
+        <span class="mm-dot" style="background:${epicColor(state.scheduledItems.value.map((i) => i.key), it.key)}"></span>
+        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${clipTxt(it.alias || it.title, 60)}</span>
+        <span style="margin-left:auto;font:500 10px var(--mono);color:var(--muted)">${itemDisplayKey(it)}</span>
+      </div>`,
+      )
+      .join('')}
+    <div class="divider"></div>
+    <div style="padding:4px 10px 8px;font-size:11px;color:var(--muted);line-height:1.5">INIT 组头只汇总。依赖表达「这条 Epic 何时需要对方交付」，同一目标被不同 Epic 依赖时，各自保留期望日期。</div>`;
+  p.querySelectorAll('[data-k]').forEach((el) => {
+    const go = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const item = epics.find((i) => i.key === (el as HTMLElement).dataset.k);
+      close();
+      if (item) openDepForm(anchor, item, initMarkerHandlers());
+    };
+    el.addEventListener('pointerdown', go);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') go(e);
+    });
+  });
+  requestAnimationFrame(() => p.querySelector('[data-k]')?.focus?.());
+}
+
+function initMarkerHandlers(): MarkerHandlers {
+  return {
+    editable: state.editable.value,
+    hasExtension: state.hasExtension.value,
+    toast: (html) => state.toast(html),
+    addMarker: (intent) => applyMarkerIntent(intent),
+    updateMarker: (intent) => applyMarkerIntent(intent),
+    deleteMarker: (intent) => applyMarkerIntent(intent),
+    fetchIssueDates: state.hasExtension.value
+      ? (jiraKey) => bridgeFetchDependencyDates(jiraKey)
+      : undefined,
+    jiraBaseUrl: jiraBase.value,
+    showDependency: (id) => {
+      state.dependencyFocus.value = id;
+      state.dependencyFilter.value = 'all';
+      state.view.value = 'dependency';
+    },
+  };
+}
 
 function clearViewFilters() {
   state.setMsSel([]);
@@ -1186,6 +1456,7 @@ let gScrollEl: HTMLElement | null = null;
 onMounted(() => {
   window.addEventListener('keydown', onLocateEscape);
   window.addEventListener('roadmap-card-drag-start', onCardDragStart);
+  window.addEventListener('roadmap-init-jump', onInitJump);
   gScrollEl = gScroll.value;
   gScrollEl?.addEventListener('wheel', onGanttWheel, { passive: false });
 });
@@ -1193,6 +1464,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onLocateEscape);
   clearTimeout(locateHighlightTimer); clearHighlights();
   window.removeEventListener('roadmap-card-drag-start', onCardDragStart);
+  window.removeEventListener('roadmap-init-jump', onInitJump);
   gScrollEl?.removeEventListener('wheel', onGanttWheel);
   gScrollEl = null;
   for (const timer of targetSyncTimers.values()) window.clearTimeout(timer);
@@ -1560,24 +1832,114 @@ onUnmounted(() => {
             可从左侧 Backlog 拖入，或<br />
             <button type="button" @click="clearViewFilters">清除过滤</button>
           </div>
-          <GanttRow
-            v-for="it in state.scheduledItems.value"
-            :key="it.key"
-            :item="it"
-            :tl="tl"
-            :team-id="state.teamId.value"
-            :editable="state.editable.value"
-            :enter="state.enterKey.value === it.key"
-            :new-sub-id="state.newSubId.value"
-            :persist-toggle="(open) => setExpanded(it, open)"
-            :apply-marker-intent="applyMarkerIntent"
-            @unschedule="unscheduleItem(it)"
-            @commit="(p) => commitBar(it, p.sub, p)"
-            @set-alias="(p) => onSetAlias(p)"
-            @add-sub="(p) => onAddSub(it, p)"
-            @delete-sub="(p) => state.applySnapshotFromIntent(p)"
-            @update-sub="(p) => onUpdateSub(p)"
-          />
+          <template v-for="op in ganttOps" :key="op.id">
+            <div
+              v-if="op.kind === 'inithead'"
+              class="g-init"
+              :class="{ collapsed: state.initFold.value.g.has(op.initKey) }"
+              :data-init="op.initKey"
+            >
+              <div class="gi-lane">
+                <div class="gi-head">
+                  <button
+                    type="button"
+                    class="gi-chev"
+                    :aria-expanded="!state.initFold.value.g.has(op.initKey)"
+                    :aria-label="`${state.initFold.value.g.has(op.initKey) ? '展开' : '折叠'} ${state.initShortName(op.initKey)}`"
+                    @click="toggleGanttInit(op.initKey)"
+                  >
+                    <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5L7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                  </button>
+                  <template v-if="op.initKey !== INIT_NONE">
+                    <span class="gi-key" :data-tip="initKeyTip(op.initKey) || undefined">{{ op.initKey }}</span>
+                    <span v-if="state.initInfo(op.initKey).loaded && state.initInfo(op.initKey).title" class="gi-title">{{ state.initInfo(op.initKey).title }}</span>
+                    <span v-else class="bi-unk" data-tip="INIT 详情未加载||只从 Epic 的 Parent Link 读到 Key；标题、Quarter、Committed 都未拉取||不显示猜测的标题，也不当作完整 INIT">详情未加载</span>
+                  </template>
+                  <span v-else class="gi-none">未关联 INIT</span>
+                  <span class="gi-sep" />
+                  <span class="gi-pill" :data-tip="initHitTip(op)">
+                    <template v-if="state.filterActive.value">{{ initScopeLabel() }} 命中 <b>{{ op.hit.length }}</b> / 已加载 {{ op.loadedCount }} Epic</template>
+                    <template v-else>已加载 <b>{{ op.loadedCount }}</b> Epic</template>
+                  </span>
+                  <span class="gi-pill" data-tip="甘特上命中的已排期 Epic">甘特 <b>{{ op.hit.length }}</b></span>
+                  <span
+                    v-if="op.back.length"
+                    class="gi-pill bi-jump"
+                    role="button"
+                    tabindex="0"
+                    data-tip="同一 INIT 的待排期 Epic||单击在 Backlog 中定位（不是重复排期）"
+                    @click="jumpToBacklogInit(op.initKey)"
+                    @keydown.enter.prevent="jumpToBacklogInit(op.initKey)"
+                    @keydown.space.prevent="jumpToBacklogInit(op.initKey)"
+                  >← 待排期 <b>{{ op.back.length }}</b></span>
+                  <span class="gi-pill" data-tip="按 Epic 计数，不做平均进度百分比">已完成 <b>{{ op.done }}</b>/{{ op.hit.length + op.back.length }} Epic</span>
+                  <span v-if="op.depLate" class="gi-pill risk" data-tip="依赖风险（仅命中 Epic 的依赖）||切到「依赖」视图查看原记录">依赖 {{ op.depLate }} 晚</span>
+                  <span v-if="op.depMiss" class="gi-pill warn" data-tip="未知 ETA / 待刷新单独提示，不汇总成「正常」">{{ op.depMiss }} 缺 ETA</span>
+                  <span v-if="state.initUc(op.initKey)" class="gi-pill uc" :data-tip="initUcTip(op.initKey)"><i />Committed: No</span>
+                  <button
+                    v-if="op.hit.length && state.editable.value"
+                    type="button"
+                    class="gi-act"
+                    data-tip="添加外部依赖||先选择依赖归属的 Epic，再填写依赖||INIT 组头只汇总，不承载依赖"
+                    @click="openInitDepPick($event, op)"
+                  >
+                    <svg viewBox="0 0 14 14" width="10" height="10" aria-hidden="true"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>依赖
+                  </button>
+                </div>
+                <div
+                  v-if="op.span"
+                  class="gi-span"
+                  :style="initSpanStyle(op.span)"
+                  :data-tip="initSpanTip(op)"
+                >
+                  <i
+                    v-if="initSpanOverStyle(op.span)"
+                    class="ov"
+                    :style="initSpanOverStyle(op.span)!"
+                  />
+                </div>
+                <span
+                  v-if="op.span"
+                  class="gi-span-l"
+                  :style="{ left: `${X(tl, op.span.end) + DAY_W + 8}px` }"
+                >
+                  <em>{{ state.filterActive.value ? '筛选内排期' : '排期覆盖' }}</em>{{ fmtMD(op.span.start) }} → {{ fmtMD(op.span.end) }}<template v-if="op.span.worst"> · {{ op.hit.filter((i) => state.qOverOf(i)).length }} 个 Epic 超出 {{ op.span.worst.q }} · 最多 +{{ op.span.worst.days }}d</template>
+                </span>
+              </div>
+            </div>
+            <div v-else-if="op.kind === 'foot'" class="g-scope-foot">
+              <template v-if="op.backOnly.length">
+                命中 Epic 都还在 Backlog 待排期：<template v-for="k in op.backOnly" :key="k"><span
+                  class="bi-jump"
+                  role="button"
+                  tabindex="0"
+                  :data-tip="`在 Backlog 中定位 ${state.initShortName(k)}`"
+                  @click="jumpToBacklogInit(k)"
+                  @keydown.enter.prevent="jumpToBacklogInit(k)"
+                >← {{ state.initShortName(k) }}</span> </template>
+              </template>
+              <template v-if="op.zero.length">
+                {{ op.backOnly.length ? '　|　' : '' }}当前筛选下 0 命中、未显示：{{ op.zero.map((k) => state.initShortName(k)).join('、') }}
+              </template>
+            </div>
+            <GanttRow
+              v-else
+              :item="op.item"
+              :tl="tl"
+              :team-id="state.teamId.value"
+              :editable="state.editable.value"
+              :enter="state.enterKey.value === op.item.key"
+              :new-sub-id="state.newSubId.value"
+              :persist-toggle="(open) => setExpanded(op.item, open)"
+              :apply-marker-intent="applyMarkerIntent"
+              @unschedule="unscheduleItem(op.item)"
+              @commit="(p) => commitBar(op.item, p.sub, p)"
+              @set-alias="(p) => onSetAlias(p)"
+              @add-sub="(p) => onAddSub(op.item, p)"
+              @delete-sub="(p) => state.applySnapshotFromIntent(p)"
+              @update-sub="(p) => onUpdateSub(p)"
+            />
+          </template>
         </div>
         <div
           v-show="dropVisible"

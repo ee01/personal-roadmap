@@ -11,10 +11,13 @@ import {
 } from 'vue';
 import type {
   ActivityEntry,
+  HierarchyMode,
+  InitDetail,
   MilestoneFilterMode,
   MilestoneValue,
   ResWindow,
   RoadmapItem,
+  RoadmapMarker,
   RoadmapSub,
   RulerMode,
   TeamSnapshot,
@@ -41,6 +44,7 @@ import {
 } from './useGeometry';
 import { useRoadmapApi } from './useRoadmapApi';
 import { formatGanttFocus, parseGanttFocus, resolveGanttTarget, type GanttTarget, type GanttLocation } from './ganttLocate';
+import { depCommittedText } from './dependency';
 import { bridgeFetchCustomLabelValues, bridgeFetchQuarterOptions } from './useExtensionBridge';
 import { isDoneStatus, itemDisplayKey } from './useRoadmapContract';
 
@@ -117,6 +121,14 @@ export function applyOptimisticRemovals(
     if (changed) items = next;
   }
   return items === snap.items ? snap : { ...snap, items };
+}
+
+/** 未关联 Parent Link 的条目归入的 INIT 分组 Key（不是真实 INIT）。 */
+export const INIT_NONE = '__none';
+
+/** 条目所属的 INIT 分组 Key：Parent Link，没有则归入「未关联 INIT」。 */
+export function initKeyOf(item: Pick<RoadmapItem, 'parentLink'>): string {
+  return item.parentLink || INIT_NONE;
 }
 
 export function createRoadmapState() {
@@ -432,6 +444,178 @@ export function createRoadmapState() {
     }
   }
 
+  // ---------- 层级（Epic / INIT）· E-171 ----------
+  // 「层级」与「任务 / 人员 / 依赖视图」正交：INIT 是「汇总与上下文」，不是新的
+  // 排期对象；组头只读、只汇总，排期 / 依赖 / 批量操作仍落在 Epic / 子任务上。
+  // 切换只是本人的查看偏好（localStorage），不改共享排期 / Parent Link / Jira。
+  const HIERARCHY_KEY = 'personalroadmap.tier';
+  const INIT_MODE_KEY = 'personalroadmap.initMode';
+  const INIT_FOLD_KEY = 'personalroadmap.initFold';
+  const hierarchy = ref<HierarchyMode>(readStoredHierarchy());
+  const isInit = computed(() => hierarchy.value === 'init');
+  // INIT 层级下非命中的兄弟 Epic 默认「隐藏」（避免把其他季度误读成范围内）；
+  // Epic 层级沿用原有默认「淡化」。
+  const initMode = ref<MilestoneFilterMode>(readStoredInitMode());
+  /** 甘特中未匹配行的处理方式：按层级分开记忆（INIT 默认 hide，Epic 默认 dim）。 */
+  const dimMode = computed<MilestoneFilterMode>(() =>
+    isInit.value ? initMode.value : msMode.value,
+  );
+  // INIT 分组的折叠状态：Backlog / 甘特分别记忆。
+  const initFold = ref<{ bl: Set<string>; g: Set<string> }>(loadInitFold());
+
+  function readStoredHierarchy(): HierarchyMode {
+    try {
+      return localStorage.getItem(HIERARCHY_KEY) === 'init' ? 'init' : 'epic';
+    } catch {
+      return 'epic';
+    }
+  }
+
+  function readStoredInitMode(): MilestoneFilterMode {
+    try {
+      return localStorage.getItem(INIT_MODE_KEY) === 'dim' ? 'dim' : 'hide';
+    } catch {
+      return 'hide';
+    }
+  }
+
+  function loadInitFold(): { bl: Set<string>; g: Set<string> } {
+    try {
+      const o = JSON.parse(localStorage.getItem(INIT_FOLD_KEY) || '{}');
+      return { bl: new Set(o.bl || []), g: new Set(o.g || []) };
+    } catch {
+      return { bl: new Set(), g: new Set() };
+    }
+  }
+
+  function saveInitFold() {
+    try {
+      localStorage.setItem(
+        INIT_FOLD_KEY,
+        JSON.stringify({ bl: [...initFold.value.bl], g: [...initFold.value.g] }),
+      );
+    } catch {
+      /* private mode */
+    }
+  }
+
+  function setHierarchy(v: HierarchyMode) {
+    if (hierarchy.value === v) return;
+    hierarchy.value = v;
+    try {
+      localStorage.setItem(HIERARCHY_KEY, v);
+    } catch {
+      /* private mode */
+    }
+    cancelLocate();
+  }
+
+  function setInitMode(mode: MilestoneFilterMode) {
+    if (mode !== initMode.value) cancelLocate();
+    initMode.value = mode;
+    try {
+      localStorage.setItem(INIT_MODE_KEY, mode);
+    } catch {
+      /* private mode */
+    }
+  }
+
+  /** 展开 / 折叠某个 INIT 分组；`which` = 'bl'（Backlog）| 'g'（甘特）。 */
+  function toggleInitFold(which: 'bl' | 'g', key: string, force?: boolean) {
+    const next = { bl: new Set(initFold.value.bl), g: new Set(initFold.value.g) };
+    const set = next[which];
+    const collapsed = set.has(key);
+    if (force === true ? collapsed : !collapsed) set.delete(key);
+    else set.add(key);
+    initFold.value = next;
+    saveInitFold();
+  }
+
+  /** 已加载的 INIT 详情（Key → 标题 / 自身 Quarter / 自身 Committed）。 */
+  const inits = computed<Map<string, InitDetail>>(() => {
+    const map = new Map<string, InitDetail>();
+    for (const detail of snapshot.value?.inits || []) map.set(detail.key, detail);
+    return map;
+  });
+
+  /** INIT 分组的信息：详情未加载时只知 Key，不伪造标题。 */
+  function initInfo(key: string): {
+    key: string;
+    none: boolean;
+    loaded: boolean;
+    title: string | null;
+    quarter: string | null;
+    committed: string | null;
+  } {
+    if (key === INIT_NONE)
+      return { key, none: true, loaded: false, title: null, quarter: null, committed: null };
+    const detail = inits.value.get(key);
+    return detail
+      ? { key, none: false, loaded: true, title: detail.title, quarter: detail.quarter, committed: detail.committed }
+      : { key, none: false, loaded: false, title: null, quarter: null, committed: null };
+  }
+
+  function initName(key: string): string {
+    const info = initInfo(key);
+    if (info.none) return '未关联 INIT';
+    return info.loaded && info.title ? `${key} ${info.title}` : `${key}（详情未加载）`;
+  }
+
+  function initShortName(key: string): string {
+    return key === INIT_NONE ? '未关联' : key;
+  }
+
+  /** 排序：已加载详情的在前，未加载的其次，「未关联」垫底；再按 Key。 */
+  function initKeyCmp(a: string, b: string): number {
+    const rank = (k: string) => (k === INIT_NONE ? 2 : inits.value.has(k) ? 0 : 1);
+    return rank(a) - rank(b) || a.localeCompare(b);
+  }
+
+  /** 按 INIT 分组（保持传入顺序，分组 Key 需排序时用 initKeyCmp）。 */
+  function initGroups(items: RoadmapItem[]): Map<string, RoadmapItem[]> {
+    const map = new Map<string, RoadmapItem[]>();
+    for (const item of items) {
+      const key = initKeyOf(item);
+      const list = map.get(key);
+      if (list) list.push(item);
+      else map.set(key, [item]);
+    }
+    return map;
+  }
+
+  /** 某个 INIT 下已加载的全部 Epic、命中集合及其排期 / 待排期拆分。 */
+  function initStats(key: string): {
+    all: RoadmapItem[];
+    hit: RoadmapItem[];
+    sched: RoadmapItem[];
+    back: RoadmapItem[];
+  } {
+    const all = (snapshot.value?.items || []).filter((i) => initKeyOf(i) === key);
+    const hit = all.filter((i) => viewMatch(i));
+    return {
+      all,
+      hit,
+      sched: hit.filter((i) => i.scheduled),
+      back: hit.filter((i) => !i.scheduled),
+    };
+  }
+
+  /** 筛选生效时 0 命中的 INIT：不显示，但要在底部说明一句。 */
+  function zeroHitInits(): string[] {
+    if (!filterActive.value) return [];
+    const keys = [...new Set((snapshot.value?.items || []).map(initKeyOf))];
+    return keys.filter((k) => initStats(k).hit.length === 0).sort(initKeyCmp);
+  }
+
+  /** 所选 Quarter 里一个条目都没有、也没拉取过的 → 「尚未拉取」而非「无匹配」。 */
+  function unpulledSelectedQuarters(): string[] {
+    const imported = snapshot.value?.team.importedQuarters || [];
+    const items = snapshot.value?.items || [];
+    return qSel.value.filter(
+      (q) => q !== QUARTER_NONE && !imported.includes(q) && !items.some((i) => i.quarter === q),
+    );
+  }
+
   // ---------- 全局文本过滤 ----------
   // 与 milestone / quarter 过滤 AND，同时作用于 Backlog 与甘特；仅本次会话，切换团队清空。
   const searchQuery = ref('');
@@ -444,6 +628,7 @@ export function createRoadmapState() {
   function textMatch(item: RoadmapItem): boolean {
     const tokens = searchQuery.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
     if (!tokens.length) return true;
+    const initTitle = item.parentLink ? inits.value.get(item.parentLink)?.title || '' : '';
     const haystack = [
       item.title,
       item.key,
@@ -454,6 +639,8 @@ export function createRoadmapState() {
       item.parentLink || '',
       item.owner || '',
       itemDisplayKey(item),
+      // E-171：搜 INIT Key / 已加载标题也能命中其子 Epic
+      initTitle,
       ...(item.markers || []).filter(m => m.kind === 'dep').flatMap(m => [m.label, m.jiraKey || '', m.jiraStatus || '']),
       // 甘特上展开的子任务也能被搜到（命中子任务即保留其父条目）
       ...(item.subs || []).flatMap((sub) => [sub.title, sub.key || '', sub.alias || '', sub.owner || '']),
@@ -479,8 +666,39 @@ export function createRoadmapState() {
     const late = hits.filter((i) => msLateOf(i) !== null).length;
     const qOver = hits.filter((i) => qOverOf(i) !== null).length;
     const scheduled = hits.filter((i) => i.scheduled).length;
-    return { hits: hits.length, scheduled, late, qOver };
+    // E-171：过滤行只统计「Epic 自身 Committed = No」，不从依赖 / 子项推导。
+    const uc = ucOn.value
+      ? hits.filter((i) => i.committed === 'No' && !isDoneStatus(i)).length
+      : 0;
+    return { hits: hits.length, scheduled, late, qOver, uc };
   });
+
+  // ---------- Committed = No（E-171）----------
+  // 黄色标签只表达「当前这一行对象自身」的 Jira Committed 字段：Epic 行读 Epic
+  // 自身；INIT 行读 INIT 自身（不从子 Epic / 依赖推导；详情未加载 = 未知，不
+  // 当作 No）。只在 Quarter / Milestone 过滤生效时出现；依赖目标的 Committed
+  // 不做常驻标签，只在 hover / 键盘聚焦时在浮层里带 Ticket Key 说明。
+  const ucOn = computed(() => qActive.value || msActive.value);
+
+  function ucScopeText(): string {
+    return [
+      qActive.value && `Quarter「${qSel.value.join('/')}」`,
+      msActive.value && `Milestone「${msSel.value.map((k) => milestones.value.find((m) => m.key === k)?.name || k).join('/')}」`,
+    ]
+      .filter(Boolean)
+      .join(' + ');
+  }
+
+  /** Epic 自身是否应标「Committed: No」（在范围内、未完成、且过滤生效）。 */
+  function itemUc(item: RoadmapItem): boolean {
+    return ucOn.value && item.committed === 'No' && !isDoneStatus(item) && viewMatch(item);
+  }
+
+  /** INIT 自身是否应标「Committed: No」；详情未加载不会是 No。 */
+  function initUc(key: string): boolean {
+    return ucOn.value && key !== INIT_NONE && inits.value.get(key)?.committed === 'No';
+  }
+
 
   function setMsSel(keys: string[]) {
     const next = [...new Set(keys)];
@@ -1120,6 +1338,30 @@ export function createRoadmapState() {
     textMatch,
     viewMatch,
     setSearchQuery,
+    // E-171 层级（Epic / INIT）
+    hierarchy,
+    isInit,
+    setHierarchy,
+    initMode,
+    setInitMode,
+    dimMode,
+    initFold,
+    toggleInitFold,
+    inits,
+    initInfo,
+    initName,
+    initShortName,
+    initKeyCmp,
+    initGroups,
+    initStats,
+    zeroHitInits,
+    unpulledSelectedQuarters,
+    // E-171 Committed = No
+    ucOn,
+    ucScopeText,
+    itemUc,
+    initUc,
+    depCommittedText,
     msDictSyncing,
     msDictUpdatedAt,
     msDictStale,

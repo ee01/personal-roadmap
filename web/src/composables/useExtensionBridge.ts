@@ -14,6 +14,16 @@ export type ImportItemPayload = {
   targetEnd?: string;
   /** Jira Custom Labels (`customfield_33875`) mirrored from the issue. */
   customLabels?: Array<{ labelKey: string; valueKey: string }>;
+  /** Jira `Committed` field of this Epic ('Yes'/'No'); absent when unknown. */
+  committed?: string;
+};
+
+/** Parent INIT details loaded along the import (its own Jira fields). */
+export type InitDetailPayload = {
+  key: string;
+  title?: string;
+  quarter?: string;
+  committed?: string;
 };
 
 export type AgentExecutorOption = {
@@ -101,11 +111,12 @@ function waitForBridgeResult<T>(
 export async function bridgeImportJql(
   jql: string,
   quarters: string[],
-): Promise<ImportItemPayload[]> {
+): Promise<{ items: ImportItemPayload[]; inits: InitDetailPayload[] }> {
   const id = requestId();
   const pending = waitForBridgeResult<{
     ok: true;
     items: ImportItemPayload[];
+    inits?: InitDetailPayload[];
   }>('pai-roadmap-import-jql-result', id);
   const acked = waitForBridgeAck('pai-roadmap-import-jql-ack', id);
   // 两个 promise 各自挂空 handler：race 只用先到的那个，另一个的 reject 不该冒泡成未处理异常
@@ -119,7 +130,10 @@ export async function bridgeImportJql(
 
   await Promise.race([acked, pending]);
   const result = await pending;
-  return Array.isArray(result.items) ? result.items : [];
+  return {
+    items: Array.isArray(result.items) ? result.items : [],
+    inits: Array.isArray(result.inits) ? result.inits : [],
+  };
 }
 
 /**
@@ -322,6 +336,8 @@ export type JiraRefreshIssue = {
   originalEstimateDays?: number | null;
   /** Jira Custom Labels (`customfield_33875`) mirrored from the issue. */
   customLabels?: Array<{ labelKey: string; valueKey: string }>;
+  /** Jira `Committed` field of the issue ('Yes'/'No'); null = unset / unknown. */
+  committed?: string | null;
   fetchedAt: number;
 };
 
@@ -430,5 +446,5 @@ export async function bridgeFetchDependencyDates(jiraKey: string) {
   const issues = await bridgeRefreshJiraIssues([jiraKey]);
   const issue = issues.find(i => i.key.toUpperCase() === jiraKey.toUpperCase());
   if (!issue) throw new Error(`未找到 ${jiraKey}`);
-  return { targetStart: issue.targetStart, targetEnd: issue.targetEnd, status: issue.status };
+  return { targetStart: issue.targetStart, targetEnd: issue.targetEnd, status: issue.status, committed: issue.committed ?? null };
 }

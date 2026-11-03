@@ -91,3 +91,18 @@ export function dependencyTiming(m: RoadmapMarker): string {
       ? `余量 ${-gap} 天`
       : DEP_LABEL[dependencyState(m)];
 }
+
+/** E-171：依赖目标 Ticket 自身的 Jira Committed 状态（只在 hover / 键盘聚焦时展示）。 */
+export function depCommittedText(
+  m: Pick<RoadmapMarker, 'jiraKey' | 'committed'>,
+): string {
+  return m.jiraKey
+    ? `${m.jiraKey} 自身 Committed: ${
+        m.committed === 'No'
+          ? 'No（对方未承诺交付）'
+          : m.committed === 'Yes'
+            ? 'Yes'
+            : '未知'
+      }`
+    : '无 ticket，没有 Committed 字段';
+}

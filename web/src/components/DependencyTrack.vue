@@ -21,6 +21,7 @@ import {
   openDepPopover,
   type MarkerHandlers,
 } from '../composables/useMarkerFloats';
+import { depCommittedText } from '../composables/dependency';
 const props = defineProps<{
   marker: RoadmapMarker;
   item: RoadmapItem;
@@ -234,7 +235,7 @@ function key(e: KeyboardEvent, date: string) {
       class="dependency-point eta"
       :style="{ left: `${x(marker.date)}px` }"
       :aria-label="`${marker.label} ETA ${marker.date}，拖动改期望`"
-      :data-tip="`${marker.label}||ETA ${marker.date} · 期望 ${need || marker.date}||拖动改期望 · 单击查看 · 方向键调整`"
+      :data-tip="`${marker.label}||ETA ${marker.date} · 期望 ${need || marker.date} · ${depCommittedText(marker)}||拖动改期望 · 单击查看 · 方向键调整`"
       @pointerdown="drag($event, marker.date)"
       @keydown="key($event, marker.date)"
     />
@@ -243,7 +244,7 @@ function key(e: KeyboardEvent, date: string) {
       class="dependency-point need"
       :style="{ left: `${x(need)}px` }"
       :aria-label="`${marker.label} 期望 ${need}`"
-      :data-tip="`${marker.label}||期望 ${need} · ETA ${marker.date || '未确认'}||拖动改期望 · 单击填写或刷新 ETA`"
+      :data-tip="`${marker.label}||期望 ${need} · ETA ${marker.date || '未确认'} · ${depCommittedText(marker)}||拖动改期望 · 单击填写或刷新 ETA`"
       @pointerdown="drag($event, need)"
       @keydown="key($event, need)"
     >

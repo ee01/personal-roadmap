@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue';
-import { useRoadmapState } from '../composables/useRoadmapState';
+import { useRoadmapState, INIT_NONE, initKeyOf } from '../composables/useRoadmapState';
 import {
   addD,
   colorCls,
@@ -72,11 +72,67 @@ const pxPerDay = computed(() => Math.max(20, stripPx.value / days.value));
 
 type TaskPair = { s: RoadmapSub; it: RoadmapItem };
 
+/* ---------- 层级（E-171）：人员视图跨 INIT ----------
+   人员分组不变，同一个人只占一行；INIT 层级下人员视图跟随筛选（与甘特 / 复制
+   同口径）。任务条带 INIT › Epic 前缀；可「聚焦 INIT」压暗其余，不改批量操作范围。 */
+const resInit = ref<string | null>(null);
+watch(
+  () => state.hierarchy.value,
+  () => {
+    resInit.value = null;
+  },
+);
+
+/** 子任务是否命中搜索（Epic 自身命中 → 全部子任务；否则按子任务字段匹配）。 */
+function subMatchesSearch(it: RoadmapItem, s: RoadmapSub): boolean {
+  const tokens = state.searchQuery.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+  const own = [it.title, it.key, it.jiraKey || '', it.alias || '', it.parentLink || '']
+    .join(' ')
+    .toLowerCase();
+  if (tokens.every((t) => own.includes(t))) return true;
+  const hay = [s.title, s.key || '', s.alias || '', showName(s.owner), s.owner || '']
+    .join(' ')
+    .toLowerCase();
+  return tokens.every((t) => hay.includes(t));
+}
+
+/** INIT 层级：只取命中集合内的子任务；Epic 层级保持原样（不跟筛选）。 */
+function subInScope(it: RoadmapItem, s: RoadmapSub): boolean {
+  if (!state.isInit.value) return true;
+  if (!state.viewMatch(it)) return false;
+  if (state.searchActive.value) return subMatchesSearch(it, s);
+  return true;
+}
+
+const initCounts = computed(() => {
+  const counts = new Map<string, number>();
+  if (!state.isInit.value) return counts;
+  for (const row of [...rows.value, unassigned.value]) {
+    for (const t of row.tasks) {
+      const k = initKeyOf(t.it);
+      counts.set(k, (counts.get(k) || 0) + 1);
+    }
+  }
+  return counts;
+});
+
+/** 当前生效的聚焦 INIT（不在范围内时自动回到「全部」）。 */
+function activeResInit(): string | null {
+  const key = resInit.value;
+  return key && initCounts.value.has(key) ? key : null;
+}
+
+function resInitTip(k: string, n: number): string {
+  return `${state.initName(k)}||${n} 个子任务在范围内||只压暗其他 INIT 的任务，人员分组与批量操作范围不变`;
+}
+
 function tasksOf(name: string | null): TaskPair[] {
   const out: TaskPair[] = [];
   for (const it of state.scheduledItems.value) {
     for (const s of it.subs) {
       if (s.cleared) continue;
+      if (!subInScope(it, s)) continue;
       if ((s.owner || null) === name) out.push({ s, it });
     }
   }
@@ -720,6 +776,26 @@ async function commitRename(m: TeamMember) {
       </div>
     </div>
 
+    <div v-if="state.isInit.value && initCounts.size" class="res-init-legend">
+      <span class="ril-label">聚焦 INIT</span>
+      <button
+        type="button"
+        class="ril-chip"
+        :class="{ on: !activeResInit() }"
+        data-tip="显示范围内全部 INIT 的任务"
+        @click="resInit = null"
+      >全部</button>
+      <button
+        v-for="[k, n] in initCounts"
+        :key="k"
+        type="button"
+        class="ril-chip"
+        :class="{ on: activeResInit() === k }"
+        :data-tip="resInitTip(k, n)"
+        @click="resInit = activeResInit() === k ? null : k"
+      >{{ state.initShortName(k) }}<span class="n">{{ n }}</span></button>
+    </div>
+
     <div
       v-if="!rows.length && !unassigned.tasks.length"
       class="res-empty-hint"
@@ -810,6 +886,7 @@ async function commitRename(m: TeamMember) {
               isDoneStatus(s) ? 'done' : s.temp ? 'draft' : colorCls(s.start!, s.days!),
               {
                 slide: slidingIds.has(s.id),
+                'init-dim': state.isInit.value && activeResInit() && initKeyOf(it) !== activeResInit(),
                 'clip-l': dateMs(s.start!) < dateMs(rangeS),
                 'clip-r': dateMs(end) > dateMs(rangeE),
                 sel: resSel.person === personKeyOf(row) && resSel.ids.has(s.id),
@@ -846,6 +923,10 @@ async function commitRename(m: TeamMember) {
               class="rb-title-group"
               :ref="(el) => setTitleGroupEl(s.id, el as Element | null, s, end)"
             >
+              <span
+                v-if="state.isInit.value && showEpicPrefix(barSpan(s, end).frac)"
+                class="rb-init"
+              >{{ state.initShortName(initKeyOf(it)) }}</span>
               <span
                 v-if="showEpicPrefix(barSpan(s, end).frac)"
                 class="rb-parent"

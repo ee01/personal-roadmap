@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUpdated, ref, watch } from 'vue';
-import { useRoadmapState } from '../composables/useRoadmapState';
+import { useRoadmapState, INIT_NONE, initKeyOf } from '../composables/useRoadmapState';
 import {
   addD,
   clamp,
@@ -28,6 +28,7 @@ import {
 } from '../composables/useMarkerFloats';
 import {
   epicColor,
+  epicShort,
   itemDisplayKey,
   jiraBrowseUrl,
 } from '../composables/useRoadmapContract';
@@ -120,6 +121,129 @@ function etaSource(d: RoadmapMarker): string {
 }
 const lateIn = (it: RoadmapItem) => (it.markers || []).filter((m) => m.kind === 'dep' && dependencyState(m) === 'late').length;
 const depCount = (it: RoadmapItem) => (it.markers || []).filter((m) => m.kind === 'dep').length;
+
+/* ---------- 层级（E-171）：INIT → Epic → 依赖记录 ----------
+   依赖仍归属原 Epic，不指向 INIT；同一目标被多条 Epic 依赖时逐条保留各自期望，
+   不合并成一个日期。INIT 组头只汇总、不可拖动。 */
+interface DvInitRef {
+  item: RoadmapItem;
+  d: RoadmapMarker;
+  need: string;
+  gap: number | null;
+}
+interface DvInitShared {
+  key: string;
+  eta: string | null;
+  refs: DvInitRef[];
+}
+interface DvInitHead {
+  key: string;
+  tickets: number;
+  manual: number;
+  total: number;
+  late: number;
+  miss: number;
+  stale: number;
+  done: number;
+  shared: DvInitShared[];
+}
+
+function dvInitHead(key: string, groups: Array<{ item: RoadmapItem; deps: RoadmapMarker[] }>): DvInitHead {
+  const all = groups.flatMap((g) => g.deps.map((d) => ({ item: g.item, d })));
+  const states = all.map((x) => dependencyState(x.d));
+  const tickets = new Set(all.filter((x) => x.d.jiraKey).map((x) => x.d.jiraKey!));
+  const byKey = new Map<string, DvInitShared>();
+  for (const { item, d } of all) {
+    if (!d.jiraKey) continue;
+    let entry = byKey.get(d.jiraKey);
+    if (!entry) {
+      entry = { key: d.jiraKey, eta: d.date || null, refs: [] };
+      byKey.set(d.jiraKey, entry);
+    }
+    entry.refs.push({
+      item,
+      d,
+      need: needOf(item, d),
+      gap: d.date ? dependencyGap(d) : null,
+    });
+  }
+  const shared = [...byKey.values()].filter((e) => e.refs.length > 1);
+  return {
+    key,
+    tickets: tickets.size,
+    manual: all.filter((x) => !x.d.jiraKey).length,
+    total: all.length,
+    late: states.filter((s) => s === 'late').length,
+    miss: states.filter((s) => s === 'missing').length,
+    stale: states.filter((s) => s === 'stale').length,
+    done: states.filter((s) => s === 'done').length,
+    shared,
+  };
+}
+
+type DepRowOp =
+  | { kind: 'init'; id: string; head: DvInitHead }
+  | { kind: 'grp'; id: string; item: RoadmapItem; deps: RoadmapMarker[] };
+
+const depRowOps = computed<DepRowOp[]>(() => {
+  const grps = rows.value.map((g) => ({ kind: 'grp' as const, id: g.item.key, item: g.item, deps: g.deps }));
+  if (!state.isInit.value) return grps;
+  const byInit = new Map<string, typeof grps>();
+  for (const g of grps) {
+    const k = initKeyOf(g.item);
+    const list = byInit.get(k);
+    if (list) list.push(g);
+    else byInit.set(k, [g]);
+  }
+  const out: DepRowOp[] = [];
+  [...byInit.keys()]
+    .sort((a, b) => (a === INIT_NONE ? 1 : 0) - (b === INIT_NONE ? 1 : 0))
+    .forEach((k) => {
+      const list = byInit.get(k)!;
+      out.push({
+        kind: 'init',
+        id: `dvinit:${k}`,
+        head: dvInitHead(
+          k,
+          list.map((g) => ({ item: g.item, deps: g.deps })),
+        ),
+      });
+      out.push(...list);
+    });
+  return out;
+});
+
+/** 同一目标被多条依赖引用时的每个引用：期望 / 差距文案。 */
+function sharedRefTip(r: DvInitRef): string {
+  const g = r.gap;
+  return `${r.item.alias || r.item.title} 期望 ${fmtMD(r.need)}||${
+    r.d.date ? (g! > 0 ? `对方 ETA 晚 ${g} 天` : g! < 0 ? `余量 ${-g} 天` : '与 ETA 同日') : '缺 ETA'
+  }||两条依赖分属不同 Epic，各自保留期望，不合并`;
+}
+
+/** 共享目标的 ETA 文案：各记录 ETA 一致时给日期，否则说明不一致。 */
+function sharedEtaText(s: DvInitShared): string {
+  const etas = new Set(s.refs.map((r) => r.d.date || ''));
+  if (etas.size !== 1) return 'ETA 各记录不一致';
+  const eta = [...etas][0];
+  return eta ? `ETA ${fmtMD(eta)}` : '缺 ETA';
+}
+
+function initKeyTip(key: string): string {
+  const info = state.initInfo(key);
+  return info.loaded
+    ? `${key} · INIT 自身 Quarter ${info.quarter || '未设置'}||${info.title || ''}||INIT 自身的 Quarter 仅作参考，不参与筛选；筛选按子 Epic 的 Target Delivery Quarter`
+    : '';
+}
+
+function initUcTip(key: string): string {
+  return `${key} · Committed: No||${key} 自身的 Committed 字段为 No，且在 ${state.ucScopeText()} 范围内||INIT 行只读 INIT 自身的字段，不从子 Epic 或依赖推导 · 与 Owner 确认是否 commit`;
+}
+
+/** INIT 组数（E-171，dv-corner 显示）。 */
+const nInits = computed(
+  () => new Set(depRowOps.value.filter((o) => o.kind === 'init').map((o) => (o as { head: DvInitHead }).head.key)).size,
+);
 
 /* ---------- 浮层 / 写操作 ---------- */
 const handlers = computed<MarkerHandlers>(() => ({
@@ -357,7 +481,7 @@ const LINK_ICON =
     <template v-else>
       <div class="dv-head">
         <div class="dv-corner">
-          <b>{{ allDeps.length }}</b> 个依赖 · <b>{{ allGroups.length }}</b> 个任务<template v-if="nLate">
+          <b>{{ allDeps.length }}</b> 个依赖 · <b>{{ allGroups.length }}</b> 个任务<template v-if="state.isInit.value && nInits"> · <b>{{ nInits }}</b> 个 INIT</template><template v-if="nLate">
             · <span class="dv-late-n"><b>{{ nLate }}</b> 个晚于期望</span></template
           >
         </div>
@@ -377,7 +501,51 @@ const LINK_ICON =
           </div>
         </div>
 
-        <template v-for="{ item: it, deps } in rows" :key="it.key">
+        <template v-for="op in depRowOps" :key="op.id">
+          <div v-if="op.kind === 'init'" class="dv-init">
+            <div class="dvi-info">
+              <div class="dvi-top">
+                <template v-if="op.head.key !== INIT_NONE">
+                  <span class="gi-key" :data-tip="initKeyTip(op.head.key) || undefined">{{ op.head.key }}</span>
+                  <span v-if="state.initInfo(op.head.key).loaded && state.initInfo(op.head.key).title" class="gi-title">{{ state.initInfo(op.head.key).title }}</span>
+                  <span v-else class="bi-unk" data-tip="INIT 详情未加载||只从 Epic 的 Parent Link 读到 Key；标题、Quarter、Committed 都未拉取||不显示猜测的标题，也不当作完整 INIT">详情未加载</span>
+                </template>
+                <span v-else class="gi-none">未关联 INIT</span>
+                <span v-if="state.initUc(op.head.key)" class="gi-pill uc" :data-tip="initUcTip(op.head.key)"><i />Committed: No</span>
+              </div>
+              <div class="dvi-sum">
+                <span><b>{{ op.head.tickets }}</b> 个目标 Ticket<template v-if="op.head.manual"> + <b>{{ op.head.manual }}</b> 条无 ticket</template></span>
+                <span>· <b>{{ op.head.total }}</b> 条依赖</span>
+                <span v-if="op.head.late" class="late">· <b>{{ op.head.late }}</b> 条晚于期望</span>
+                <span v-if="op.head.miss" class="warn">· <b>{{ op.head.miss }}</b> 缺 ETA</span>
+                <span v-if="op.head.stale" class="warn">· <b>{{ op.head.stale }}</b> 待刷新</span>
+                <span v-if="op.head.done">· <b>{{ op.head.done }}</b> 已交付</span>
+              </div>
+            </div>
+            <div class="dvi-lane">
+              <template v-if="op.head.shared.length">
+                <div v-for="s in op.head.shared" :key="s.key" class="dvi-shared">
+                  <span
+                    class="k"
+                    tabindex="0"
+                    :data-tip="`${s.key}||${state.depCommittedText(s.refs[0].d)}||同一目标被 ${s.refs.length} 条依赖引用，各自保留期望`"
+                  >{{ s.key }}</span>
+                  <span class="e">{{ sharedEtaText(s) }}</span>
+                  <span>被 {{ s.refs.length }} 条依赖引用：</span>
+                  <span
+                    v-for="r in s.refs"
+                    :key="r.d.id"
+                    class="n"
+                    :class="{ late: r.gap !== null && r.gap > 0, ok: r.gap !== null && r.gap <= 0 }"
+                    :data-tip="sharedRefTip(r)"
+                  >{{ epicShort(r.item) }} 期望 {{ fmtMD(r.need) }}<template v-if="r.gap !== null">{{ r.gap > 0 ? ` · 晚 ${r.gap}d` : r.gap < 0 ? ` · 余 ${-r.gap}d` : '' }}</template></span>
+                </div>
+              </template>
+              <span v-else class="dvi-none">组头只汇总、不可拖动 · ETA / 期望请在下方原记录上操作</span>
+            </div>
+          </div>
+          <template v-else>
+            <template v-for="{ item: it, deps } in [op]" :key="it.key">
           <div class="dv-grp" :data-item-key="it.key">
             <div class="dv-grp-info">
               <span class="dv-grp-stripe" :style="{ background: epicColor(orderedKeys, it.key) }" />
@@ -417,7 +585,7 @@ const LINK_ICON =
                   class="dv-title"
                   role="button"
                   tabindex="0"
-                  data-tip="单击编辑 Jira ticket / ETA / 期望"
+                  :data-tip="`单击编辑 Jira ticket / ETA / 期望||${state.depCommittedText(d)}`"
                   @click="edit($event, it, d)"
                   @keydown.enter="edit($event, it, d)"
                   >{{ d.label }}</span
@@ -430,7 +598,7 @@ const LINK_ICON =
                     :href="jiraBrowseUrl(d.jiraKey, handlers.jiraBaseUrl)"
                     target="_blank"
                     rel="noopener"
-                    data-tip="在 Jira 打开"
+                    :data-tip="`${d.jiraKey}${d.jiraStatus ? ' · ' + d.jiraStatus : ''}||${state.depCommittedText(d)}||在 Jira 打开`"
                     >{{ d.jiraKey }}<svg width="8" height="8" viewBox="0 0 14 14"><path d="M6 3H3.5A1.5 1.5 0 002 4.5v6A1.5 1.5 0 003.5 12h6A1.5 1.5 0 0011 10.5V8M8.5 2H12v3.5M12 2L6.8 7.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg></a
                   ><span v-if="d.jiraStatus" class="dep-tag status">{{ d.jiraStatus }}</span>
                 </template>
@@ -580,13 +748,15 @@ const LINK_ICON =
                   :data-dep="d.id"
                   tabindex="0"
                   :style="{ left: pct(d.date) }"
-                  :data-tip="`ETA ${fmtMD(d.date)}${d.etaSource === 'jira' ? ` · 来自 ${d.jiraKey}` : ' · 手动'}||对方承诺的交付日||拖动 = 拉出期望（ETA 不动）· 单击 = 刷新 / 修改 ETA`"
+                  :data-tip="`ETA ${fmtMD(d.date)}${d.etaSource === 'jira' ? ` · 来自 ${d.jiraKey}` : ' · 手动'}||${state.depCommittedText(d)}||拖动 = 拉出期望（ETA 不动）· 单击 = 刷新 / 修改 ETA`"
                   @pointerdown="onPointDown($event, it, d)"
                   @keydown="onPointKey($event, it, d)"
                 />
               </div>
             </div>
           </div>
+            </template>
+          </template>
         </template>
 
         <div v-if="!rows.length" class="dv-empty" style="padding: 48px 20px">

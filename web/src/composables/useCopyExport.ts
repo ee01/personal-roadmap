@@ -11,7 +11,7 @@ import {
   type DependencyFilter,
 } from './dependency';
 import { dispName, teamAssigneeMap } from './useAssigneeMap';
-import { useRoadmapState } from './useRoadmapState';
+import { useRoadmapState, initKeyOf } from './useRoadmapState';
 import type { RoadmapItem, RoadmapSub, TeamMember } from '../types';
 
 /**
@@ -199,6 +199,11 @@ export interface CopyCollectInput {
   epicMatch: (it: RoadmapItem) => boolean;
   /** 系统名 → 显示名（Assignee 映射） */
   showName: (raw: string | null | undefined) => string;
+  /** E-171：INIT 层级时按 INIT 分组（initMode = true）；Key / 显示名取自全局状态 */
+  initMode?: boolean;
+  initKeyOf?: (it: RoadmapItem) => string;
+  initName?: (key: string) => string;
+  initKeyCmp?: (a: string, b: string) => number;
 }
 
 /** 单元格值清洗：Tab / 换行一律压成空格，保证 TSV 不串列。 */
@@ -348,6 +353,19 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
     const notes: CopyNote[] = [];
     let subN = 0;
     let drafts = 0;
+    const groups: CopyGroup[] = [];
+    // E-171：INIT 层级按 INIT 分组（只含命中 Epic）；INIT 行是分组标题，不是复制条目
+    const byInit = new Map<string, CopyRow[]>();
+    const groupOf = (it: RoadmapItem): CopyRow[] => {
+      if (!input.initMode || !input.initKeyOf) return rows;
+      const key = input.initKeyOf(it);
+      let list = byInit.get(key);
+      if (!list) {
+        list = [];
+        byInit.set(key, list);
+      }
+      return list;
+    };
     for (const it of epics) {
       const subs = subsOf(it).sort(
         (a, b) => dateMs(a.start || '') - dateMs(b.start || ''),
@@ -357,7 +375,7 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
       ];
       const draft = isDraftItem(it);
       if (draft) drafts += 1;
-      rows.push({
+      groupOf(it).push({
         lvl: 0,
         key: draft ? null : itemDisplayKey(it),
         summary: it.title,
@@ -371,7 +389,7 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
       if (input.includeSubs) {
         for (const s of subs) {
           if (!s.key) drafts += 1;
-          rows.push({
+          groupOf(it).push({
             lvl: 1,
             key: s.key || null,
             summary: s.title,
@@ -395,6 +413,24 @@ export function collectCopyData(input: CopyCollectInput): CopyData {
     if (note) notes.push(note);
     const draft = draftNote(drafts);
     if (draft) notes.push(draft);
+    if (input.initMode && input.initKeyOf) {
+      notes.push({
+        cls: 'win',
+        html: '按 INIT 分组 · 只含命中的 Epic；INIT 行是分组标题，不是复制条目',
+      });
+      const keys = [...byInit.keys()];
+      if (input.initKeyCmp) keys.sort(input.initKeyCmp);
+      for (const key of keys) groups.push({ name: input.initName ? input.initName(key) : key, rows: byInit.get(key)! });
+      return {
+        groups,
+        notes,
+        n: epics.length,
+        unit: 'Epic',
+        subN,
+        people: 0,
+        filtered,
+      };
+    }
     return {
       groups: [{ name: null, rows }],
       notes,
@@ -578,7 +614,10 @@ export function buildCopyPayload(
   jiraBrowseBase: string,
 ): CopyPayload {
   const cols = copyColumns(view, opts);
-  const grouped = view === 'resource' && opts.asgMode === 'group';
+  const grouped =
+    (view === 'resource' && opts.asgMode === 'group') ||
+    // E-171：INIT 层级的甘特复制按 INIT 分组，分组标题行同样要输出
+    (view === 'gantt' && data.groups.some((g) => g.name));
   const link = (k: string | null) =>
     k
       ? `<a href="${cpEscA(jiraBrowseUrl(k, jiraBrowseBase))}">${esc(k)}</a>`
@@ -778,6 +817,10 @@ export function useCopyExport() {
       resWinAll: state.resWin.value === 'all',
       epicMatch: (it) => state.viewMatch(it),
       showName,
+      initMode: state.isInit.value,
+      initKeyOf: (it) => initKeyOf(it),
+      initName: (key) => state.initName(key),
+      initKeyCmp: (a, b) => state.initKeyCmp(a, b),
     }),
   );
   const payload = computed<CopyPayload>(() =>

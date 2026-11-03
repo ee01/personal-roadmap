@@ -106,6 +106,7 @@ describe('items migrations on an existing database', () => {
       '020_custom_labels',
       '021_teams_create_jira_fields',
       '022_dependency_expectation',
+      '023_e171_init_view',
     ]);
     expect(db.prepare(`SELECT date, need, eta_at, jira_target_start FROM item_markers WHERE id = 'legacy-dep'`).get()).toEqual({ date: '2026-08-25', need: null, eta_at: null, jira_target_start: null });
     const row = db
@@ -138,7 +139,7 @@ describe('items migrations on an existing database', () => {
   it('is safe to re-run on an already migrated database', () => {
     closeDb();
     const db = getDb();
-    expect(migrationIds(db)).toHaveLength(22);
+    expect(migrationIds(db)).toHaveLength(23);
     expect(
       db.prepare(`SELECT COUNT(*) AS n FROM items`).get() as { n: number },
     ).toEqual({ n: 1 });

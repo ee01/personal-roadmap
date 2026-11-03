@@ -442,3 +442,38 @@ describe('dependency view copy', () => {
     expect(data.filtered).toBe(true);
   });
 });
+
+describe('INIT 层级复制（E-171）', () => {
+  it('gantt 视图按 INIT 分组，组名进入输出，INIT 行不是复制条目', () => {
+    const data: CopyData = collectCopyData(
+      input({
+        items: [
+          epic({ key: 'NOVA-1', parentLink: 'INIT-6120', title: 'Epic A' }),
+          epic({ key: 'NOVA-2', parentLink: 'INIT-6120', title: 'Epic B' }),
+          epic({ key: 'NOVA-3', title: 'No parent' }),
+        ],
+        initMode: true,
+        initKeyOf: (it) => it.parentLink || '__none',
+        initName: (key) => (key === '__none' ? '未关联 INIT' : `${key} 详情`),
+      }),
+    );
+    expect(data.groups.map((g) => [g.name, g.rows.length])).toEqual([
+      ['INIT-6120 详情', 2],
+      ['未关联 INIT', 1],
+    ]);
+    expect(data.n).toBe(3);
+    expect(data.notes.some((n) => n.html.includes('按 INIT 分组'))).toBe(true);
+    const payload = buildCopyPayload(data, OPTS({ fmt: 'table', header: true }), 'gantt', 'https://jira.example.com');
+    expect(payload.text).toContain('INIT-6120 详情 (2)');
+  });
+
+  it('Epic 层级保持单组输出', () => {
+    const data: CopyData = collectCopyData(
+      input({
+        items: [epic({ key: 'NOVA-1', parentLink: 'INIT-6120' })],
+      }),
+    );
+    expect(data.groups).toHaveLength(1);
+    expect(data.groups[0].name).toBeNull();
+  });
+});

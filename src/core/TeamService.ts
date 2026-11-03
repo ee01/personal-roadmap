@@ -246,6 +246,17 @@ function normalizeOwnerResolution(
 }
 
 /** Derive the Jira project key from a real issue key (`NOVA-123` -> `NOVA`). */
+/** Jira `Committed` field value; anything other than Yes/No is treated as unset. */
+function normalizeCommitted(raw: unknown): string | null {
+  if (raw == null) return null;
+  const value =
+    typeof raw === 'object' && 'value' in (raw as Record<string, unknown>)
+      ? String((raw as { value?: unknown }).value || '')
+      : String(raw);
+  const trimmed = value.trim();
+  return trimmed === 'Yes' || trimmed === 'No' ? trimmed : null;
+}
+
 function projectKeyFromJiraKey(key: string): string | null {
   const match = /^([A-Za-z][A-Za-z0-9_]*)-\d+$/.exec(key.trim());
   return match ? match[1].toUpperCase() : null;
@@ -266,6 +277,7 @@ function mapMarker(row: MarkerRow) {
     jiraStatus: row.jira_status || null,
     jiraTargetEnd: row.jira_target_end || null,
     jiraFetchedAt: row.jira_fetched_at || null,
+    committed: row.committed || null,
     createdBy: row.created_by,
     version: row.version,
   };
@@ -299,6 +311,7 @@ function mapItem(row: ItemRow, subs: SubRow[], markers: MarkerRow[] = []) {
     owner: row.owner || null,
     status: row.status || null,
     ms: customLabelValueKeys(customLabels),
+    committed: row.committed || null,
     subs: subs.map((sub) => ({
       id: sub.id,
       key: sub.jira_key,
@@ -403,6 +416,18 @@ export function getTeamSnapshot(teamId: string): TeamSnapshot | null {
     .prepare(`SELECT * FROM members WHERE team_id = ? ORDER BY name ASC`)
     .all(teamId) as MemberRow[];
   const customLabels = listCustomLabelValues(teamId);
+  const inits = db
+    .prepare(
+      `SELECT key, title, quarter, committed, fetched_at
+       FROM init_details WHERE team_id = ? ORDER BY key ASC`,
+    )
+    .all(teamId) as Array<{
+      key: string;
+      title: string | null;
+      quarter: string | null;
+      committed: string | null;
+      fetched_at: number;
+    }>;
 
   const cutoff = now() - 60_000;
   const presence = db
@@ -468,6 +493,13 @@ export function getTeamSnapshot(teamId: string): TeamSnapshot | null {
       jiraRefreshedAt: team.jira_refreshed_at || null,
       customLabels,
     },
+    inits: inits.map((row) => ({
+      key: row.key,
+      title: row.title || null,
+      quarter: row.quarter || null,
+      committed: row.committed || null,
+      fetchedAt: row.fetched_at,
+    })),
     items: items.map((item) =>
       mapItem(
         item,
@@ -1154,6 +1186,7 @@ export function applyIntent(
             target_start = ?, target_end = ?, source = 'jira', jira_key = ?,
             project_key = COALESCE(?, project_key),
             custom_labels_json = ?,
+            committed = COALESCE(?, committed),
             updated_at = ?, version = version + 1
            WHERE team_id = ? AND key = ?`,
         ).run(
@@ -1166,6 +1199,7 @@ export function applyIntent(
           key,
           projectKey,
           customLabelsJson,
+          normalizeCommitted(item.committed),
           ts,
           teamId,
           existing.key,
@@ -1176,8 +1210,9 @@ export function applyIntent(
             id, team_id, key, type, title, alias, quarter, estimate,
             target_start, target_end, scheduled, start_date, days, lane,
             expanded, source, jira_key, project_key, custom_labels_json,
+            committed,
             version, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0, NULL, NULL, 0, 0, 'jira', ?, ?, ?, 1, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0, NULL, NULL, 0, 0, 'jira', ?, ?, ?, ?, 1, ?, ?)`,
         ).run(
           nanoid(12),
           teamId,
@@ -1191,11 +1226,39 @@ export function applyIntent(
           key,
           projectKey,
           customLabelsJson,
+          normalizeCommitted(item.committed),
           ts,
           ts,
         );
       }
       imported += 1;
+    }
+    // Parent INIT details the import happened to load (title / own quarter /
+    // own Committed). Best-effort cache: only fields actually fetched are
+    // written, so a partial detail load never fabricates data.
+    const inits = Array.isArray(intent.inits) ? intent.inits : [];
+    const upsertInit = db.prepare(
+      `INSERT INTO init_details (team_id, key, title, quarter, committed, fetched_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(team_id, key) DO UPDATE SET
+         title = COALESCE(excluded.title, title),
+         quarter = COALESCE(excluded.quarter, quarter),
+         committed = COALESCE(excluded.committed, committed),
+         fetched_at = excluded.fetched_at`,
+    );
+    for (const raw of inits) {
+      if (!raw || typeof raw !== 'object') continue;
+      const init = raw as Record<string, unknown>;
+      const initKey = String(init.key || '').trim();
+      if (!initKey) continue;
+      upsertInit.run(
+        teamId,
+        initKey,
+        init.title ? String(init.title) : null,
+        init.quarter ? String(init.quarter) : null,
+        normalizeCommitted(init.committed),
+        ts,
+      );
     }
     // Only mark quarters as imported when we actually received items (or overwrite cleared them).
     // Empty imports used to poison importedQuarters and hide the Import button.
@@ -1841,8 +1904,9 @@ export function applyIntent(
       `INSERT INTO item_markers (
         id, team_id, item_key, kind, phase_kind, label, date, jira_key, eta_source,
         jira_status, jira_target_end, jira_fetched_at, need, eta_at, jira_target_start,
+        committed,
         created_by, version, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
     ).run(
       id,
       teamId,
@@ -1859,6 +1923,7 @@ export function applyIntent(
       need === date ? null : need,
       kind === 'dep' && date ? ts : null,
       kind === 'dep' ? isoDateOrNull(intent.jiraTargetStart) : null,
+      kind === 'dep' ? normalizeCommitted(intent.committed) : null,
       actor.name,
       ts,
       ts,
@@ -1952,11 +2017,17 @@ export function applyIntent(
         ? isoDateOrNull(intent.jiraTargetEnd)
         : jiraChanged ? null : marker.jira_target_end;
     const nextJiraFetchedAt = cacheTouched ? ts : jiraChanged ? null : marker.jira_fetched_at;
+    const nextCommitted =
+      intent.committed !== undefined
+        ? normalizeCommitted(intent.committed)
+        : jiraChanged
+          ? null
+          : marker.committed;
     db.prepare(
       `UPDATE item_markers SET
         label = ?, date = ?, jira_key = ?, eta_source = ?,
         jira_status = ?, jira_target_end = ?, jira_fetched_at = ?,
-        need = ?, eta_at = ?, jira_target_start = ?,
+        need = ?, eta_at = ?, jira_target_start = ?, committed = ?,
         version = version + 1, updated_at = ?
        WHERE id = ?`,
     ).run(
@@ -1970,6 +2041,7 @@ export function applyIntent(
       nextNeed,
       nextEtaAt,
       nextJiraStart,
+      nextCommitted,
       ts,
       marker.id,
     );
@@ -2660,6 +2732,10 @@ function applyRefreshFromJira(
         ? String(fields.assignee || '').trim() || null
         : undefined;
     const status = jiraStatusName(fields.status);
+    const committed =
+      fields.committed !== undefined
+        ? normalizeCommitted(fields.committed)
+        : undefined;
     const originalEstimateDays =
       fields.originalEstimateDays !== undefined
         ? coerceOriginalEstimateDays(fields.originalEstimateDays)
@@ -2702,6 +2778,8 @@ function applyRefreshFromJira(
           ? targetEnd
           : item.target_end;
       const nextStatus = status !== undefined ? status : item.status;
+      const nextCommitted =
+        committed !== undefined ? committed : item.committed;
       let nextOwner = item.owner || null;
       if (assignee && !ownerMatchesAssignee(map, item.owner, assignee)) {
         nextOwner = assignee;
@@ -2731,6 +2809,7 @@ function applyRefreshFromJira(
         (nextStart || null) === (item.start_date || null) &&
         nextDays === item.days &&
         (nextStatus || null) === (item.status || null) &&
+        (nextCommitted || null) === (item.committed || null) &&
         (nextOwner || null) === (item.owner || null);
       if (same) continue;
       const result = db
@@ -2738,7 +2817,7 @@ function applyRefreshFromJira(
           `UPDATE items SET
             title = ?, description = ?, target_start = ?, target_end = ?,
             start_date = ?, days = ?, status = ?, owner = ?,
-            custom_labels_json = ?,
+            custom_labels_json = ?, committed = ?,
             version = version + 1, updated_at = ?
            WHERE team_id = ? AND key = ? AND version = ?`,
         )
@@ -2752,6 +2831,7 @@ function applyRefreshFromJira(
           nextStatus,
           nextOwner,
           nextLabels,
+          nextCommitted,
           ts,
           teamId,
           item.key,
