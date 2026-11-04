@@ -18,6 +18,7 @@ import {
 } from '../core/TeamService.js';
 import { getEventBus } from '../core/EventBus.js';
 import { config } from '../config.js';
+import { getDb } from '../storage/Database.js';
 import { serializeTeamEvent } from '../planning/sanitize.js';
 import { queueTargetSync, queueSubTargetSync } from '../core/TargetSync.js';
 import type { ActorContext, ActorSource } from '../types.js';
@@ -70,16 +71,37 @@ function requireWriteAccess(
 }
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/health', async () => ({
-    ok: true,
-    service: 'roadmap-service',
-    ts: Date.now(),
-    jiraEnabled: config.jira.enabled,
-    mcp: {
-      endpoint: '/mcp',
-      skill: '/skills/roadmap-planning/SKILL.md',
-    },
-  }));
+  // Health must probe a real DB read, not just echo ok: the container once
+  // stayed "healthy" for hours while every SQLite query failed with
+  // SQLITE_IOERR_SHORT_READ on the bind-mounted data volume (fixed only by a
+  // container restart). A 503 here makes the docker healthcheck and the
+  // deploy health-wait fail visibly instead.
+  app.get('/health', async (_request, reply) => {
+    try {
+      getDb().prepare('SELECT 1 FROM teams LIMIT 1').get();
+    } catch (err) {
+      return reply.code(503).send({
+        ok: false,
+        service: 'roadmap-service',
+        ts: Date.now(),
+        db: {
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        },
+      });
+    }
+    return {
+      ok: true,
+      service: 'roadmap-service',
+      ts: Date.now(),
+      db: { ok: true },
+      jiraEnabled: config.jira.enabled,
+      mcp: {
+        endpoint: '/mcp',
+        skill: '/skills/roadmap-planning/SKILL.md',
+      },
+    };
+  });
 
   app.get('/api/v1/teams', async (request) => {
     const raw = String((request.query as { ids?: string }).ids || '');
