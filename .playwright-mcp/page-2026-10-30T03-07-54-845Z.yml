@@ -1,0 +1,46 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - alert [ref=e6]:
+      - button "Dismiss" [ref=e10] [cursor=pointer]
+      - alert [ref=e13]:
+        - generic [ref=e14]: You need to sign in or sign up before continuing.
+    - generic [ref=e15]:
+      - generic [ref=e17]:
+        - heading "GitLab Enterprise Edition" [level=1] [ref=e18]
+        - generic [ref=e20]:
+          - paragraph [ref=e21]:
+            - generic "police car light" [ref=e22]: 🚨
+            - text: Can't sign in or have no access to GitLab?
+          - 'heading "👉 READ THIS FIRST: How to access GitLab 👈" [level=2] [ref=e23]':
+            - generic "backhand index pointing right" [ref=e24]: 👉
+            - 'link "READ THIS FIRST: How to access GitLab" [ref=e25] [cursor=pointer]':
+              - /url: https://wiki.ringcentral.com/spaces/SI/pages/694831700/How+to+access+Gitlab
+            - generic "backhand index pointing left" [ref=e26]: 👈
+          - paragraph [ref=e27]:
+            - strong [ref=e28]: The guide explains how to request access, which AD group you need, and where to get help.
+      - generic [ref=e32]:
+        - tablist [ref=e33]:
+          - tab "RCOFFICE" [selected] [ref=e34] [cursor=pointer]
+        - tabpanel "RCOFFICE" [ref=e36]:
+          - generic [ref=e37]:
+            - generic [ref=e38]:
+              - generic [ref=e39]: Username
+              - textbox "Username" [active] [ref=e40]
+            - generic [ref=e41]:
+              - generic [ref=e42]: Password
+              - generic [ref=e43]:
+                - textbox "Password" [ref=e44]
+                - button "Show password" [ref=e45] [cursor=pointer]
+            - generic [ref=e49]:
+              - checkbox "Remember me" [ref=e50]
+              - generic [ref=e51] [cursor=pointer]: Remember me
+            - button "Sign in" [ref=e52] [cursor=pointer]
+  - generic [ref=e54]:
+    - separator [ref=e55]
+    - generic [ref=e56]:
+      - generic [ref=e57]:
+        - link "About GitLab" [ref=e58] [cursor=pointer]:
+          - /url: https://about.gitlab.com
+        - link "Community forum" [ref=e59] [cursor=pointer]:
+          - /url: https://forum.gitlab.com
+      - button "English" [ref=e61] [cursor=pointer]

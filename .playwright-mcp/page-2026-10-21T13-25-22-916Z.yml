@@ -1,0 +1,1841 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]: Personal Roadmap
+    - generic [ref=e7]:
+      - button "Nova brandy" [ref=e8] [cursor=pointer]
+      - generic:
+        - button "✓ Nova brandy":
+          - generic: ✓
+          - generic: Nova brandy
+        - button "＋ 新建团队…":
+          - generic: ＋
+          - text: 新建团队…
+    - generic [ref=e12]: issueFunction in portfolioChildrenOf('project = INIT AND Team in ("AI-Brandy") AND "Target Delivery Quarter" in (2026-Q3, 2026-Q4) AND status not in (Cancelled) or key=INIT-32856') and issuetype = Epic and status not in (Cancelled, Closed) and project=NOVA and Team in ("AI-Brandy")
+    - button [ref=e13] [cursor=pointer]
+    - generic [ref=e17] [cursor=pointer]:
+      - generic [ref=e18]: 21:25
+      - generic [ref=e19]: Esone Qiu 给 RingEX voice handoff with predefined context fields 添加了外部依赖 f6W4yLQhV…
+    - generic [ref=e20]:
+      - generic [ref=e21]: G
+      - generic [ref=e22]: E
+      - generic [ref=e23]: LIVE
+    - generic [ref=e25]:
+      - button [ref=e26] [cursor=pointer]
+      - button [ref=e30] [cursor=pointer]
+  - generic [ref=e35]:
+    - generic [ref=e36]: MILESTONE
+    - button "全部" [ref=e37] [cursor=pointer]
+    - generic [ref=e42]:
+      - searchbox "过滤 Backlog 与甘特中的条目" [ref=e43]
+      - generic [aria-hidden]: /
+    - generic [ref=e45]:
+      - button "复制 27 依赖" [ref=e46] [cursor=pointer]:
+        - generic [ref=e53]: 复制
+        - generic [ref=e54]: 27 依赖
+      - button "复制选项" [ref=e55] [cursor=pointer]
+  - generic [ref=e58]:
+    - complementary [ref=e59]:
+      - generic [ref=e61]:
+        - text: Backlog
+        - generic [ref=e62]: "37"
+        - button "拉取" [ref=e63] [cursor=pointer]
+        - button "新建" [ref=e68] [cursor=pointer]
+      - generic [ref=e71]:
+        - generic [ref=e72]: 2026-Q4
+        - generic [ref=e73]:
+          - link [ref=e74] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-19337
+          - generic [ref=e77]:
+            - generic [ref=e78]: EPIC
+            - generic [ref=e79]: NOVA-19337
+            - generic [ref=e80]: —
+          - generic [ref=e81]: Shared Foundation
+          - generic [ref=e82]:
+            - generic [ref=e83]: BY
+            - text: Bernard Ye
+          - generic [ref=e84]: ↺ 3 个子任务记录
+        - generic [ref=e85]:
+          - link [ref=e86] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-19332
+          - generic [ref=e89]:
+            - generic [ref=e90]: EPIC
+            - generic [ref=e91]: NOVA-19332
+            - generic [ref=e92]: —
+          - generic [ref=e93]: AIR as Virtual Assistant in RingCX - Outbound Voice
+          - generic [ref=e94]:
+            - generic [ref=e95]: EQ
+            - text: Esone Qiu
+          - generic [ref=e96]: Target 09-20 → 10-10
+        - generic [ref=e97]:
+          - link [ref=e98] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-19335
+          - generic [ref=e101]:
+            - generic [ref=e102]: EPIC
+            - generic [ref=e103]: NOVA-19335
+            - generic [ref=e104]: —
+          - generic [ref=e105]: "RCCC Voice: E2E with real RCCC Config / release readiness"
+          - generic [ref=e106]:
+            - generic [ref=e107]: EQ
+            - text: Esone Qiu
+          - generic [ref=e108]: ↺ 1 个子任务记录
+        - generic [ref=e109]:
+          - link [ref=e110] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-19014
+          - generic [ref=e113]:
+            - generic [ref=e114]: EPIC
+            - generic [ref=e115]: NOVA-19014
+            - generic [ref=e116]: —
+          - generic [ref=e117]: AIR as Virtual Assistant in RCCC - Digital
+          - generic [ref=e118]:
+            - generic [ref=e119]: DH
+            - text: Dylan Hu
+          - generic [ref=e120]: Target 09-21 → —
+          - generic [ref=e121]: ↺ 1 个子任务记录
+        - generic [ref=e122]:
+          - link [ref=e123] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-18674
+          - generic [ref=e126]:
+            - generic [ref=e127]: EPIC
+            - generic [ref=e128]: NOVA-18674
+            - generic [ref=e129]: 1w
+          - generic [ref=e130]: AIR as Virtual Assistant in RCCC - Inbound Voice
+          - generic [ref=e131]:
+            - generic [ref=e132]: ZL
+            - text: Zack Li
+          - generic [ref=e133]: Target 09-21 → —
+          - generic [ref=e134]: ↺ 4 个子任务记录
+        - generic [ref=e135]:
+          - link [ref=e136] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-14425
+          - generic [ref=e139]:
+            - generic [ref=e140]: EPIC
+            - generic [ref=e141]: NOVA-14425
+            - generic [ref=e142]: 1w
+          - generic [ref=e143]: "ECIS/NECA Modernization: Reliability, Operations, and Orchestration Readiness"
+          - generic [ref=e144]:
+            - generic [ref=e145]: BY
+            - text: Bernard Ye
+        - generic [ref=e146]:
+          - link [ref=e147] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-14606
+          - generic [ref=e150]:
+            - generic [ref=e151]: EPIC
+            - generic [ref=e152]: NOVA-14606
+            - generic [ref=e153]: 1w
+          - generic [ref=e154]: Harness engineering
+          - generic [ref=e155]:
+            - generic [ref=e156]: JY
+            - text: Jimmie Yang
+          - generic [ref=e157]: Target 07-08 → 09-30
+        - generic [ref=e158]:
+          - link [ref=e159] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-14630
+          - generic [ref=e162]:
+            - generic [ref=e163]: EPIC
+            - generic [ref=e164]: NOVA-14630
+            - generic [ref=e165]: 1w
+          - generic [ref=e166]: Benchmark Project for NCA UMS Channel Flows
+          - generic [ref=e167]:
+            - generic [ref=e168]: JY
+            - text: Jimmie Yang
+          - generic [ref=e169]: Target 08-14 → 08-20
+        - generic [ref=e170]:
+          - link [ref=e171] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-14649
+          - generic [ref=e174]:
+            - generic [ref=e175]: EPIC
+            - generic [ref=e176]: NOVA-14649
+            - generic [ref=e177]: —
+          - generic [ref=e178]: NCAC Channel Rendering Library Engineering
+          - generic [ref=e179]:
+            - generic [ref=e180]: JY
+            - text: Jimmie Yang
+        - generic [ref=e181]:
+          - link [ref=e182] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-16628
+          - generic [ref=e185]:
+            - generic [ref=e186]: EPIC
+            - generic [ref=e187]: NOVA-16628
+            - generic [ref=e188]: —
+          - generic [ref=e189]: Air support
+          - generic [ref=e190]: Target 09-18 → 10-22
+        - generic [ref=e191]:
+          - link [ref=e192] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-17190
+          - generic [ref=e195]:
+            - generic [ref=e196]: EPIC
+            - generic [ref=e197]: NOVA-17190
+            - generic [ref=e198]: —
+          - generic [ref=e199]: Handoff System Tool for Action Skills - POC
+          - generic [ref=e200]: Target 10-15 → 11-04
+        - generic [ref=e201]:
+          - link [ref=e202] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-17368
+          - generic [ref=e205]:
+            - generic [ref=e206]: EPIC
+            - generic [ref=e207]: NOVA-17368
+            - generic [ref=e208]: —
+          - generic [ref=e209]: "[Research] How to fetch RCCC human agent and end user transcript"
+          - generic [ref=e210]:
+            - generic [ref=e211]: DL
+            - text: Dimago Luo
+        - generic [ref=e212]:
+          - link [ref=e213] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-17377
+          - generic [ref=e216]:
+            - generic [ref=e217]: EPIC
+            - generic [ref=e218]: NOVA-17377
+            - generic [ref=e219]: —
+          - generic [ref=e220]: "[RCCC] Fit and Finish"
+          - generic [ref=e221]:
+            - generic [ref=e222]: BL
+            - text: Barry Li
+          - generic [ref=e223]: ↺ 1 个子任务记录
+        - generic [ref=e224]:
+          - link [ref=e225] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-18124
+          - generic [ref=e228]:
+            - generic [ref=e229]: EPIC
+            - generic [ref=e230]: NOVA-18124
+            - generic [ref=e231]: 1w
+          - generic [ref=e232]: "[Bugfix] Q3 Bug Carryover"
+          - generic [ref=e233]:
+            - generic [ref=e234]: JG
+            - text: Jason Gao
+          - generic [ref=e235]: Target 09-01 → 12-31
+        - generic [ref=e236]:
+          - link [ref=e237] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-18294
+          - generic [ref=e240]:
+            - generic [ref=e241]: EPIC
+            - generic [ref=e242]: NOVA-18294
+            - generic [ref=e243]: —
+          - generic [ref=e244]: "[26Q4] Performance Testing & Capacity Validation"
+          - generic [ref=e245]: Target 09-16 → 12-15
+        - generic [ref=e246]:
+          - link [ref=e247] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-18295
+          - generic [ref=e250]:
+            - generic [ref=e251]: EPIC
+            - generic [ref=e252]: NOVA-18295
+            - generic [ref=e253]: —
+          - generic [ref=e254]: "[26Q4] Automation Runs & Maintenance"
+          - generic [ref=e255]:
+            - generic [ref=e256]: CL
+            - text: Chris Li
+          - generic [ref=e257]: Target 09-16 → 12-15
+        - generic [ref=e258]:
+          - link [ref=e259] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-18296
+          - generic [ref=e262]:
+            - generic [ref=e263]: EPIC
+            - generic [ref=e264]: NOVA-18296
+            - generic [ref=e265]: —
+          - generic [ref=e266]: "[26Q4] CI & Dev Environment Support"
+          - generic [ref=e267]:
+            - generic [ref=e268]: CL
+            - text: Chris Li
+          - generic [ref=e269]: Target 09-16 → 12-15
+        - generic [ref=e270]:
+          - link [ref=e271] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-18297
+          - generic [ref=e274]:
+            - generic [ref=e275]: EPIC
+            - generic [ref=e276]: NOVA-18297
+            - generic [ref=e277]: —
+          - generic [ref=e278]: "[26Q4] Release Validation & Regression"
+          - generic [ref=e279]:
+            - generic [ref=e280]: CL
+            - text: Chris Li
+          - generic [ref=e281]: Target 09-16 → 12-15
+        - generic [ref=e282]:
+          - link [ref=e283] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-18780
+          - generic [ref=e286]:
+            - generic [ref=e287]: EPIC
+            - generic [ref=e288]: NOVA-18780
+            - generic [ref=e289]: —
+          - generic [ref=e290]: "[Regular] NCA Components Sign Off Tasks"
+          - generic [ref=e291]:
+            - generic [ref=e292]: CL
+            - text: Chris Li
+          - generic [ref=e293]: Target 10-01 → 12-15
+        - generic [ref=e294]:
+          - link [ref=e295] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-19601
+          - generic [ref=e298]:
+            - generic [ref=e299]: EPIC
+            - generic [ref=e300]: NOVA-19601
+            - generic [ref=e301]: 1w
+          - generic [ref=e302]: Public data sources (websites)
+          - generic [ref=e303]: Target 11-02 → 11-13
+          - generic [ref=e305]:
+            - text: AIR 2.0 Beta
+            - emphasis [ref=e307]: 11-30
+        - generic [ref=e308]:
+          - link [ref=e309] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-19618
+          - generic [ref=e312]:
+            - generic [ref=e313]: EPIC
+            - generic [ref=e314]: NOVA-19618
+            - generic [ref=e315]: —
+          - generic [ref=e316]: "AIR 2.0: SMS Notification Extended Sending Numbers & Authoring Polish"
+          - generic [ref=e317]: Target 12-01 → 12-31
+          - generic [ref=e319]:
+            - text: AIR 2.0 Flywheel
+            - emphasis [ref=e321]: 03-31
+        - generic [ref=e322]:
+          - link [ref=e323] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-19620
+          - generic [ref=e326]:
+            - generic [ref=e327]: EPIC
+            - generic [ref=e328]: NOVA-19620
+            - generic [ref=e329]: —
+          - generic [ref=e330]: "[Jan] AIR Pro: User Uploaded Files - WhatsApp Inbound"
+        - generic [ref=e331]:
+          - link [ref=e332] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-19621
+          - generic [ref=e335]:
+            - generic [ref=e336]: EPIC
+            - generic [ref=e337]: NOVA-19621
+            - generic [ref=e338]: —
+          - generic [ref=e339]: "[Jan] AIR Pro: User Uploaded Files - Webchat Upload UI + Inbound"
+        - generic [ref=e340]:
+          - link [ref=e341] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-19641
+          - generic [ref=e344]:
+            - generic [ref=e345]: EPIC
+            - generic [ref=e346]: NOVA-19641
+            - generic [ref=e347]: 1w
+          - generic [ref=e348]: Connect RingCX voice and digital channels in AIR Pro studio
+          - generic [ref=e349]:
+            - generic [ref=e350]: DH
+            - text: Dylan Hu
+          - generic [ref=e351]: Target 10-12 → 11-17
+          - generic [ref=e352]: ↺ 1 个子任务记录
+        - generic [ref=e353]:
+          - link [ref=e354] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-20390
+          - generic [ref=e357]:
+            - generic [ref=e358]: EPIC
+            - generic [ref=e359]: NOVA-20390
+            - generic [ref=e360]: —
+          - generic [ref=e361]: NCA functional automation test
+          - generic [ref=e362]: Target 10-12 → 11-18
+        - generic [ref=e363]:
+          - link [ref=e364] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-20571
+          - generic [ref=e367]:
+            - generic [ref=e368]: EPIC
+            - generic [ref=e369]: NOVA-20571
+            - generic [ref=e370]: —
+          - generic [ref=e371]: "[Security] Non-AIR Twistlock vulnerability remediation tracking"
+          - generic [ref=e372]: Target 10-16 → 12-15
+        - generic [ref=e373]:
+          - link [ref=e374] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-20919
+          - generic [ref=e377]:
+            - generic [ref=e378]: EPIC
+            - generic [ref=e379]: NOVA-20919
+            - generic [ref=e380]: —
+          - generic [ref=e381]: "[NMA] Channel Integration Reliability & Stability"
+        - generic [ref=e382]:
+          - link [ref=e383] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-20920
+          - generic [ref=e386]:
+            - generic [ref=e387]: EPIC
+            - generic [ref=e388]: NOVA-20920
+            - generic [ref=e389]: —
+          - generic [ref=e390]: "[NMA] Channel Integration Testing & Quality Improvement"
+        - generic [ref=e391]:
+          - link [ref=e392] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-20921
+          - generic [ref=e395]:
+            - generic [ref=e396]: EPIC
+            - generic [ref=e397]: NOVA-20921
+            - generic [ref=e398]: —
+          - generic [ref=e399]: "[NMA] Telecom Integration Troubleshooting Improvement"
+        - generic [ref=e400]:
+          - link [ref=e401] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-20922
+          - generic [ref=e404]:
+            - generic [ref=e405]: EPIC
+            - generic [ref=e406]: NOVA-20922
+            - generic [ref=e407]: —
+          - generic [ref=e408]: "[NMA] Channel Observability & Error Handling Optimization"
+        - generic [ref=e409]:
+          - link [ref=e410] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-3382
+          - generic [ref=e413]:
+            - generic [ref=e414]: EPIC
+            - generic [ref=e415]: NOVA-3382
+            - generic [ref=e416]: —
+          - generic [ref=e417]: Nova CA - Agent availability VS Work hour configuration for handoff
+        - generic [ref=e418]:
+          - link [ref=e419] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-3408
+          - generic [ref=e422]:
+            - generic [ref=e423]: EPIC
+            - generic [ref=e424]: NOVA-3408
+            - generic [ref=e425]: —
+          - generic [ref=e426]: Handoff from native channels to RingCX
+        - generic [ref=e427]:
+          - link [ref=e428] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-18369
+          - generic [ref=e431]:
+            - generic [ref=e432]: EPIC
+            - generic [ref=e433]: NOVA-18369
+            - generic [ref=e434]: 1w
+          - generic [ref=e435]: ✓ AIR 1.0 Knowledge tab feature parity
+          - generic [ref=e436]: Target 09-14 → 09-22
+          - generic [ref=e438]:
+            - text: AIR 2.0 Beta
+            - emphasis [ref=e440]: 11-30
+        - generic [ref=e441]: 2026-Q3
+        - generic [ref=e442]:
+          - generic [ref=e443]:
+            - generic [ref=e444]: EPIC
+            - generic [ref=e445]: LOCAL-CTE2TOCw
+            - generic [ref=e446]: DRAFT
+            - generic [ref=e447]: —
+          - generic [ref=e448]: Nova AI Native 工程能力与稳定性
+          - generic [ref=e449]: ↺ 3 个子任务记录
+          - button "×" [ref=e450] [cursor=pointer]
+        - generic [ref=e451]:
+          - link [ref=e452] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-17400
+          - generic [ref=e455]:
+            - generic [ref=e456]: EPIC
+            - generic [ref=e457]: NOVA-17400
+            - generic [ref=e458]: —
+          - generic [ref=e459]: AI-Native Bug Challenge evidences - Nova CA Brandy Team
+          - generic [ref=e460]:
+            - generic [ref=e461]: BL
+            - text: Barry Li
+          - generic [ref=e462]: Target 08-22 → 09-29
+        - generic [ref=e463]:
+          - link [ref=e464] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-17332
+          - generic [ref=e467]:
+            - generic [ref=e468]: EPIC
+            - generic [ref=e469]: NOVA-17332
+            - generic [ref=e470]: 1w
+          - generic [ref=e471]: ✓ AI-Native Bug Challenge evidences - Nova Whisky Team
+          - generic [ref=e472]:
+            - generic [ref=e473]: ML
+            - text: Mario Lin
+          - generic [ref=e474]: Target 08-24 → 09-15
+        - generic [ref=e475]: Backlog
+        - generic [ref=e476]:
+          - link [ref=e477] [cursor=pointer]:
+            - /url: https://jira.ringcentral.com/browse/NOVA-19892
+          - generic [ref=e480]:
+            - generic [ref=e481]: EPIC
+            - generic [ref=e482]: NOVA-19892
+            - generic [ref=e483]: —
+          - generic [ref=e484]: "[Knowledge] Reliability & Quality Improvements"
+    - generic:
+      - generic:
+        - generic:
+          - generic: 新建 Backlog 条目
+          - generic:
+            - button "手动创建"
+            - button "使用 AI 批量创建"
+          - generic: 手动条目不需要 Jira，排期后会以 DRAFT 状态参与规划；之后可在时间轴上一键创建为 Jira issue。
+        - generic:
+          - generic: 标题 *
+          - textbox "例如：Nova 26.4 权限模型重构"
+          - generic: 描述（可选）
+          - textbox "背景 / 交付物 / 验收要点。hover 任务条时展示；创建 Jira 时作为 description 的生成依据"
+          - generic: Parent Link（INIT，可选）
+          - textbox "例如 INIT-1234，或 Jira 链接"
+          - generic: 对应这条条目要挂上的 Initiative。创建 Jira 时作为上下文；直连创建会写入 Parent Link。
+          - generic: Assignee（可选）
+          - generic:
+            - button
+            - generic: 不指定
+          - generic: 团队成员名。创建 Jira 时按映射写入 assignee；排到甘特后双击这条 Epic（不论是否 Draft）也可以改。
+          - generic:
+            - generic:
+              - generic: 类型
+              - textbox "Epic"
+            - generic:
+              - generic: Quarter
+              - combobox:
+                - option "不指定"
+                - option "2026-Q3"
+                - option "2026-Q4" [selected]
+          - generic:
+            - generic:
+              - generic: 预估（周）
+              - spinbutton "可留空"
+            - generic:
+              - generic: Target 开始
+              - textbox
+            - generic:
+              - generic: Target 结束
+              - textbox
+        - generic:
+          - button "取消"
+          - button "创建条目" [disabled]
+    - generic [ref=e485]:
+      - generic [ref=e486]:
+        - generic [ref=e487]:
+          - button "任务" [ref=e488] [cursor=pointer]
+          - button "人员" [ref=e489] [cursor=pointer]
+          - button "依赖" [ref=e490] [cursor=pointer]
+        - group "依赖过滤" [ref=e491]:
+          - button "全部 27" [pressed] [ref=e492] [cursor=pointer]:
+            - text: 全部
+            - generic [ref=e493]: "27"
+          - button "晚于期望 0" [ref=e494] [cursor=pointer]:
+            - text: 晚于期望
+            - generic [ref=e495]: "0"
+          - button "缺 ETA 26" [ref=e496] [cursor=pointer]:
+            - text: 缺 ETA
+            - generic [ref=e497]: "26"
+          - button "Jira 有变更 0" [ref=e498] [cursor=pointer]:
+            - text: Jira 有变更
+            - generic [ref=e499]: "0"
+        - generic [ref=e500]:
+          - generic [ref=e501]: ETA（对方）
+          - generic [ref=e503]: 期望（我们）
+          - generic [ref=e505]: 晚于期望
+          - generic [ref=e507]: Ticket 排期
+      - text: 今天
+      - generic [ref=e509]:
+        - generic [ref=e510]:
+          - generic [ref=e511]:
+            - generic [ref=e512]: "27"
+            - text: 个依赖 ·
+            - generic [ref=e513]: "18"
+            - text: 个任务
+          - generic [ref=e515]:
+            - generic [ref=e516]: 10 月
+            - generic [ref=e517]: 11 月
+            - generic [ref=e518]: 12 月
+            - generic [ref=e519]: 2027-1 月
+            - generic [ref=e520]: 2027-2 月
+            - generic [ref=e521]: 10-26
+            - generic [ref=e522]: 11-02
+            - generic [ref=e523]: 11-09
+            - generic [ref=e524]: 11-16
+            - generic [ref=e525]: 11-23
+            - generic [ref=e526]: 11-30
+            - generic [ref=e527]: 12-07
+            - generic [ref=e528]: 12-14
+            - generic [ref=e529]: 12-21
+            - generic [ref=e530]: 12-28
+            - generic [ref=e531]: 01-04
+            - generic [ref=e532]: 01-11
+            - generic [ref=e533]: 01-18
+            - generic [ref=e534]: 01-25
+            - generic [ref=e535]: 02-01
+            - generic [ref=e536]: 今天
+        - generic [ref=e537]:
+          - generic [ref=e538]:
+            - generic [ref=e539]:
+              - 'generic "AIR 2.0: Surface and edit AI Agent Extension on the Channels tab" [ref=e541]'
+              - generic [ref=e542]: NOVA-20438 · 1 依赖
+            - generic [ref=e543]: 任务排期 10-26 → 11-15
+          - generic [ref=e547]:
+            - generic [ref=e548]:
+              - generic [ref=e549]:
+                - generic [ref=e550]: 缺 ETA
+                - button "待最终 UI design 确认" [ref=e551] [cursor=pointer]
+              - generic [ref=e552]: 无 ticket
+              - generic [ref=e554]:
+                - button "催一下" [ref=e555] [cursor=pointer]
+                - button "填写 ETA" [ref=e556] [cursor=pointer]
+            - generic [ref=e558]:
+              - generic: 期望10-31
+              - slider "期望日期 10-31，左右方向键调整" [ref=e559]: "?"
+          - generic [ref=e560]:
+            - generic [ref=e561]:
+              - generic "New channel framework - sync up between SCP/SW and AIR 2.0" [ref=e563]
+              - generic [ref=e564]: NOVA-14367 · 1 依赖
+            - generic [ref=e565]: 任务排期 10-19 → 12-20
+          - generic [ref=e569]:
+            - generic [ref=e570]:
+              - generic [ref=e571]:
+                - generic [ref=e572]: 缺 ETA
+                - button "缺 SW 同步回 AIR 2.0 的 API" [ref=e573] [cursor=pointer]
+              - generic [ref=e574]: 无 ticket
+              - generic [ref=e576]:
+                - button "催一下" [ref=e577] [cursor=pointer]
+                - button "填写 ETA" [ref=e578] [cursor=pointer]
+            - generic [ref=e580]:
+              - generic: 期望10-31
+              - slider "期望日期 10-31，左右方向键调整" [ref=e581]: "?"
+          - generic [ref=e582]:
+            - generic [ref=e583]:
+              - 'generic "AIR 2.0: User Uploaded Files - MMS First (Core File Pipeline + SMS/MMS Inbound)" [ref=e585]'
+              - generic [ref=e586]: NOVA-19619 · 1 依赖
+            - generic [ref=e587]: 任务排期 12-01 → 02-01
+          - generic [ref=e591]:
+            - generic [ref=e592]:
+              - generic [ref=e593]:
+                - generic [ref=e594]: 缺 ETA
+                - button "NCA 不支持多模态，Q4 无架构升级" [ref=e595] [cursor=pointer]
+              - generic [ref=e596]: 无 ticket
+              - generic [ref=e598]:
+                - button "催一下" [ref=e599] [cursor=pointer]
+                - button "填写 ETA" [ref=e600] [cursor=pointer]
+            - generic [ref=e602]:
+              - generic: 期望12-01
+              - slider "期望日期 12-01，左右方向键调整" [ref=e603]: "?"
+          - generic [ref=e604]:
+            - generic [ref=e605]:
+              - 'generic "AIR 2.0: SMS Notification System Tool for Action Skills (Core)" [ref=e607]'
+              - generic [ref=e608]: NOVA-19617 · 1 依赖
+            - generic [ref=e609]: 任务排期 12-01 → 01-31
+          - generic [ref=e613]:
+            - generic [ref=e614]:
+              - generic [ref=e615]:
+                - generic [ref=e616]: 缺 ETA
+                - button "缺 Tory Custom Skills（Q4 未排），待 PM 确认范围" [ref=e617] [cursor=pointer]
+              - generic [ref=e618]: 无 ticket
+              - generic [ref=e620]:
+                - button "催一下" [ref=e621] [cursor=pointer]
+                - button "填写 ETA" [ref=e622] [cursor=pointer]
+            - generic [ref=e624]:
+              - generic: 期望12-01
+              - slider "期望日期 12-01，左右方向键调整" [ref=e625]: "?"
+          - generic [ref=e626]:
+            - generic [ref=e627]:
+              - generic "Shared SMS Inbox - Notifications from Shared Numbers" [ref=e629]
+              - generic [ref=e630]: NOVA-19721 · 3 依赖
+            - generic [ref=e631]: 任务排期 11-18 → 12-21
+          - generic [ref=e635]:
+            - generic [ref=e636]:
+              - generic [ref=e637]:
+                - generic [ref=e638]: 缺 ETA
+                - button "PlatformService" [ref=e639] [cursor=pointer]
+              - generic [ref=e640]: 无 ticket
+              - generic [ref=e642]:
+                - button "催一下" [ref=e643] [cursor=pointer]
+                - button "填写 ETA" [ref=e644] [cursor=pointer]
+            - generic [ref=e646]:
+              - generic: 期望11-18
+              - slider "期望日期 11-18，左右方向键调整" [ref=e647]: "?"
+          - generic [ref=e648]:
+            - generic [ref=e649]:
+              - generic [ref=e650]:
+                - generic [ref=e651]: 缺 ETA
+                - button "RingEX Telco：TCR 与 opt-out" [ref=e652] [cursor=pointer]
+              - generic [ref=e653]: 无 ticket
+              - generic [ref=e655]:
+                - button "催一下" [ref=e656] [cursor=pointer]
+                - button "填写 ETA" [ref=e657] [cursor=pointer]
+            - generic [ref=e659]:
+              - generic: 期望11-18
+              - slider "期望日期 11-18，左右方向键调整" [ref=e660]: "?"
+          - generic [ref=e661]:
+            - generic [ref=e662]:
+              - generic [ref=e663]:
+                - generic [ref=e664]: 缺 ETA
+                - button "RingEX SMS：Threads API 与出站线程" [ref=e665] [cursor=pointer]
+              - generic [ref=e666]: 无 ticket
+              - generic [ref=e668]:
+                - button "催一下" [ref=e669] [cursor=pointer]
+                - button "填写 ETA" [ref=e670] [cursor=pointer]
+            - generic [ref=e672]:
+              - generic: 期望11-18
+              - slider "期望日期 11-18，左右方向键调整" [ref=e673]: "?"
+          - generic [ref=e674]:
+            - generic [ref=e675]:
+              - generic "Shared SMS Inbox - Threads API Channel Foundation" [ref=e677]
+              - generic [ref=e678]: NOVA-19722 · 3 依赖
+            - generic [ref=e679]: 任务排期 11-18 → 12-21
+          - generic [ref=e683]:
+            - generic [ref=e684]:
+              - generic [ref=e685]:
+                - generic [ref=e686]: 缺 ETA
+                - button "RingEX SMS：Threads API 与出站线程" [ref=e687] [cursor=pointer]
+              - generic [ref=e688]: 无 ticket
+              - generic [ref=e690]:
+                - button "催一下" [ref=e691] [cursor=pointer]
+                - button "填写 ETA" [ref=e692] [cursor=pointer]
+            - generic [ref=e694]:
+              - generic: 期望11-18
+              - slider "期望日期 11-18，左右方向键调整" [ref=e695]: "?"
+          - generic [ref=e696]:
+            - generic [ref=e697]:
+              - generic [ref=e698]:
+                - generic [ref=e699]: 缺 ETA
+                - button "PlatformService" [ref=e700] [cursor=pointer]
+              - generic [ref=e701]: 无 ticket
+              - generic [ref=e703]:
+                - button "催一下" [ref=e704] [cursor=pointer]
+                - button "填写 ETA" [ref=e705] [cursor=pointer]
+            - generic [ref=e707]:
+              - generic: 期望11-18
+              - slider "期望日期 11-18，左右方向键调整" [ref=e708]: "?"
+          - generic [ref=e709]:
+            - generic [ref=e710]:
+              - generic [ref=e711]:
+                - generic [ref=e712]: 缺 ETA
+                - button "RingEX Telco：TCR 与 opt-out" [ref=e713] [cursor=pointer]
+              - generic [ref=e714]: 无 ticket
+              - generic [ref=e716]:
+                - button "催一下" [ref=e717] [cursor=pointer]
+                - button "填写 ETA" [ref=e718] [cursor=pointer]
+            - generic [ref=e720]:
+              - generic: 期望11-18
+              - slider "期望日期 11-18，左右方向键调整" [ref=e721]: "?"
+          - generic [ref=e722]:
+            - generic [ref=e723]:
+              - 'generic "AIR 2.0: RingCX digital and voice channel setup" [ref=e725]': RCX 接入 AIR 2.0
+              - generic [ref=e726]: NOVA-20604 · 2 依赖
+            - generic [ref=e727]: 任务排期 10-17 → 12-14
+          - generic [ref=e731]:
+            - generic [ref=e732]:
+              - generic [ref=e733]:
+                - generic [ref=e734]: 缺 ETA
+                - button "Phase 1 需 RCX 适配 AIR 2.0 捞 agent API" [ref=e735] [cursor=pointer]
+              - generic [ref=e736]: 无 ticket
+              - generic [ref=e738]:
+                - button "催一下" [ref=e739] [cursor=pointer]
+                - button "填写 ETA" [ref=e740] [cursor=pointer]
+            - generic [ref=e742]:
+              - generic: 期望10-28
+              - slider "期望日期 10-28，左右方向键调整" [ref=e743]: "?"
+          - generic [ref=e744]:
+            - generic [ref=e745]:
+              - generic [ref=e746]:
+                - generic [ref=e747]: 缺 ETA
+                - button "待 AIR / RCX PM 澄清需求后再评估" [ref=e748] [cursor=pointer]
+              - generic [ref=e749]: 无 ticket
+              - generic [ref=e751]:
+                - button "催一下" [ref=e752] [cursor=pointer]
+                - button "填写 ETA" [ref=e753] [cursor=pointer]
+            - generic [ref=e755]:
+              - generic: 期望10-28
+              - slider "期望日期 10-28，左右方向键调整" [ref=e756]: "?"
+          - generic [ref=e757]:
+            - generic [ref=e758]:
+              - 'generic "AIR 2.0: Handoff tool in skills" [ref=e760]'
+              - generic [ref=e761]: NOVA-19674 · 1 依赖
+            - generic [ref=e762]: 任务排期 11-21 → 12-21
+          - generic [ref=e766]:
+            - generic [ref=e767]:
+              - generic [ref=e768]:
+                - generic [ref=e769]: 缺 ETA
+                - button "与现有 transfer skills 冲突，产品形态未定" [ref=e770] [cursor=pointer]
+              - generic [ref=e771]: 无 ticket
+              - generic [ref=e773]:
+                - button "催一下" [ref=e774] [cursor=pointer]
+                - button "填写 ETA" [ref=e775] [cursor=pointer]
+            - generic [ref=e777]:
+              - generic: 期望11-21
+              - slider "期望日期 11-21，左右方向键调整" [ref=e778]: "?"
+          - generic [ref=e779]:
+            - generic [ref=e780]:
+              - generic "Handoff destination availability check" [ref=e782]
+              - generic [ref=e783]: NOVA-20602 · 1 依赖
+            - generic [ref=e784]: 任务排期 11-21 → 12-21
+          - generic [ref=e788]:
+            - generic [ref=e789]:
+              - generic [ref=e790]:
+                - generic [ref=e791]: 缺 ETA
+                - button "REX/RCX 现有 API 未见队列时段、排班、等待、leg 事件" [ref=e792] [cursor=pointer]
+              - generic [ref=e793]: 无 ticket
+              - generic [ref=e795]:
+                - button "催一下" [ref=e796] [cursor=pointer]
+                - button "填写 ETA" [ref=e797] [cursor=pointer]
+            - generic [ref=e799]:
+              - generic: 期望11-21
+              - slider "期望日期 11-21，左右方向键调整" [ref=e800]: "?"
+          - generic [ref=e801]:
+            - generic [ref=e802]:
+              - generic "Cross-product voice handoff between RingEX and RingCX" [ref=e804]
+              - generic [ref=e805]: NOVA-19677 · 2 依赖
+            - generic [ref=e806]: 任务排期 11-21 → 12-21
+          - generic [ref=e810]:
+            - generic [ref=e811]:
+              - generic [ref=e812]:
+                - generic [ref=e813]: 缺 ETA
+                - button "待与 RCX/REX 讨论回转（session 已结束）" [ref=e814] [cursor=pointer]
+              - generic [ref=e815]: 无 ticket
+              - generic [ref=e817]:
+                - button "催一下" [ref=e818] [cursor=pointer]
+                - button "填写 ETA" [ref=e819] [cursor=pointer]
+            - generic [ref=e821]:
+              - generic: 期望11-21
+              - slider "期望日期 11-21，左右方向键调整" [ref=e822]: "?"
+          - generic [ref=e823]:
+            - generic [ref=e824]:
+              - generic [ref=e825]:
+                - generic [ref=e826]: 缺 ETA
+                - button "待 PM 澄清跨渠道转接方式" [ref=e827] [cursor=pointer]
+              - generic [ref=e828]: 无 ticket
+              - generic [ref=e830]:
+                - button "催一下" [ref=e831] [cursor=pointer]
+                - button "填写 ETA" [ref=e832] [cursor=pointer]
+            - generic [ref=e834]:
+              - generic: 期望11-21
+              - slider "期望日期 11-21，左右方向键调整" [ref=e835]: "?"
+          - generic [ref=e836]:
+            - generic [ref=e837]:
+              - generic "RingEX voice handoff with predefined context fields" [ref=e839]
+              - generic [ref=e840]: NOVA-19676 · 1 依赖
+            - generic [ref=e841]: 任务排期 11-21 → 12-21
+          - generic [ref=e845]:
+            - generic [ref=e846]:
+              - generic [ref=e847]:
+                - generic [ref=e848]: 缺 ETA
+                - button "依赖 Telco 支持（INIT 为 GA，Epic 为 CA）" [ref=e849] [cursor=pointer]
+              - generic [ref=e850]: 无 ticket
+              - generic [ref=e852]:
+                - button "催一下" [ref=e853] [cursor=pointer]
+                - button "填写 ETA" [ref=e854] [cursor=pointer]
+            - generic [ref=e856]:
+              - generic: 期望11-21
+              - slider "期望日期 11-21，左右方向键调整" [ref=e857]: "?"
+          - generic [ref=e858]:
+            - generic [ref=e859]:
+              - 'generic "AIR 2.0: One handoff definition per agent, shared by skills" [ref=e861]'
+              - generic [ref=e862]: NOVA-19675 · 1 依赖
+            - generic [ref=e863]: 任务排期 12-01 → 12-31
+          - generic [ref=e867]:
+            - generic [ref=e868]:
+              - generic [ref=e869]:
+                - generic [ref=e870]: 缺 ETA
+                - button "与现有 transfer skills 冲突，产品形态未定" [ref=e871] [cursor=pointer]
+              - generic [ref=e872]: 无 ticket
+              - generic [ref=e874]:
+                - button "催一下" [ref=e875] [cursor=pointer]
+                - button "填写 ETA" [ref=e876] [cursor=pointer]
+            - generic [ref=e878]:
+              - generic: 期望12-01
+              - slider "期望日期 12-01，左右方向键调整" [ref=e879]: "?"
+          - generic [ref=e880]:
+            - generic [ref=e881]:
+              - 'generic "Research: NCA capabilities and alternatives for inbound user-uploaded files (SMS/MMS)" [ref=e883]'
+              - generic [ref=e884]: NOVA-20672 · 1 依赖
+            - generic [ref=e885]: 任务排期 10-19 → 11-08
+          - generic [ref=e889]:
+            - generic [ref=e890]:
+              - generic [ref=e891]:
+                - generic [ref=e892]: 缺 ETA
+                - button "NCA 不支持多模态，Q4 无架构升级" [ref=e893] [cursor=pointer]
+              - generic [ref=e894]: 无 ticket
+              - generic [ref=e896]:
+                - button "催一下" [ref=e897] [cursor=pointer]
+                - button "填写 ETA" [ref=e898] [cursor=pointer]
+            - generic [ref=e900]:
+              - generic: 期望10-28
+              - slider "期望日期 10-28，左右方向键调整" [ref=e901]: "?"
+          - generic [ref=e902]:
+            - generic [ref=e903]:
+              - 'generic "[Channels] [Technical Exploration] Cross-Product Handoff: Two-Way Conversation Transfers Between RingCX and RingEX" [ref=e905]'
+              - generic [ref=e906]: NOVA-20661 · 2 依赖
+            - generic [ref=e907]: 任务排期 10-19 → 11-06
+          - generic [ref=e911]:
+            - generic [ref=e912]:
+              - generic [ref=e913]:
+                - generic [ref=e914]: 缺 ETA
+                - button "待 PM 澄清跨渠道转接方式" [ref=e915] [cursor=pointer]
+              - generic [ref=e916]: 无 ticket
+              - generic [ref=e918]:
+                - button "催一下" [ref=e919] [cursor=pointer]
+                - button "填写 ETA" [ref=e920] [cursor=pointer]
+            - generic [ref=e922]:
+              - generic: 期望10-28
+              - slider "期望日期 10-28，左右方向键调整" [ref=e923]: "?"
+          - generic [ref=e924]:
+            - generic [ref=e925]:
+              - generic [ref=e926]:
+                - generic [ref=e927]: 缺 ETA
+                - button "待与 RCX/REX 讨论回转（session 已结束）" [ref=e928] [cursor=pointer]
+              - generic [ref=e929]: 无 ticket
+              - generic [ref=e931]:
+                - button "催一下" [ref=e932] [cursor=pointer]
+                - button "填写 ETA" [ref=e933] [cursor=pointer]
+            - generic [ref=e935]:
+              - generic: 期望10-28
+              - slider "期望日期 10-28，左右方向键调整" [ref=e936]: "?"
+          - generic [ref=e937]:
+            - generic [ref=e938]:
+              - generic "[Channels] [Technical Exploration] Handoff Destination Availability and Transfer Outcome Tracking" [ref=e940]
+              - generic [ref=e941]: NOVA-20662 · 1 依赖
+            - generic [ref=e942]: 任务排期 10-23 → 11-13
+          - generic [ref=e946]:
+            - generic [ref=e947]:
+              - generic [ref=e948]:
+                - generic [ref=e949]: 缺 ETA
+                - button "REX/RCX 现有 API 未见队列时段、排班、等待、leg 事件" [ref=e950] [cursor=pointer]
+              - generic [ref=e951]: 无 ticket
+              - generic [ref=e953]:
+                - button "催一下" [ref=e954] [cursor=pointer]
+                - button "填写 ETA" [ref=e955] [cursor=pointer]
+            - generic [ref=e957]:
+              - generic: 期望10-23
+              - slider "期望日期 10-23，左右方向键调整" [ref=e958]: "?"
+          - generic [ref=e959]:
+            - generic [ref=e960]:
+              - generic "[Channels] [Technical Research] Shared SMS Threads API Integration for AIR Pro and AIR 2.0" [ref=e962]
+              - generic [ref=e963]: NOVA-20758 · 3 依赖
+            - generic [ref=e964]: 任务排期 10-20 → 10-26
+          - generic [ref=e968]:
+            - generic [ref=e969]:
+              - generic [ref=e970]:
+                - generic [ref=e971]: 缺 ETA
+                - button "RingEX Telco：TCR 与 opt-out" [ref=e972] [cursor=pointer]
+              - generic [ref=e973]: 无 ticket
+              - generic [ref=e975]:
+                - button "催一下" [ref=e976] [cursor=pointer]
+                - button "填写 ETA" [ref=e977] [cursor=pointer]
+            - generic [ref=e979]:
+              - generic: 期望10-28
+              - slider "期望日期 10-28，左右方向键调整" [ref=e980]: "?"
+          - generic [ref=e981]:
+            - generic [ref=e982]:
+              - generic [ref=e983]:
+                - generic [ref=e984]: 缺 ETA
+                - button "RingEX SMS：Threads API 与出站线程" [ref=e985] [cursor=pointer]
+              - generic [ref=e986]: 无 ticket
+              - generic [ref=e988]:
+                - button "催一下" [ref=e989] [cursor=pointer]
+                - button "填写 ETA" [ref=e990] [cursor=pointer]
+            - generic [ref=e992]:
+              - generic: 期望10-28
+              - slider "期望日期 10-28，左右方向键调整" [ref=e993]: "?"
+          - generic [ref=e994]:
+            - generic [ref=e995]:
+              - generic [ref=e996]:
+                - generic [ref=e997]: 缺 ETA
+                - button "PlatformService" [ref=e998] [cursor=pointer]
+              - generic [ref=e999]: 无 ticket
+              - generic [ref=e1001]:
+                - button "催一下" [ref=e1002] [cursor=pointer]
+                - button "填写 ETA" [ref=e1003] [cursor=pointer]
+            - generic [ref=e1005]:
+              - generic: 期望10-28
+              - slider "期望日期 10-28，左右方向键调整" [ref=e1006]: "?"
+          - generic [ref=e1007]:
+            - generic [ref=e1008]:
+              - 'generic "[AIR 2.0] Phase 1: AIR Pro knowledge connectors (Google Drive, SharePoint, OneDrive)" [ref=e1010]': KB connectors
+              - generic [ref=e1011]: NOVA-19598 · 1 依赖
+            - generic [ref=e1012]: 任务排期 10-19 → 11-13
+          - generic [ref=e1016]:
+            - generic [ref=e1017]:
+              - generic [ref=e1018]:
+                - generic [ref=e1019]: 缺 ETA
+                - button "Design" [ref=e1020] [cursor=pointer]
+              - generic [ref=e1021]: 无 ticket
+              - generic [ref=e1023]:
+                - button "催一下" [ref=e1024] [cursor=pointer]
+                - button "填写 ETA" [ref=e1025] [cursor=pointer]
+            - generic [ref=e1027]:
+              - generic: 期望10-30
+              - slider "期望日期 10-30，左右方向键调整" [ref=e1028]: "?"
+          - generic [ref=e1029]:
+            - generic [ref=e1030]:
+              - 'generic "[AIR 2.0] Agent Knowledge tab: move Location & Business Hours / FAQ / Knowledge Base with separate toggles and split FAQ & Knowledge config" [ref=e1032]': KB tab UI
+              - generic [ref=e1033]: NOVA-19599 · 1 依赖
+            - generic [ref=e1034]: 任务排期 10-19 → 11-13
+          - generic [ref=e1038]:
+            - generic [ref=e1039]:
+              - generic [ref=e1040]:
+                - generic [ref=e1041]: 按期
+                - button "Design" [ref=e1042] [cursor=pointer]
+              - generic [ref=e1043]:
+                - generic [ref=e1044]: 无 ticket
+                - generic [ref=e1045]: · ETA 手动 · 10-21
+              - button "修改 ETA" [ref=e1047] [cursor=pointer]
+            - generic [ref=e1048]: ETA=期望11-10
+  - complementary [ref=e1051]:
+    - generic [ref=e1052]:
+      - generic [ref=e1053]:
+        - text: 活动日志
+        - generic [ref=e1054]: Nova brandy
+      - button "×" [ref=e1055] [cursor=pointer]
+    - generic [ref=e1056]:
+      - generic [ref=e1057]:
+        - generic [ref=e1058]: 10/21 21:25
+        - generic [ref=e1059]: esone.qiu
+        - generic [ref=e1060]: esone.qiu 给 RingEX voice handoff with predefined context fields 添加了外部依赖 f6W4yLQhVTqA
+      - generic [ref=e1061]:
+        - generic [ref=e1062]: 10/21 21:25
+        - generic [ref=e1063]: esone.qiu
+        - generic [ref=e1064]: "esone.qiu 给 [Channels] [Technical Exploration] Cross-Product Handoff: Two-Way Conversation Transfers Between RingCX and RingEX 添加了外部依赖 xbuYNXb-ejly"
+      - generic [ref=e1065]:
+        - generic [ref=e1066]: 10/21 21:25
+        - generic [ref=e1067]: esone.qiu
+        - generic [ref=e1068]: "esone.qiu 给 [Channels] [Technical Exploration] Cross-Product Handoff: Two-Way Conversation Transfers Between RingCX and RingEX 添加了外部依赖 vX4O8acCL515"
+      - generic [ref=e1069]:
+        - generic [ref=e1070]: 10/21 21:25
+        - generic [ref=e1071]: esone.qiu
+        - generic [ref=e1072]: esone.qiu 给 Cross-product voice handoff between RingEX and RingCX 添加了外部依赖 Kj65UGoUjNzg
+      - generic [ref=e1073]:
+        - generic [ref=e1074]: 10/21 21:25
+        - generic [ref=e1075]: esone.qiu
+        - generic [ref=e1076]: esone.qiu 给 Cross-product voice handoff between RingEX and RingCX 添加了外部依赖 QHMCKtlIgzlL
+      - generic [ref=e1077]:
+        - generic [ref=e1078]: 10/21 21:25
+        - generic [ref=e1079]: esone.qiu
+        - generic [ref=e1080]: esone.qiu 给 [Channels] [Technical Exploration] Handoff Destination Availability and Transfer Outcome Tracking 添加了外部依赖 nQs_7BpZXy_v
+      - generic [ref=e1081]:
+        - generic [ref=e1082]: 10/21 21:25
+        - generic [ref=e1083]: esone.qiu
+        - generic [ref=e1084]: esone.qiu 给 Handoff destination availability check 添加了外部依赖 nbqQ7eUsEBa6
+      - generic [ref=e1085]:
+        - generic [ref=e1086]: 10/21 21:25
+        - generic [ref=e1087]: esone.qiu
+        - generic [ref=e1088]: "esone.qiu 给 AIR 2.0: One handoff definition per agent, shared by skills 添加了外部依赖 1q4KOzaTxn1U"
+      - generic [ref=e1089]:
+        - generic [ref=e1090]: 10/21 21:25
+        - generic [ref=e1091]: esone.qiu
+        - generic [ref=e1092]: "esone.qiu 给 AIR 2.0: Handoff tool in skills 添加了外部依赖 e3G89Av6aABg"
+      - generic [ref=e1093]:
+        - generic [ref=e1094]: 10/21 21:25
+        - generic [ref=e1095]: esone.qiu
+        - generic [ref=e1096]: esone.qiu 给 RCX 接入 AIR 2.0 添加了外部依赖 Tx3ZBH5C34FJ
+      - generic [ref=e1097]:
+        - generic [ref=e1098]: 10/21 21:25
+        - generic [ref=e1099]: esone.qiu
+        - generic [ref=e1100]: esone.qiu 给 RCX 接入 AIR 2.0 添加了外部依赖 _GhakOauRsEP
+      - generic [ref=e1101]:
+        - generic [ref=e1102]: 10/21 21:25
+        - generic [ref=e1103]: esone.qiu
+        - generic [ref=e1104]: esone.qiu 给 [Channels] [Technical Research] Shared SMS Threads API Integration for AIR Pro and AIR 2.0 添加了外部依赖 XHn7Xj_Tw9y-
+      - generic [ref=e1105]:
+        - generic [ref=e1106]: 10/21 21:25
+        - generic [ref=e1107]: esone.qiu
+        - generic [ref=e1108]: esone.qiu 给 [Channels] [Technical Research] Shared SMS Threads API Integration for AIR Pro and AIR 2.0 添加了外部依赖 ali4jEc7hyqq
+      - generic [ref=e1109]:
+        - generic [ref=e1110]: 10/21 21:25
+        - generic [ref=e1111]: esone.qiu
+        - generic [ref=e1112]: esone.qiu 给 [Channels] [Technical Research] Shared SMS Threads API Integration for AIR Pro and AIR 2.0 添加了外部依赖 M198JcoktW2B
+      - generic [ref=e1113]:
+        - generic [ref=e1114]: 10/21 21:25
+        - generic [ref=e1115]: esone.qiu
+        - generic [ref=e1116]: esone.qiu 给 Shared SMS Inbox - Threads API Channel Foundation 添加了外部依赖 OA1VCJlH6Xu8
+      - generic [ref=e1117]:
+        - generic [ref=e1118]: 10/21 21:25
+        - generic [ref=e1119]: esone.qiu
+        - generic [ref=e1120]: esone.qiu 给 Shared SMS Inbox - Threads API Channel Foundation 添加了外部依赖 PJKZpcV09LqF
+      - generic [ref=e1121]:
+        - generic [ref=e1122]: 10/21 21:25
+        - generic [ref=e1123]: esone.qiu
+        - generic [ref=e1124]: esone.qiu 给 Shared SMS Inbox - Threads API Channel Foundation 添加了外部依赖 -l3wvNsK8i2K
+      - generic [ref=e1125]:
+        - generic [ref=e1126]: 10/21 21:25
+        - generic [ref=e1127]: esone.qiu
+        - generic [ref=e1128]: esone.qiu 给 Shared SMS Inbox - Notifications from Shared Numbers 添加了外部依赖 adePomxKsJtC
+      - generic [ref=e1129]:
+        - generic [ref=e1130]: 10/21 21:25
+        - generic [ref=e1131]: esone.qiu
+        - generic [ref=e1132]: esone.qiu 给 Shared SMS Inbox - Notifications from Shared Numbers 添加了外部依赖 g97V388d-Qyj
+      - generic [ref=e1133]:
+        - generic [ref=e1134]: 10/21 21:25
+        - generic [ref=e1135]: esone.qiu
+        - generic [ref=e1136]: esone.qiu 给 Shared SMS Inbox - Notifications from Shared Numbers 添加了外部依赖 nBAaaZKoXLFU
+      - generic [ref=e1137]:
+        - generic [ref=e1138]: 10/21 21:25
+        - generic [ref=e1139]: esone.qiu
+        - generic [ref=e1140]: "esone.qiu 给 Research: NCA capabilities and alternatives for inbound user-uploaded files (SMS/MMS) 添加了外部依赖 DGUo92xrETKd"
+      - generic [ref=e1141]:
+        - generic [ref=e1142]: 10/21 21:25
+        - generic [ref=e1143]: esone.qiu
+        - generic [ref=e1144]: esone.qiu 更新了 z2-PCadXbqIZ
+      - generic [ref=e1145]:
+        - generic [ref=e1146]: 10/21 21:25
+        - generic [ref=e1147]: esone.qiu
+        - generic [ref=e1148]: esone.qiu 更新了 lgCA4TaDuz88
+      - generic [ref=e1149]:
+        - generic [ref=e1150]: 10/21 21:25
+        - generic [ref=e1151]: esone.qiu
+        - generic [ref=e1152]: esone.qiu 更新了 8IbC4VItFXRr
+      - generic [ref=e1153]:
+        - generic [ref=e1154]: 10/21 21:25
+        - generic [ref=e1155]: esone.qiu
+        - generic [ref=e1156]: esone.qiu 更新了 XlPUs0SL3LnR
+      - generic [ref=e1157]:
+        - generic [ref=e1158]: 10/21 21:21
+        - generic [ref=e1159]: esone.qiu
+        - generic [ref=e1160]: esone.qiu 把 NOVA-19598 备注名为 KB connectors
+      - generic [ref=e1161]:
+        - generic [ref=e1162]: 10/21 21:21
+        - generic [ref=e1163]: esone.qiu
+        - generic [ref=e1164]: esone.qiu 把 NOVA-19599 备注名为 KB tab UI
+      - generic [ref=e1165]:
+        - generic [ref=e1166]: 10/21 21:17
+        - generic [ref=e1167]: esone.qiu
+        - generic [ref=e1168]: esone.qiu 更新了 96EyVb2nXI8h
+      - generic [ref=e1169]:
+        - generic [ref=e1170]: 10/21 17:25
+        - generic [ref=e1171]: esone.qiu
+        - generic [ref=e1172]: "esone.qiu 给 [AIR 2.0] Phase 1: AIR Pro knowledge connectors (Google Drive, SharePoint, OneDrive) 添加了外部依赖 sFaa-oK4orNC"
+      - generic [ref=e1173]:
+        - generic [ref=e1174]: 10/21 17:15
+        - generic [ref=e1175]: esone.qiu
+        - generic [ref=e1176]: esone.qiu 更新了 96EyVb2nXI8h（ETA 2026-11-10）
+      - generic [ref=e1177]:
+        - generic [ref=e1178]: 10/21 17:15
+        - generic [ref=e1179]: esone.qiu
+        - generic [ref=e1180]: esone.qiu 更新了 96EyVb2nXI8h
+      - generic [ref=e1181]:
+        - generic [ref=e1182]: 10/21 17:15
+        - generic [ref=e1183]: esone.qiu
+        - generic [ref=e1184]: esone.qiu 更新了 96EyVb2nXI8h
+      - generic [ref=e1185]:
+        - generic [ref=e1186]: 10/21 17:11
+        - generic [ref=e1187]: esone.qiu
+        - generic [ref=e1188]: esone.qiu 更新了 96EyVb2nXI8h
+      - generic [ref=e1189]:
+        - generic [ref=e1190]: 10/21 17:10
+        - generic [ref=e1191]: esone.qiu
+        - generic [ref=e1192]: esone.qiu 更新了 96EyVb2nXI8h
+      - generic [ref=e1193]:
+        - generic [ref=e1194]: 10/21 17:10
+        - generic [ref=e1195]: esone.qiu
+        - generic [ref=e1196]: "esone.qiu 给 AIR 2.0: SMS Notification System Tool for Action Skills (Core) 添加了外部依赖 8IbC4VItFXRr"
+      - generic [ref=e1197]:
+        - generic [ref=e1198]: 10/21 17:09
+        - generic [ref=e1199]: esone.qiu
+        - generic [ref=e1200]: esone.qiu 删除了外部依赖 YgdQFMyOraLO
+      - generic [ref=e1201]:
+        - generic [ref=e1202]: 10/21 17:09
+        - generic [ref=e1203]: esone.qiu
+        - generic [ref=e1204]: esone.qiu 更新了 lgCA4TaDuz88
+      - generic [ref=e1205]:
+        - generic [ref=e1206]: 10/21 17:09
+        - generic [ref=e1207]: esone.qiu
+        - generic [ref=e1208]: esone.qiu 删除了外部依赖 71hW-BYaPeE4
+      - generic [ref=e1209]:
+        - generic [ref=e1210]: 10/21 17:09
+        - generic [ref=e1211]: esone.qiu
+        - generic [ref=e1212]: esone.qiu 更新了 lgCA4TaDuz88
+      - generic [ref=e1213]:
+        - generic [ref=e1214]: 10/21 17:09
+        - generic [ref=e1215]: esone.qiu
+        - generic [ref=e1216]: esone.qiu 给 New channel framework - sync up between SCP/SW and AIR 2.0 添加了外部依赖 lgCA4TaDuz88
+      - generic [ref=e1217]:
+        - generic [ref=e1218]: 10/21 17:08
+        - generic [ref=e1219]: esone.qiu
+        - generic [ref=e1220]: esone.qiu 更新了 z2-PCadXbqIZ
+      - generic [ref=e1221]:
+        - generic [ref=e1222]: 10/21 17:08
+        - generic [ref=e1223]: esone.qiu
+        - generic [ref=e1224]: "esone.qiu 给 AIR 2.0: Surface and edit AI Agent Extension on the Channels tab 添加了外部依赖 z2-PCadXbqIZ"
+      - generic [ref=e1225]:
+        - generic [ref=e1226]: 10/21 17:08
+        - generic [ref=e1227]: esone.qiu
+        - generic [ref=e1228]: esone.qiu 删除了节点 g_FvOWKBTKtn
+      - generic [ref=e1229]:
+        - generic [ref=e1230]: 10/21 17:07
+        - generic [ref=e1231]: esone.qiu
+        - generic [ref=e1232]: Jira 刷新 · 经 esone.qiu 的扩展，更新 8 项
+      - generic [ref=e1233]:
+        - generic [ref=e1234]: 10/21 17:07
+        - generic [ref=e1235]: 系统
+        - generic [ref=e1236]: 静默更新了发布时间表标尺
+      - generic [ref=e1237]:
+        - generic [ref=e1238]: 10/21 13:28
+        - generic [ref=e1239]: esone.qiu
+        - generic [ref=e1240]: Jira 刷新 · 经 esone.qiu 的扩展，更新 21 项
+      - generic [ref=e1241]:
+        - generic [ref=e1242]: 10/21 11:42
+        - generic [ref=e1243]: esone.qiu
+        - generic [ref=e1244]: esone.qiu 的排期变更已回写 NOVA-19592 Target 2026-11-16 → 2026-12-21
+      - generic [ref=e1245]:
+        - generic [ref=e1246]: 10/21 11:42
+        - generic [ref=e1247]: esone.qiu
+        - generic [ref=e1248]: esone.qiu 的排期变更已回写 NOVA-19592 Target 2026-11-16 → 2027-01-16
+      - generic [ref=e1249]:
+        - generic [ref=e1250]: 10/21 11:42
+        - generic [ref=e1251]: esone.qiu
+        - generic [ref=e1252]: esone.qiu 调整了 Scheduled ingestion (incremental updates, alerting) 的时长到 36 天
+      - generic [ref=e1253]:
+        - generic [ref=e1254]: 10/21 11:42
+        - generic [ref=e1255]: esone.qiu
+        - generic [ref=e1256]: esone.qiu 的排期变更已回写 NOVA-19600 Target 2026-11-16 → 2026-12-21
+      - generic [ref=e1257]:
+        - generic [ref=e1258]: 10/21 11:42
+        - generic [ref=e1259]: esone.qiu
+        - generic [ref=e1260]: esone.qiu 把 Scheduled ingestion (incremental updates, alerting) 从 2026-12-01 移到 2026-11-16
+      - generic [ref=e1261]:
+        - generic [ref=e1262]: 10/21 11:42
+        - generic [ref=e1263]: esone.qiu
+        - generic [ref=e1264]: esone.qiu 调整了 Remove 5K document cap 的时长到 36 天
+      - generic [ref=e1265]:
+        - generic [ref=e1266]: 10/21 10:24
+        - generic [ref=e1267]: esone.qiu
+        - generic [ref=e1268]: esone.qiu 的排期变更已回写 NOVA-19675 Target 2026-12-01 → 2026-12-31
+      - generic [ref=e1269]:
+        - generic [ref=e1270]: 10/21 10:24
+        - generic [ref=e1271]: esone.qiu
+        - generic [ref=e1272]: "esone.qiu 把 AIR 2.0: One handoff definition per agent, shared by skills 排进了 Gantt"
+      - generic [ref=e1273]:
+        - generic [ref=e1274]: 10/21 10:23
+        - generic [ref=e1275]: esone.qiu
+        - generic [ref=e1276]: esone.qiu 的排期变更已回写 NOVA-19600 Target 2026-12-01 → 2026-12-21
+      - generic [ref=e1277]:
+        - generic [ref=e1278]: 10/21 10:23
+        - generic [ref=e1279]: esone.qiu
+        - generic [ref=e1280]: esone.qiu 把 Remove 5K document cap 排进了 Gantt
+      - generic [ref=e1281]:
+        - generic [ref=e1282]: 10/21 10:23
+        - generic [ref=e1283]: esone.qiu
+        - generic [ref=e1284]: esone.qiu 的排期变更已回写 NOVA-19722 Target 2026-11-18 → 2026-12-21
+      - generic [ref=e1285]:
+        - generic [ref=e1286]: 10/21 10:23
+        - generic [ref=e1287]: esone.qiu
+        - generic [ref=e1288]: esone.qiu 的排期变更已回写 NOVA-19722 Target 2026-11-18 → 2026-12-08
+      - generic [ref=e1289]:
+        - generic [ref=e1290]: 10/21 10:23
+        - generic [ref=e1291]: esone.qiu
+        - generic [ref=e1292]: esone.qiu 调整了 Shared SMS Inbox - Threads API Channel Foundation 的时长到 34 天
+      - generic [ref=e1293]:
+        - generic [ref=e1294]: 10/21 10:23
+        - generic [ref=e1295]: esone.qiu
+        - generic [ref=e1296]: esone.qiu 把 Shared SMS Inbox - Threads API Channel Foundation 排进了 Gantt
+      - generic [ref=e1297]:
+        - generic [ref=e1298]: 10/21 09:53
+        - generic [ref=e1299]: esone.qiu
+        - generic [ref=e1300]: esone.qiu 的排期变更已回写 NOVA-20611 Target 2026-10-26 → 2026-11-13
+      - generic [ref=e1301]:
+        - generic [ref=e1302]: 10/21 09:53
+        - generic [ref=e1303]: esone.qiu
+        - generic [ref=e1304]: esone.qiu 的排期变更已回写 NOVA-20610 Target 2026-10-26 → 2026-11-13
+      - generic [ref=e1305]:
+        - generic [ref=e1306]: 10/21 09:53
+        - generic [ref=e1307]: esone.qiu
+        - generic [ref=e1308]: esone.qiu 的排期变更已回写 NOVA-20612 Target 2026-10-26 → 2026-11-13
+      - generic [ref=e1309]:
+        - generic [ref=e1310]: 10/21 09:53
+        - generic [ref=e1311]: esone.qiu
+        - generic [ref=e1312]: esone.qiu 执行了 defer_subs · ylSfN2-s3YUX
+      - generic [ref=e1313]:
+        - generic [ref=e1314]: 10/21 09:41
+        - generic [ref=e1315]: esone.qiu
+        - generic [ref=e1316]: esone.qiu 更新了 g_FvOWKBTKtn
+      - generic [ref=e1317]:
+        - generic [ref=e1318]: 10/21 09:41
+        - generic [ref=e1319]: esone.qiu
+        - generic [ref=e1320]: "esone.qiu 给 AIR 2.0: Surface and edit AI Agent Extension on the Channels tab 添加了节点 g_FvOWKBTKtn"
+      - generic [ref=e1321]:
+        - generic [ref=e1322]: 10/21 09:31
+        - generic [ref=e1323]: esone.qiu
+        - generic [ref=e1324]: Jira 刷新 · 经 esone.qiu 的扩展，更新 16 项
+      - generic [ref=e1325]:
+        - generic [ref=e1326]: 10/21 09:31
+        - generic [ref=e1327]: 系统
+        - generic [ref=e1328]: 静默更新了发布时间表标尺
+      - generic [ref=e1329]:
+        - generic [ref=e1330]: 10/21 09:31
+        - generic [ref=e1331]: esone.qiu
+        - generic [ref=e1332]: esone.qiu 导入了 0 个 Task（跳过 68 个已存在）
+      - generic [ref=e1333]:
+        - generic [ref=e1334]: 10/20 10:24
+        - generic [ref=e1335]: esone.qiu
+        - generic [ref=e1336]: esone.qiu 导入了 6 个 Task（跳过 62 个已存在）
+      - generic [ref=e1337]:
+        - generic [ref=e1338]: 10/20 09:53
+        - generic [ref=e1339]: esone.qiu
+        - generic [ref=e1340]: esone.qiu 的排期变更已回写 NOVA-20607 Target 2026-11-02 → 2026-11-20
+      - generic [ref=e1341]:
+        - generic [ref=e1342]: 10/20 09:52
+        - generic [ref=e1343]: esone.qiu
+        - generic [ref=e1344]: "esone.qiu 更新了任务 [AIR 2.0] Knowledge tab: align with final UI design"
+      - generic [ref=e1345]:
+        - generic [ref=e1346]: 10/20 09:52
+        - generic [ref=e1347]: esone.qiu
+        - generic [ref=e1348]: esone.qiu 的排期变更已回写 NOVA-20606 Target 2026-10-20 → 2026-11-14
+      - generic [ref=e1349]:
+        - generic [ref=e1350]: 10/20 09:52
+        - generic [ref=e1351]: esone.qiu
+        - generic [ref=e1352]: "esone.qiu 更新了任务 [AIR 2.0] Knowledge tab: build per mockup"
+      - generic [ref=e1353]:
+        - generic [ref=e1354]: 10/20 09:52
+        - generic [ref=e1355]: esone.qiu
+        - generic [ref=e1356]: esone.qiu 的排期变更已回写 NOVA-19599 Target 2026-10-19 → 2026-11-13
+      - generic [ref=e1357]:
+        - generic [ref=e1358]: 10/20 09:52
+        - generic [ref=e1359]: esone.qiu
+        - generic [ref=e1360]: esone.qiu 的排期变更已回写 NOVA-19599 Target 2026-10-19 → 2026-11-13
+      - generic [ref=e1361]:
+        - generic [ref=e1362]: 10/20 09:52
+        - generic [ref=e1363]: esone.qiu
+        - generic [ref=e1364]: "esone.qiu 把 [AIR 2.0] Agent Knowledge tab: move Location & Business Hours / FAQ / Knowledge Base with separate toggles and split FAQ & Knowledge config 从 2026-10-19 移到 2026-10-19"
+      - generic [ref=e1365]:
+        - generic [ref=e1366]: 10/20 09:51
+        - generic [ref=e1367]: esone.qiu
+        - generic [ref=e1368]: "esone.qiu 调整了 [AIR 2.0] Agent Knowledge tab: move Location & Business Hours / FAQ / Knowledge Base with separate toggles and split FAQ & Knowledge config 的时长到 26 天"
+      - generic [ref=e1369]:
+        - generic [ref=e1370]: 10/20 09:51
+        - generic [ref=e1371]: esone.qiu
+        - generic [ref=e1372]: esone.qiu 的排期变更已回写 NOVA-19599 Target 2026-10-26 → 2026-11-13
+      - generic [ref=e1373]:
+        - generic [ref=e1374]: 10/20 09:51
+        - generic [ref=e1375]: esone.qiu
+        - generic [ref=e1376]: "esone.qiu 调整了 [AIR 2.0] Agent Knowledge tab: move Location & Business Hours / FAQ / Knowledge Base with separate toggles and split FAQ & Knowledge config 的时长到 19 天"
+      - generic [ref=e1377]:
+        - generic [ref=e1378]: 10/20 09:44
+        - generic [ref=e1379]: esone.qiu
+        - generic [ref=e1380]: esone.qiu 的排期变更已回写 NOVA-20708 Target 2026-10-26 → 2026-11-06
+      - generic [ref=e1381]:
+        - generic [ref=e1382]: 10/20 09:44
+        - generic [ref=e1383]: esone.qiu
+        - generic [ref=e1384]: esone.qiu 的排期变更已回写 NOVA-20707 Target 2026-10-26 → 2026-11-06
+      - generic [ref=e1385]:
+        - generic [ref=e1386]: 10/20 09:44
+        - generic [ref=e1387]: esone.qiu
+        - generic [ref=e1388]: esone.qiu 的排期变更已回写 NOVA-20706 Target 2026-10-26 → 2026-11-06
+      - generic [ref=e1389]:
+        - generic [ref=e1390]: 10/20 09:44
+        - generic [ref=e1391]: esone.qiu
+        - generic [ref=e1392]: esone.qiu 执行了 defer_subs · Ia8cTtZoi6B0
+      - generic [ref=e1393]:
+        - generic [ref=e1394]: 10/20 09:37
+        - generic [ref=e1395]: esone.qiu
+        - generic [ref=e1396]: esone.qiu 的排期变更已回写 NOVA-20716 Target 2026-10-26 → 2026-11-06
+      - generic [ref=e1397]:
+        - generic [ref=e1398]: 10/20 09:37
+        - generic [ref=e1399]: esone.qiu
+        - generic [ref=e1400]: esone.qiu 的排期变更已回写 NOVA-20717 Target 2026-10-26 → 2026-11-06
+      - generic [ref=e1401]:
+        - generic [ref=e1402]: 10/20 09:37
+        - generic [ref=e1403]: esone.qiu
+        - generic [ref=e1404]: esone.qiu 的排期变更已回写 NOVA-20718 Target 2026-10-26 → 2026-11-06
+      - generic [ref=e1405]:
+        - generic [ref=e1406]: 10/20 09:37
+        - generic [ref=e1407]: esone.qiu
+        - generic [ref=e1408]: esone.qiu 执行了 defer_subs · CAHsaplpkFFq
+      - generic [ref=e1409]:
+        - generic [ref=e1410]: 10/19 17:39
+        - generic [ref=e1411]: esone.qiu
+        - generic [ref=e1412]: Jira 刷新 · 经 esone.qiu 的扩展，更新 1 项
+      - generic [ref=e1413]:
+        - generic [ref=e1414]: 10/19 17:39
+        - generic [ref=e1415]: esone.qiu
+        - generic [ref=e1416]: Jira 刷新 · 经 esone.qiu 的扩展，更新 1 项
+      - generic [ref=e1417]:
+        - generic [ref=e1418]: 10/19 17:32
+        - generic [ref=e1419]: esone.qiu
+        - generic [ref=e1420]: Jira 刷新 · 经 esone.qiu 的扩展，更新 1 项
+      - generic [ref=e1421]:
+        - generic [ref=e1422]: 10/19 17:32
+        - generic [ref=e1423]: esone.qiu
+        - generic [ref=e1424]: Jira 刷新 · 经 esone.qiu 的扩展，更新 1 项
+      - generic [ref=e1425]:
+        - generic [ref=e1426]: 10/19 17:32
+        - generic [ref=e1427]: esone.qiu
+        - generic [ref=e1428]: Jira 刷新 · 经 esone.qiu 的扩展，更新 1 项
+      - generic [ref=e1429]:
+        - generic [ref=e1430]: 10/19 17:26
+        - generic [ref=e1431]: esone.qiu
+        - generic [ref=e1432]: esone.qiu 导入了 0 个 Task（跳过 62 个已存在）
+      - generic [ref=e1433]:
+        - generic [ref=e1434]: 10/19 17:11
+        - generic [ref=e1435]: esone.qiu
+        - generic [ref=e1436]: Jira 刷新 · 经 esone.qiu 的扩展，更新 1 项
+      - generic [ref=e1437]:
+        - generic [ref=e1438]: 10/19 17:11
+        - generic [ref=e1439]: esone.qiu
+        - generic [ref=e1440]: Jira 刷新 · 经 esone.qiu 的扩展，更新 1 项
+      - generic [ref=e1441]:
+        - generic [ref=e1442]: 10/19 17:11
+        - generic [ref=e1443]: esone.qiu
+        - generic [ref=e1444]: Jira 刷新 · 经 esone.qiu 的扩展，更新 1 项
+      - generic [ref=e1445]:
+        - generic [ref=e1446]: 10/19 17:08
+        - generic [ref=e1447]: esone.qiu
+        - generic [ref=e1448]: Jira 刷新 · 经 esone.qiu 的扩展，更新 3 项
+      - generic [ref=e1449]:
+        - generic [ref=e1450]: 10/19 17:08
+        - generic [ref=e1451]: esone.qiu
+        - generic [ref=e1452]: esone.qiu 导入了 15 个 Task（跳过 47 个已存在）
+      - generic [ref=e1453]:
+        - generic [ref=e1454]: 10/19 17:07
+        - generic [ref=e1455]: esone.qiu
+        - generic [ref=e1456]: esone.qiu 的排期变更已回写 NOVA-20896 Target 2026-10-20 → 2026-11-09
+  - button "?" [ref=e1457] [cursor=pointer]
+  - generic:
+    - heading "使用说明" [level=4]
+    - list:
+      - listitem: 使用 AI 批量创建：新建条目弹窗可粘贴需求，由 Roadmap 服务端生成 Draft 主任务/子任务并初排甘特；不创建 Jira。默认只预览，勾选「直接创建 Draft」才一次写入。无扩展也能用。创建 Jira 仍走原弹窗，且需要扩展。
+      - listitem:
+        - text: 用自己的 Agent 生成 Draft有两条路（都不会创建 Jira）：① Codex Plugin 导入 marketplace，仓库
+        - link "https://github.com/ee01/personal-roadmap":
+          - /url: https://github.com/ee01/personal-roadmap
+        - text: ，Path
+        - code: .
+        - text: ，Branch
+        - code: main
+        - text: ，安装显示名为
+        - code: Personal Roadmap
+        - text: 的插件。装好后新开对话：还没绑定团队时先选
+        - code: Roadmap Setup
+        - text: 填入团队 id 和可编辑 token，之后输入
+        - code: "@"
+        - text: 选择
+        - code: Personal Roadmap
+        - text: 再粘贴需求。未 Setup 时规划或改条目都会先引导去 Setup（详情里有示例提示；旧名 Roadmap Planning 需更新或重装）；② 把
+        - link "GitHub Skill":
+          - /url: https://github.com/ee01/personal-roadmap/blob/main/plugin/skills/roadmap-planning/SKILL.md
+        - text: 或
+        - link "线上 Skill":
+          - /url: http://roadmap.xmnup.com/skills/roadmap-planning/SKILL.md
+        - text: 交给 Agent，远程 MCP 默认
+        - link "http://roadmap.xmnup.com/mcp":
+          - /url: http://roadmap.xmnup.com/mcp
+        - text: ，不必下载源码。第一次使用时 Agent 会请你粘贴顶栏「分享可编辑链接」，并写入该工具的 MCP 配置；只装 Skill 时没有 Roadmap Setup。
+      - listitem:
+        - text: 导入 / 创建 Jira / 读取 ETA / 回写 Jira 需要 Personal AI 扩展：未安装时锁定按钮点击可查看安装指引；拖动排期或改 Owner 会先保存在 Roadmap，并出现一行「没有同步到 Jira」提示
+        - link "前往安装 ↗":
+          - /url: https://chromewebstore.google.com/detail/personal-ai/kefnadjndpllbibeklhajjddgmlbafel
+      - listitem: Bar 可拖动 / 左右把手伸缩 / 上下换行，按天吸附
+      - listitem: 单击 bar 展开/收起；草稿双击改任务名（可折叠填描述，Shift+Enter 展开；创建 Jira 用），已创建的双击改备注名。主任务（不论是否 Draft）和子任务都可以在这里改 Assignee / Owner
+      - listitem: 已导入 / 草稿子任务均可 × 从 Roadmap 移除（可再导入）
+      - listitem: 有 Jira key 时：hover 左上 ↗ 或 ⌘/Ctrl+单击 打开 Jira
+      - listitem: 添加任务：左侧头像点选，或标题里输入 @ 指定 Owner（可选）；默认从今天起两周；描述可选，不挡 Enter 秒建
+      - listitem: 创建 Jira 可配置 Assignee 映射（系统名 → Firstname Lastname）
+      - listitem: 悬浮：bar 左侧 ＋ 添加任务，右侧 ◆＋ 阶段节点/外部依赖，右上角 × 退回 Backlog
+      - listitem: 外部依赖：实心点是对方 ETA，虚线环是我们期望；拖动只改期望，单击填写或刷新 ETA，方向键也可改期望（Shift 一次 7 天）。期望早于 ETA 时标红；拖回 ETA ±1 天会合并。
+      - listitem: 依赖视图：只显示带依赖的任务，按风险分组排序，可筛选晚于期望 / 缺 ETA / Jira 有变更；展示 ticket 的 Target Start → End。右上角复制跟随当前视图与筛选，在依赖页专门复制依赖内容、期望、ETA、风险和 ticket 排期。
+      - listitem: 装了扩展时，打开 Roadmap 会静默刷新甘特上非草稿票的 summary / description / Target / assignee，以及依赖 ticket 的 status / Target End（10 分钟内不重复；依赖 ETA 不会被自动改写）
+      - listitem: 装了扩展时，非草稿主/子任务拖动会回写 Jira Target，主任务改 Assignee、子任务改 Owner 都会回写 assignee（需映射；清空会确认）。未装扩展时这两类改动只留在 Roadmap
+      - listitem: 人员视图：按人查看任务（近 2 周 / 全部）；双击改名、添加/移除空闲成员。任务条左侧色条 + 前缀 chip标识所属主任务（条太窄只留色条）
+      - listitem: 时间轴缩放：触控板双指捏合或 ⌘+滚轮在甘特任意位置缩放，光标下的日期钉住；顶部时间标尺上双指上下滑动同样缩放；双击标尺复位 100%，再双击 = 整条时间轴收进视口
+      - listitem: 聚焦当前任务（人员视图）：单击任务条标记「正在做」（可多选）；点另一人则换人重选。「其余延至下周 →」把其余未完成、下周前开始的任务滑到下周一开始（长度不变，受 Epic 结束日钳制；hover 预览落点）。Esc / 点空白退出
+      - listitem: 人员视图时间窗平移：近 2 周模式下双指左右滑动整窗平移，或点两端「更早 / 更晚」；平移后可回到今天
+      - listitem: 创建 Jira 后草稿名保留为备注名：回传 key 时把原草稿标题存为备注名。编辑备注名时清空后回车 = 恢复原 ticket 名
+      - listitem: 清理过期：过期 Epic 回退 Backlog；过期子任务标记清理（可再拖回还原）
+      - listitem: 发布时间表标尺：✎ 弹窗可配置 Google Sheet（Release / Phase / Date）；可用 Release 过滤去掉小版本；保存后主标尺换成发布 Sprint，工具栏可临时切回月份
+      - listitem: 顶栏只列出本机已知团队（创建 / 分享链接 / 地址栏打开过的）；只读团队带眼睛图标。可分享可编辑链接或只读链接（无 token）
+      - listitem: 颜色按「当前月」区分过去 / 当前 / 未来
+  - generic:
+    - generic:
+      - generic:
+        - generic: 新建团队
+        - generic: 输入团队名称和数据源 JQL。JQL 中的 "Target Delivery Quarter" in (...) 子句会在导入时被替换为你勾选的 quarters。
+      - generic:
+        - generic: 团队名称
+        - textbox "例如：Nova Brandy"
+        - generic: 数据源 JQL
+        - textbox
+        - generic: 创建后可勾选 Quarter 并导入数据到 Backlog。
+      - generic:
+        - button "取消"
+        - button "创建"
+  - generic:
+    - generic:
+      - generic:
+        - generic: 编辑团队 JQL
+        - generic: 修改仅影响之后的导入；已导入数据与排期不受影响。若 JQL 含 "Target Delivery Quarter" in (...)，导入时会用勾选的 quarters 替换该子句；不含该字段时不显示 quarters 勾选，直接按原 JQL 导入。
+      - generic:
+        - generic: 数据源 JQL
+        - textbox
+        - generic:
+          - generic:
+            - generic: 发布时间表标尺NEW
+            - generic: 悬停查看示例表格
+          - generic: 团队若维护了发布时间表（Google Sheet 二维表，三列 Release / Phase / Date，第一行为表头），填入表格地址后， 甘特图时间标尺将按发布 Sprint展示；留空则使用默认月份标尺。
+          - generic: Google Sheet 地址（或 spreadsheetId）
+          - textbox "https://docs.google.com/spreadsheets/d/1sWRtByTquVLKeyv…/edit"
+          - generic:
+            - generic:
+              - generic: Sheet 名称
+              - textbox "2026 phases": Sheet1
+            - generic:
+              - generic: 数据范围
+              - textbox "A1:C500"
+          - generic: 标尺阶段勾选 = 在标尺上展示 · 🏁 = 作为 release 结束分割节点
+          - generic: 填入表格地址后自动读取，这里会列出表中出现的阶段供勾选。 未加载就直接保存也可以：保存时会自动读取，并按默认 —— FF 作结束分界（无 FF 则取周期内最早的阶段）、 全部阶段都展示。
+          - generic: Release 过滤小版本多时只保留关键 release，标尺更干净
+          - generic: 读取数据后可配置：例如只保留 26.3.320 这类尾号 0 的大版本， 过滤 26.3.325 这类小版本。
+          - generic:
+            - button "重新读取" [disabled]
+            - button "清除配置，恢复月份标尺"
+      - generic:
+        - button "取消"
+        - button "保存"
+  - generic:
+    - table:
+      - rowgroup:
+        - row "A B C":
+          - columnheader
+          - columnheader "A"
+          - columnheader "B"
+          - columnheader "C"
+        - row "1 Release Phase Date":
+          - cell "1"
+          - cell "Release"
+          - cell "Phase"
+          - cell "Date"
+        - row "2 26.3.130 FF 2026-07-27":
+          - cell "2"
+          - cell "26.3.130"
+          - cell "FF"
+          - cell "2026-07-27"
+        - row "3 26.3.130 Re 2026-07-30":
+          - cell "3"
+          - cell "26.3.130"
+          - cell "Re"
+          - cell "2026-07-30"
+        - row "4 26.3.130 Stage 2026-07-31":
+          - cell "4"
+          - cell "26.3.130"
+          - cell "Stage"
+          - cell "2026-07-31"
+        - row "5 26.3.130 Pro 2026-08-05":
+          - cell "5"
+          - cell "26.3.130"
+          - cell "Pro"
+          - cell "2026-08-05"
+        - row "6 26.3.130 Multi-region 2026-08-07":
+          - cell "6"
+          - cell "26.3.130"
+          - cell "Multi-region"
+          - cell "2026-08-07"
+    - generic: 三列固定表头 Release / Phase / Date，同一 release 每个阶段一行。Date 为日期（UTC ISO 亦可）。RIO 热修可只有 Pro。
+  - generic:
+    - generic:
+      - generic:
+        - generic: 清理过期任务
+        - generic: 过期 = 结束日期早于今天。Epic 回退 Backlog 并保留子任务记录。
+      - generic:
+        - generic: 将要执行
+        - generic:
+          - generic:
+            - generic: LOCAL-Htcx3GD4
+            - generic: RingCX Inbound
+            - generic: 回退 Backlog · 保留 3 条子任务记录
+          - generic:
+            - generic: 子任务
+            - generic: 1 个过期子任务将从任务视图清理
+            - generic: 可还原
+      - generic:
+        - button "取消"
+        - button "确认清理"
+  - generic:
+    - generic:
+      - generic:
+        - generic: 创建 Jira 直连 API
+        - generic: Prompt 留空：按下方字段直连 Jira API 创建。填写 Prompt：交给 Agent 执行器创建（可用技能、自动填当前 Sprint 等动态字段）——已填字段作为约束带给 Agent，未填字段由 Agent 决定。Jira 里还没有对应 fixVersion 时会留空该字段继续创建，不会因此整行拒绝。失败行可改字段后按 Epic 重试，已成功的 ticket 不会再创建。Prompt 草稿保存在本机，执行时同步为团队配置；Project / 任务类型 / Parent Link / Team 这些已填字段也会保存为团队配置，换设备打开同一 Team 自动带出。
+      - generic:
+        - generic: 创建 Prompt（可选）
+        - textbox "例：创建 Task 类型 ticket，Sprint 填当前 sprint，fixVersion 按发布时间表，Team 与父 Epic 保持一致"
+        - generic:
+          - generic:
+            - generic: Project Key
+            - textbox "如 NOVA"
+          - generic:
+            - generic: 主任务类型
+            - textbox "如 Epic"
+          - generic:
+            - generic: 子任务类型
+            - textbox "如 Task"
+        - generic:
+          - generic:
+            - generic: Parent Link（可选）
+            - textbox "如 INIT-42，或 /browse/ 链接"
+            - generic: 写入每个待创建主任务的 Jira Parent Link；留空则不写入
+          - generic:
+            - generic: Team（可选，可多个）
+            - combobox "如 Nova CA - Brandy"
+            - generic: 已按团队 JQL 预填；多个用逗号分隔，可修改
+        - generic:
+          - generic:
+            - generic: fixVersion
+            - textbox "留空 · Agent 按各任务落点判断"
+            - generic: 所有任务的 Target End 没有落在任何 release 列
+          - generic:
+            - generic: Sprint
+            - textbox "直连 v1 不支持，留空跳过"
+            - generic: 直连 API 需要 Sprint ID，v1 不填此字段；要自动填当前 Sprint 请改用 Prompt
+        - generic: Assignee
+        - generic:
+          - button "配置映射…"
+        - generic: Owner 按映射转成 firstname.lastname 填入 assignee；未映射的任务将留空 assignee
+        - generic: 待创建任务 （0）
+        - generic: 没有待创建的草稿
+      - generic:
+        - button "需要 Personal AI 扩展 · 查看安装指引"
+        - button "取消"
+        - button "开始创建"
+  - generic:
+    - generic:
+      - generic:
+        - generic: Assignee 映射
+        - generic:
+          - text: 系统名（成员名 / 创建者用户名）→ Jira 实名 Firstname Lastname。输入时可从已有实名人员中选择并
+          - strong: 合并为同一人
+          - text: ；保存后全团队共享；直连 API 会转成
+          - code: firstname.lastname
+          - text: 填 assignee。
+      - generic:
+        - generic:
+          - button "✦ 自动填充空缺"
+          - generic: 两个词以上的系统名会自动推断；选建议项会合并人员
+        - generic:
+          - generic:
+            - generic: BY
+            - generic:
+              - generic: Bernard Ye
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: bernard.ye
+          - generic:
+            - generic: DL
+            - generic:
+              - generic: Dimago Luo
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: dimago.luo
+          - generic:
+            - generic: DH
+            - generic:
+              - generic: Dylan Hu
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: dylan.hu
+          - generic:
+            - generic: FZ
+            - generic:
+              - generic: Fairy Zeng
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: fairy.zeng
+          - generic:
+            - generic: FZ
+            - generic:
+              - generic: Felix Zheng
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: felix.zheng
+          - generic:
+            - generic: JO
+            - generic:
+              - generic: Jackie Ou
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: jackie.ou
+          - generic:
+            - generic: JY
+            - generic:
+              - generic: Jimmie Yang
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: jimmie.yang
+          - generic:
+            - generic: JC
+            - generic:
+              - generic: Joker Chen
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: joker.chen
+          - generic:
+            - generic: KD
+            - generic:
+              - generic: Kayla Dai
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: kayla.dai
+          - generic:
+            - generic: KL
+            - generic:
+              - generic: Kervin Lin
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: kervin.lin
+          - generic:
+            - generic: RC
+            - generic:
+              - generic: Rebecca Cao
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: rebecca.cao
+          - generic:
+            - generic: RY
+            - generic:
+              - generic: Rondo Yang
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: rondo.yang
+          - generic:
+            - generic: ZL
+            - generic:
+              - generic: Zack Li
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: zack.li
+          - generic:
+            - generic: ZZ
+            - generic:
+              - generic: Zora Zheng
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: zora.zheng
+          - generic:
+            - generic: S
+            - generic:
+              - generic: secp_solution_not_available
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: 未映射
+          - generic:
+            - generic: EQ
+            - generic:
+              - generic: Esone Qiu
+              - generic: 创建过任务 · 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: esone.qiu
+          - generic:
+            - generic: ML
+            - generic:
+              - generic: Mario Lin
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: mario.lin
+          - generic:
+            - generic: BL
+            - generic:
+              - generic: Barry Li
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: barry.li
+          - generic:
+            - generic: R
+            - generic:
+              - generic: roadmap-mcp
+              - generic: 创建过任务
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: 未映射
+          - generic:
+            - generic: E
+            - generic:
+              - generic: esone.qiu
+              - generic: 创建过任务
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: 未映射
+          - generic:
+            - generic: MS
+            - generic:
+              - generic: Memory Service Engineer
+              - generic: 创建过任务
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: memory.service.engineer
+          - generic:
+            - generic: B
+            - generic:
+              - generic: Barry
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: 未映射
+          - generic:
+            - generic: JG
+            - generic:
+              - generic: Jason Gao
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: jason.gao
+          - generic:
+            - generic: CL
+            - generic:
+              - generic: Chris Li
+              - generic: 成员
+            - generic:
+              - textbox "Firstname Lastname"
+            - generic: chris.li
+      - generic:
+        - button "取消"
+        - button "保存映射"
+  - generic:
+    - generic:
+      - generic:
+        - generic: 请输入你的名字
+        - generic: 未检测到 Personal AI 扩展时需要手动填写；已安装扩展会自动读取 Glip 身份。名称会保存在本浏览器中。
+      - generic:
+        - generic: 显示名称
+        - textbox "例如：Esone Qiu"
+      - generic:
+        - button "继续"
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic: 「创建 Jira」需要 Personal AI 扩展
+          - generic: 把草稿任务写回 Jira，需要扩展用你自己的 Jira 账号创建 issue，这样 reporter 才是你本人。
+      - generic:
+        - generic: 安装后解锁
+        - generic:
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 导入 Backlog
+              - generic: 按 JQL + Quarter 把 Jira issue 拉进 Backlog
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 导入 Task
+              - generic: 拉取主任务名下的 Task，按 Jira Key 去重落位
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 创建 Jira
+              - generic: 草稿任务一键写回 Jira（直连 API 或 Agent 执行器）
+            - generic: 当前操作
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 读取 ETA
+              - generic: 外部依赖自动读取 Target End，缺 ETA 的红色提醒随之消失
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 回写 Jira
+              - generic: 拖动排期写回 Target Start/End，改 Owner 写回 assignee
+          - generic:
+            - generic: ✓
+            - generic:
+              - text: 自动识别身份
+              - generic: 免去手动填名字，协作日志直接署你的实名
+        - generic: 三步搞定
+        - list:
+          - listitem:
+            - generic: "1"
+            - generic:
+              - text: 打开 Chrome 应用商店安装 Personal AI
+              - generic: 点「添加至 Chrome」，约 10 秒
+          - listitem:
+            - generic: "2"
+            - generic:
+              - text: 把扩展固定到工具栏，登录一次
+              - generic: 扩展用你当前浏览器的 Jira 登录态发请求，账号密码不会离开本机
+          - listitem:
+            - generic: "3"
+            - generic:
+              - text: 回到本页刷新
+              - generic: 检测到扩展后，锁定的按钮会自动解锁
+        - generic: 没有扩展也能用：拖拽排期、草稿任务、人员视图、阶段节点 / 外部依赖、分享只读或可编辑链接都不受影响。
+      - generic:
+        - button "稍后再说"
+        - button "已安装好了 · 刷新页面"
+        - button "前往 Chrome 应用商店"

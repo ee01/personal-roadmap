@@ -1,0 +1,8 @@
+[    3384ms] [LOG] %cWelcome to GitLab!%c
+
+Does this page need fixes or improvements? Open an issue or contribute a merge request to help make GitLab more lovable. At GitLab, everyone can contribute!
+
+🤝 Contribute to GitLab: https://about.gitlab.com/community/contribute/
+🔎 Create a new GitLab issue: https://gitlab.com/gitlab-org/gitlab/-/issues/new
+ padding-top: 0.5em; font-size: 2em; padding-bottom: 0.5em; @ https://git.ringcentral.com/assets/webpack/hello.f4e8ba48.chunk.js:0
+[    3432ms] [WARNING] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently @ https://git.ringcentral.com/assets/webpack/main.eac86cb9.chunk.js:24

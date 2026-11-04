@@ -1,0 +1,165 @@
+apiVersion: v1
+data:
+  DATA_DIR: /workspace/data
+  HOST: 0.0.0.0
+  PORT: "3220"
+  ROADMAP_AI_ENABLED: "false"
+  ROADMAP_PUBLIC_BASE_URL: https://personal-roadmap.int.rclabenv.com
+  ROADMAP_SOURCE_GIT_REF: main
+  ROADMAP_SOURCE_GIT_URL: https://git.ringcentral.com/esone.qiu/personal-roadmap.git
+kind: ConfigMap
+metadata:
+  name: personal-roadmap-config
+  namespace: app-tools
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: personal-roadmap
+  namespace: app-tools
+spec:
+  ports:
+  - name: http
+    port: 3220
+    targetPort: http
+  selector:
+    app: personal-roadmap
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  name: personal-roadmap-data
+  namespace: app-tools
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: personal-roadmap
+    rc.component: personal-roadmap
+  name: personal-roadmap
+  namespace: app-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: personal-roadmap
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: personal-roadmap
+        rc.component: personal-roadmap
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: personal-roadmap-config
+        - secretRef:
+            name: personal-roadmap-env
+            optional: true
+        image: docker-registry.int.rclabenv.com:443/qa/personal-roadmap-runtime:node22-v1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 30
+          timeoutSeconds: 3
+        name: roadmap
+        ports:
+        - containerPort: 3220
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 10
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: "2"
+            ephemeral-storage: 1Gi
+            memory: 3Gi
+          requests:
+            cpu: 500m
+            ephemeral-storage: 256Mi
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          failureThreshold: 90
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 10
+          timeoutSeconds: 3
+        volumeMounts:
+        - mountPath: /workspace
+          name: workspace
+        - mountPath: /run/secrets/roadmap-git
+          name: git-token
+          readOnly: true
+        - mountPath: /tmp
+          name: temp
+      imagePullSecrets:
+      - name: docker-registry
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      terminationGracePeriodSeconds: 120
+      volumes:
+      - name: workspace
+        persistentVolumeClaim:
+          claimName: personal-roadmap-data
+      - name: git-token
+        secret:
+          defaultMode: 288
+          secretName: personal-roadmap-git
+      - emptyDir:
+          sizeLimit: 512Mi
+        name: temp
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: app-tools-ingress
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  name: personal-roadmap
+  namespace: app-tools
+spec:
+  rules:
+  - host: personal-roadmap.int.rclabenv.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: personal-roadmap
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - personal-roadmap.int.rclabenv.com
+    secretName: secret-int-rclabenv-wildcard

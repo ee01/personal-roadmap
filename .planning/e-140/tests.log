@@ -1,0 +1,91 @@
+
+> personal-ai-roadmap-service@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/Esone/git/personal-roadmap
+
+Switched to a new branch 'main'
+ ✓ web/src/__tests__/runWithConcurrency.test.ts (3 tests) 51ms
+ ✓ src/__tests__/TeamService.importOverwrite.test.ts (5 tests) 55ms
+ ✓ src/__tests__/TeamService.markers.test.ts (11 tests) 55ms
+ ✓ src/__tests__/TeamService.refreshFromJira.test.ts (15 tests) 79ms
+ ✓ src/__tests__/TeamService.items.test.ts (27 tests) 106ms
+ ✓ src/__tests__/roadmapSetup.test.ts (8 tests) 209ms
+ ✓ src/__tests__/TeamService.deferSubs.test.ts (6 tests) 52ms
+ ✓ src/__tests__/mcpHttp.test.ts (6 tests) 66ms
+ ✓ src/__tests__/draftPlanning.test.ts (15 tests) 203ms
+ ✓ src/__tests__/TeamService.assigneeMap.test.ts (2 tests) 23ms
+ ✓ src/__tests__/customLabels.test.ts (11 tests) 25ms
+ ✓ src/__tests__/TeamService.jiraSync.test.ts (4 tests) 26ms
+ ✓ src/__tests__/TeamService.importTasks.test.ts (6 tests) 26ms
+ ✓ web/src/__tests__/optimisticRemoval.test.ts (5 tests) 12ms
+ ✓ src/__tests__/TeamService.releaseSheet.test.ts (5 tests) 22ms
+ ✓ src/__tests__/TeamService.createJiraFields.test.ts (5 tests) 22ms
+ ✓ src/__tests__/TeamService.createJiraPrompt.test.ts (3 tests) 28ms
+ ✓ src/__tests__/Database.freshSchema.test.ts (1 test) 15ms
+ ✓ src/__tests__/codexPluginManifest.test.ts (4 tests) 6ms
+ ✓ src/__tests__/Database.migrations.test.ts (3 tests) 20ms
+ ✓ web/src/__tests__/roadmapContract.test.ts (52 tests) 25ms
+ ✓ web/src/__tests__/copyExport.test.ts (17 tests) 11ms
+ ✓ web/src/__tests__/ganttLocate.test.ts (3 tests) 5ms
+Switched to a new branch 'main'
+ ✓ src/__tests__/TeamService.listTeams.test.ts (2 tests) 20ms
+stderr | web/src/__tests__/useMilestoneFilter.test.ts > milestone filter state > msMatch is a no-op until milestones are selected, then ORs across values
+[Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+stderr | web/src/__tests__/useMilestoneFilter.test.ts > milestone filter state > msLateOf returns the worst overdue selected milestone for scheduled bars
+[Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+stderr | web/src/__tests__/useMilestoneFilter.test.ts > milestone filter state > msStats counts hits, scheduled hits, and overdue items
+[Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+stderr | web/src/__tests__/useMilestoneFilter.test.ts > milestone filter state > global text filter matches items and subtasks, ANDed with milestones
+[Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+stderr | web/src/__tests__/useMilestoneFilter.test.ts > milestone filter state > hasMsData hides the filter row until labels or mirrored items exist
+[Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+stderr | web/src/__tests__/useMilestoneFilter.test.ts > milestone filter state > ends focus on explicit search/selection/display-mode changes, without changing filters on initial locate
+[Vue warn]: onMounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onUnmounted is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+ ✓ web/src/__tests__/useMilestoneFilter.test.ts (6 tests) 25ms
+ ✓ src/__tests__/JqlIntrospect.test.ts (18 tests) 12ms
+ ✓ web/src/__tests__/targetWindow.test.ts (11 tests) 5ms
+ ✓ web/src/__tests__/dependency.test.ts (3 tests) 3ms
+ ✓ mcp/src/http.test.ts (3 tests) 4ms
+ ✓ src/__tests__/originalEstimate.test.ts (4 tests) 2ms
+ ✓ web/src/__tests__/useReleaseRuler.test.ts (10 tests) 37ms
+ ✓ src/__tests__/deferPlan.test.ts (4 tests) 3ms
+ ✓ src/__tests__/JiraClient.test.ts (5 tests) 6ms
+ ✓ src/__tests__/assigneeMap.test.ts (8 tests) 2ms
+ ✓ web/src/__tests__/useExtensionGate.test.ts (3 tests) 1ms
+ ✓ src/__tests__/shareClipboardFallback.test.ts (2 tests) 5ms
+ ✓ src/__tests__/targetSchedule.test.ts (3 tests) 1ms
+ ✓ web/src/__tests__/knownTeams.test.ts (2 tests) 4ms
+ ✓ web/src/__tests__/useRoadmapApi.events.test.ts (1 test) 2ms
+ ✓ web/src/__tests__/ganttAliasEdit.test.ts (4 tests) 5ms
+ ✓ web/src/__tests__/useDeferPlan.test.ts (2 tests) 1ms
+Switched to a new branch 'main'
+Switched to a new branch 'main'
+Switched to a new branch 'main'
+ ✓ src/__tests__/k8sLauncher.test.ts (5 tests) 2139ms
+   ✓ K8S source launcher > fetches a new revision on restart and keeps persistent data separate from releases  887ms
+   ✓ K8S source launcher > does not promote partial builds or remove existing data when build fails  710ms
+   ✓ K8S source launcher > supports a pinned commit and refuses unavailable refs without promoting  377ms
+
+ Test Files  42 passed (42)
+      Tests  313 passed (313)
+   Start at  11:12:56
+   Duration  2.42s (transform 1.04s, setup 0ms, collect 3.88s, tests 3.42s, environment 5ms, prepare 2.22s)
+

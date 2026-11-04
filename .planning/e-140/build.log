@@ -1,0 +1,21 @@
+
+> personal-ai-roadmap-service@0.1.0 build
+> tsc && npm run build:web && npm run copy:assets
+
+
+> personal-ai-roadmap-service@0.1.0 build:web
+> vite build --config web/vite.config.ts
+
+vite v6.4.3 building for production...
+transforming...
+✓ 84 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.91 kB │ gzip:   0.46 kB
+dist/assets/index-BanxBGI0.css  105.71 kB │ gzip:  20.40 kB
+dist/assets/index-D9Vsbhr7.js   396.63 kB │ gzip: 138.61 kB
+✓ built in 739ms
+
+> personal-ai-roadmap-service@0.1.0 copy:assets
+> mkdir -p dist/storage dist/skills/roadmap-planning/references && cp src/storage/schema.sql dist/storage/schema.sql && cp plugin/skills/roadmap-planning/SKILL.md dist/skills/roadmap-planning/SKILL.md && cp plugin/skills/roadmap-planning/references/plan-schema.md dist/skills/roadmap-planning/references/plan-schema.md
+

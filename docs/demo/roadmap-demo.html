@@ -1773,6 +1773,89 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
 .bi-uc i,.gi-pill.uc i{width:7px;height:7px;border-radius:50%;border:1.5px dashed currentColor;flex:none}
 .gi-pill.uc{display:inline-flex;align-items:center;gap:4px}
 .bl-group-label .q-uc{margin-left:8px;letter-spacing:0;color:var(--uc);font-weight:600}
+
+/* ============ Jira 同步（E-171 追加）：顶栏状态 chip + 详情浮层 ============
+   状态色：ok 绿 / stale 琥珀 / syncing 蓝（呼吸）/ partial 琥珀 / failed 红 / none 灰。
+   数字与时间用等宽字体，避免「3 分钟前 → 12 分钟前」时宽度跳动。 */
+.jql-pill{max-width:320px}
+.js-chip{display:flex;align-items:stretch;flex:none;height:30px;border:1px solid var(--line);border-radius:9px;background:var(--bg);
+  overflow:hidden;transition:border-color .2s var(--ease),background .2s var(--ease)}
+.js-main{display:flex;align-items:center;gap:7px;padding:0 10px 0 11px;font-size:12px;color:var(--muted);white-space:nowrap;
+  font-variant-numeric:tabular-nums;transition:background .15s,color .15s}
+.js-main:hover{background:#EFEEE8;color:var(--ink)}
+.js-text b{font-family:var(--mono);font-weight:600;color:var(--ink);font-size:11.5px}
+.js-dot{width:7px;height:7px;border-radius:50%;background:#4FA95F;box-shadow:0 0 0 3px rgba(79,169,95,.16);flex:none;transition:background .2s,box-shadow .2s}
+.js-now{width:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);border-left:1px solid var(--line);transition:background .15s,color .15s}
+.js-now:hover:not(:disabled){background:#EFEEE8;color:var(--ink)}
+.js-now:disabled{cursor:default}
+.js-main:focus-visible,.js-now:focus-visible{outline:2px solid var(--fut);outline-offset:-2px}
+.js-chip[data-st="stale"] .js-dot,.js-chip[data-st="partial"] .js-dot{background:#D9A23A;box-shadow:0 0 0 3px rgba(217,162,58,.18)}
+.js-chip[data-st="syncing"]{border-color:#BBDCEE;background:#F2F8FC}
+.js-chip[data-st="syncing"] .js-dot{background:var(--fut);animation:jsBreath 1.2s ease-in-out infinite}
+.js-chip[data-st="syncing"] .js-now svg{animation:spin .9s linear infinite;color:var(--fut)}
+.js-chip[data-st="failed"]{border-color:#F6C4B8;background:#FDF3F0}
+.js-chip[data-st="failed"] .js-main{color:#B23A22}
+.js-chip[data-st="failed"] .js-text b{color:#B23A22}
+.js-chip[data-st="failed"] .js-dot{background:var(--danger);box-shadow:0 0 0 3px rgba(228,87,61,.18)}
+.js-chip[data-st="none"] .js-dot{background:#B8BFC7;box-shadow:none}
+.js-chip.flash{border-color:#BFE3CF;background:#F3FAF5}
+.js-chip.flash .js-text b{color:#1F6B45}
+@keyframes jsBreath{0%,100%{box-shadow:0 0 0 2px rgba(6,132,188,.25)}50%{box-shadow:0 0 0 5px rgba(6,132,188,.08)}}
+.toast .toast-act{margin-left:10px;color:#9FD3F2;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+
+.js-pop{position:fixed;z-index:60;width:420px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-lg);
+  opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .16s var(--ease),transform .16s var(--ease)}
+.js-pop.show{opacity:1;transform:none;pointer-events:auto}
+.jp-head{display:flex;align-items:center;gap:8px;padding:12px 16px 10px;border-bottom:1px solid var(--line2)}
+.jp-title{font-weight:700;font-size:13.5px;flex:1}
+.jp-st{font-size:11px;font-weight:600;border-radius:99px;padding:2px 9px;background:#EAF6EF;color:#1F6B45}
+.jp-st[data-st="stale"],.jp-st[data-st="partial"]{background:#FFF2DC;color:#8A5A00}
+.jp-st[data-st="syncing"]{background:#EAF3FA;color:var(--fut-deep)}
+.jp-st[data-st="failed"]{background:#FDECE8;color:#B23A22}
+.jp-st[data-st="none"]{background:var(--bg);color:var(--muted)}
+.jp-banner{margin:12px 16px 0;padding:9px 12px;border-radius:8px;font-size:12px;line-height:1.6}
+.jp-banner.err{background:#FDECE8;color:#8F2F1F}
+.jp-banner.none{background:var(--bg);color:var(--ink);border:1px dashed var(--line)}
+.jp-banner-acts{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:11px;color:var(--muted)}
+.jp-link{font-size:12px;font-weight:600;color:var(--fut-deep);text-decoration:underline;text-underline-offset:2px}
+.jp-dl{display:grid;grid-template-columns:72px 1fr;gap:12px 12px;padding:14px 16px 12px;margin:0;font-size:12px;line-height:1.55}
+.jp-dl dt{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.02em;padding-top:1px}
+.jp-dl dd{margin:0;min-width:0}
+.jp-dl dd b{font-family:var(--mono);font-weight:600}
+.jp-note{font-size:11px;color:var(--muted);margin-top:3px}
+.jp-prog{display:flex;align-items:center;gap:6px;margin-top:4px;color:var(--fut-deep);font-size:11.5px}
+.jp-id{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.jp-id i{width:7px;height:7px;border-radius:50%;background:#4FA95F}
+.jp-id[data-id="pat"] i{background:var(--fut)}
+.jp-id[data-id="none"] i{background:#B8BFC7}
+.jp-jql{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:6px;font:500 10.5px/1.5 var(--mono);
+  color:var(--muted);background:var(--bg);border-radius:6px;padding:5px 8px;word-break:break-all}
+.jp-jql mark{background:#E5F3F1;color:var(--qc);border-radius:3px;padding:0 2px}
+.jp-res > div{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-bottom:5px}
+.jp-res .n{font:600 11px var(--mono);min-width:22px;text-align:center;border-radius:5px;padding:0 5px;background:var(--bg);color:var(--ink)}
+.jp-res .n.add{background:#EAF3FA;color:var(--fut-deep)}
+.jp-res .n.gone{background:var(--bg);color:var(--muted);border:1px dashed var(--line)}
+.jp-res .n.skip{background:#FFF2DC;color:#8A5A00}
+.jp-key{font:600 10.5px var(--mono);color:var(--fut-deep);border:1px solid #CFE3F0;border-radius:4px;padding:0 5px;background:var(--panel)}
+.jp-key:hover{background:#EAF3FA}
+.jp-key:focus-visible,.jp-link:focus-visible{outline:2px solid var(--fut);outline-offset:1px}
+.jp-why{font-size:11px;color:var(--muted)}
+.jp-foot{display:flex;align-items:flex-end;gap:10px;padding:10px 16px 12px;border-top:1px solid var(--line2)}
+.jp-sims{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:10.5px;color:var(--muted)}
+.jp-sims label{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.jp-sims input{accent-color:var(--fut)}
+.jp-go{padding:6px 16px;font-size:12px}
+
+/* Backlog 卡片：同步结果标注 */
+.card-sync{font:600 9.5px var(--mono);border-radius:4px;padding:1px 6px;letter-spacing:.02em}
+.card-sync.new{color:var(--fut-deep);background:#E6F2F9}
+.card-sync.gone{color:var(--muted);background:var(--bg);border:1px dashed #C9CDD3}
+.card-sync.skip{color:#8A5A00;background:#FFF2DC}
+.card.sync-new{border-color:#BBDCEE}
+.card.flash{animation:locHit 1.8s var(--ease)}
+@media (prefers-reduced-motion: reduce){
+  .js-chip[data-st="syncing"] .js-dot,.js-chip[data-st="syncing"] .js-now svg,.card.flash{animation:none!important}
+}
 </style>
 </head>
 <body>
@@ -1791,6 +1874,17 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
   <button class="jql-edit" id="jqlEditBtn" data-tip="编辑团队 JQL">
     <svg viewBox="0 0 14 14"><path d="M9.5 2.2l2.3 2.3L4.6 11.7l-2.9.6.6-2.9L9.5 2.2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
   </button>
+  <!-- Jira 同步状态（E-171 追加）：紧跟数据源 JQL —— 「数据从哪来」与「数据有多新」放在一起；
+       作用于整个团队快照（Backlog + 甘特 + 依赖），所以在顶栏而不是某个面板里。
+       左半区 = 状态（单击看详情），右半区 ⟳ = 立即同步（跳过 10 分钟间隔）。取代原 Backlog「拉取」。 -->
+  <div class="js-chip" id="jsChip" data-st="ok">
+    <button type="button" class="js-main" id="jsMain" aria-haspopup="dialog" aria-expanded="false" aria-controls="jsPop">
+      <span class="js-dot" aria-hidden="true"></span><span class="js-text" id="jsText" aria-live="polite">—</span>
+    </button>
+    <button type="button" class="js-now" id="jsNow" aria-label="立即同步 Jira">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7A5 5 0 1 1 10.6 3.6"/><path d="M12 2.2V5H9.2"/></svg>
+    </button>
+  </div>
   <div class="top-spacer"></div>
   <div class="sync-ticker" id="syncTicker"></div>
   <div class="presence">
@@ -1871,41 +1965,13 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
 <div class="cp-pop" id="cpPop" role="dialog" aria-label="复制导出"></div>
 <div class="ms-pop" id="msPop" role="dialog" aria-label="按 Milestone 过滤"></div>
 <div class="q-pop" id="qPop" role="dialog" aria-label="按 Target Delivery Quarter 过滤"></div>
-
-<!-- 从 Jira 拉取：Quarter 是「数据源 JQL 的参数」，和 JQL、导入动作放在一起；锚定在 Backlog——结果落在哪，入口就在哪 -->
-<div class="sync-pop" id="syncPop" role="dialog" aria-labelledby="spTitle">
-  <div class="sp-head">
-    <div class="sp-title" id="spTitle">从 Jira 拉取到 Backlog</div>
-    <div class="sp-sub" id="spSub"></div>
-  </div>
-  <div class="sp-sec">
-    <div class="sp-lbl">QUARTERS</div>
-    <div class="chips" id="chips"></div>
-  </div>
-  <div class="sp-src">
-    <span class="sp-lbl">JQL</span>
-    <span class="sp-jql" id="spJql"></span>
-    <button class="sp-link" id="spEditJql" type="button">编辑</button>
-  </div>
-  <div class="sp-foot" id="importActions">
-    <label class="ow-label"><input type="checkbox" id="owCheck">覆盖已有数据</label>
-    <button class="btn btn-primary" id="importBtn">
-      <svg class="ico" width="13" height="13" viewBox="0 0 14 14"><path d="M7 1v8M3.5 6L7 9.5 10.5 6M2 12.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <svg class="lock" width="12" height="13" viewBox="0 0 14 15"><rect x="2.4" y="6.2" width="9.2" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M4.7 6.2V4.4a2.3 2.3 0 014.6 0v1.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-      <span id="importBtnLabel">拉取</span> <span id="importBtnN"></span>
-    </button>
-  </div>
-</div>
+<div class="js-pop" id="jsPop" role="dialog" aria-label="Jira 同步"></div>
 
 <!-- ===================== 主区 ===================== -->
 <div class="layout">
   <aside class="backlog">
     <div class="bl-head">
       <div class="bl-title">Backlog <span class="bl-count" id="blCount">0</span>
-        <button class="bl-sync" id="blSyncBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="syncPop">
-          <svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true"><path d="M11.6 5.2A4.9 4.9 0 003 4.4M2.4 8.8A4.9 4.9 0 0011 9.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M3 1.9v2.6h2.6M11 12.1V9.5H8.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span id="blSyncText">拉取</span><span class="bl-sync-dot" id="blSyncDot"></span>
-        </button>
         <button class="bl-add" id="blAddBtn" data-tip="手动新建一个 Backlog 条目（不需要 Jira）">
           <svg width="11" height="11" viewBox="0 0 14 14"><path d="M7 2.5v9M2.5 7h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           新建条目
@@ -2154,20 +2220,6 @@ textarea.f-input{resize:vertical;min-height:96px;font-family:var(--mono);font-si
 </div>
 
 <!-- ===================== 导入预览 Modal ===================== -->
-<div class="modal-back" id="mImport">
-  <div class="modal">
-    <div class="m-head">
-      <div class="m-title">导入预览</div>
-      <div class="m-sub" id="impSub"></div>
-    </div>
-    <div class="m-body" id="impBody"></div>
-    <div class="m-foot" id="impFoot">
-      <button class="btn btn-ghost" data-close>取消</button>
-      <button class="btn btn-primary" id="impGo">确认导入</button>
-    </div>
-  </div>
-</div>
-
 <!-- ===================== 创建 Jira Modal（双路径：直连 API / Agent 执行器） ===================== -->
 <div class="modal-back" id="mAI">
   <div class="modal" style="width:620px">
@@ -2955,11 +3007,14 @@ function buildBrandy(){
     releaseFilter: { mode: 'major', pattern: '' },          // 演示：只保留尾号 0 的大版本
     rows: mockReleaseRows(), fetchedAt: new Date(),
   };
+  /* Jira 同步状态（演示：上次成功在 14 分钟前 → 已超过 10 分钟间隔，打开页面会自动同步） */
+  t.sync = { at: new Date(Date.now() - 14*60000), status:'ok', id:'pat',
+             last:{ added:[], updated:3, checked:28, missing:[], skipped:[], dur:1.6 } };
   return t;
 }
 function buildRcv(){
   return { name:'RCV Mobile', jql:RCV_JQL, pool:'rcv', checked:[CURQ], imported:[], items:[], order:[],
-           members:[], assigneeMap: loadAsgMap('RCV Mobile'), readonly: true };
+           members:[], assigneeMap: loadAsgMap('RCV Mobile'), readonly: true, sync:{ at:null, status:'ok' } };
 }
 
 const state = {
@@ -2977,141 +3032,13 @@ const state = {
 };
 const team = () => state.teams[state.active];
 
-/* ---------- Quarter chips ---------- */
-function chipList(t){
-  let latest = t.checked.length ? t.checked.reduce((a,b)=>qCmp(a,b)>0?a:b) : CURQ;
-  if (qCmp(latest, CURQ) < 0) latest = CURQ;
-  const end = nextQ(latest);           // 自动追加的下一个 quarter
-  const list = []; let q = CURQ;
-  while (true){ list.push(q); if (q === end) break; q = nextQ(q); }
-  return list;
-}
-function pendingQs(t){ return t.checked.filter(q => !t.imported.includes(q)); }
-
-function renderChips(){
-  const t = team(), wrap = $('#chips'); wrap.innerHTML = '';
-  const list = chipList(t);
-  const latestChecked = t.checked.length ? t.checked.reduce((a,b)=>qCmp(a,b)>0?a:b) : null;
-  list.forEach(q => {
-    const on = t.checked.includes(q);
-    const ghost = latestChecked ? qCmp(q, latestChecked) > 0 : q !== CURQ;
-    const c = document.createElement('button');
-    c.className = 'chip' + (on?' on':'') + (ghost?' ghost':'');
-    c.innerHTML = `<span class="box"><svg width="9" height="9" viewBox="0 0 10 10"><path d="M1.5 5.5L4 8l4.5-6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>${q}${q===CURQ?'<span class="now-tag">当前</span>':''}${t.imported.includes(q)?'<span class="got">已拉取</span>':''}`;
-    c.setAttribute('aria-pressed', on);
-    if (ghost && !on) c.dataset.tip = '自动追加：勾选的最晚 quarter 的下一个';
-    c.onclick = () => {
-      if (on) t.checked = t.checked.filter(x => x!==q);
-      else { t.checked.push(q); t.checked.sort(qCmp); }
-      renderChips(); renderGantt();
-    };
-    wrap.appendChild(c);
-  });
-  syncImportActions();
-}
-function syncImportActions(){
-  const t = team();
-  const pend = pendingQs(t);
-  const ow = $('#owCheck').checked;
-  const show = t.checked.length > 0 && (pend.length > 0 || ow);
-  const qs = ow ? t.checked : pend;
-  /* 没有要拉的 quarter 时不隐藏按钮，而是给出「已是最新」的明确结论（即时反馈） */
-  $('#importBtn').disabled = !show;
-  $('#importBtnLabel').textContent = show ? (ow ? '重新拉取' : '拉取') : (t.checked.length ? '已是最新' : '先选择 quarter');
-  $('#importBtnN').textContent = show && qs.length ? qs.join(' / ') : '';
-  $('#spSub').innerHTML = t.imported.length
-    ? `Backlog 已包含 <b>${t.imported.join(' / ')}</b> · 已存在的 issue 不会重复导入`
-    : '尚未拉取任何 quarter · 勾选后按团队 JQL 导入';
-  $('#spJql').textContent = t.jql;
-  $('#spJql').dataset.tip = '数据源 JQL||' + t.jql;
-  const btn = $('#blSyncBtn');
-  btn.classList.toggle('empty', !t.imported.length);
-  /* 有「勾选但未拉取」的 quarter（例如下个季度已开始）时亮点：未完成任务提示 */
-  btn.classList.toggle('pending', t.imported.length > 0 && pend.length > 0);
-  $('#blSyncText').textContent = t.imported.length ? '拉取' : '从 Jira 拉取';
-  btn.dataset.tip = t.imported.length
-    ? `从 Jira 拉取||已拉取 ${t.imported.join(' / ')}${pend.length ? ` · 待拉取 ${pend.join(' / ')}` : ''}`
-    : '从 Jira 拉取||按团队 JQL + 勾选的 quarter 导入到 Backlog';
-}
-/* ---------- 拉取浮层 ---------- */
-function placeSyncPop(){
-  const r = $('#blSyncBtn').getBoundingClientRect(), pop = $('#syncPop');
-  pop.style.top = r.bottom + 8 + 'px';
-  pop.style.left = clamp(r.left - 12, 12, innerWidth - 372) + 'px';
-}
-function openSyncPop(){
-  renderChips(); placeSyncPop();
-  $('#syncPop').classList.add('show');
-  $('#blSyncBtn').setAttribute('aria-expanded', 'true');
-  requestAnimationFrame(() => { const b = $('#importBtn'); (b.disabled ? $('#chips .chip') : b).focus(); });
-}
-function closeSyncPop(refocus){
-  $('#syncPop').classList.remove('show');
-  $('#blSyncBtn').setAttribute('aria-expanded', 'false');
-  if (refocus) $('#blSyncBtn').focus();
-}
-$('#blSyncBtn').onclick = () => $('#syncPop').classList.contains('show') ? closeSyncPop() : openSyncPop();
-$('#syncPop').addEventListener('keydown', e => { if (e.key === 'Escape'){ e.stopPropagation(); closeSyncPop(true); } });
-document.addEventListener('pointerdown', e => {
-  if (!$('#syncPop').classList.contains('show')) return;
-  if (e.target.closest('#syncPop, #blSyncBtn')) return;
-  closeSyncPop();
-}, true);
-addEventListener('resize', () => { if ($('#syncPop').classList.contains('show')) placeSyncPop(); });
-$('#spEditJql').onclick = () => { closeSyncPop(); $('#jqlEditBtn').click(); };
-$('#owCheck').onchange = syncImportActions;
-
-/* ---------- 导入 ---------- */
+/* 原 Backlog「拉取」（勾选 Quarter → 预览 → 导入）已移除（E-171 追加）：
+   导入并入顶栏「Jira 同步」——按团队 JQL 自动覆盖当前 + 下一个 Quarter，进入页面超过 10 分钟自动同步，⟳ 立即同步。 */
 function effectiveJql(jql, quarters){
   const re = /("Target Delivery Quarter"\s+in\s*\()([^)]*)(\))/g;
-  let hit = false;
-  const out = jql.replace(re, (_, p1, _2, p3) => { hit = true; return p1 + '@@' + p3; });
+  const out = jql.replace(re, (_, p1, _2, p3) => p1 + '@@' + p3);
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-  let html = esc(out).replace(/@@/g, `<mark>${quarters.join(', ')}</mark>`);
-  if (!hit) html += `<br><span style="color:#8B93A0">// 未找到 quarter 子句，将附加：</span> AND <mark>"Target Delivery Quarter" in (${quarters.join(', ')})</mark>`;
-  return html;
-}
-$('#importBtn').onclick = () => {
-  closeSyncPop();
-  if (!extGate('import')) return;
-  const t = team();
-  const ow = $('#owCheck').checked;
-  const qs = ow ? [...t.checked] : pendingQs(t);
-  if (!qs.length) return;
-  $('#impSub').innerHTML = ow
-    ? '覆盖模式：以下 quarters 的数据将<b style="color:var(--danger)">重新拉取并重置</b>（包括已排期位置）。'
-    : '增量模式：仅导入尚未导入的 quarters，已存在的 issue 不受影响。';
-  $('#impBody').innerHTML = `
-    <label class="f-label">导入 Quarters</label>
-    <div class="q-tags">${qs.map(q=>`<span class="q-tag">${q}</span>`).join('')}</div>
-    <label class="f-label">实际执行的 JQL（quarter 子句已替换）</label>
-    <div class="jql-preview">${effectiveJql(t.jql, qs)}</div>`;
-  $('#impFoot').style.display = 'flex';
-  openModal('mImport');
-  $('#impGo').onclick = () => runImport(qs, ow);
-};
-function runImport(qs, ow){
-  $('#impBody').innerHTML = `<div class="imp-loading"><div class="spinner"></div><div>正在执行 JQL 查询 Jira…</div></div>`;
-  $('#impFoot').style.display = 'none';
-  setTimeout(() => {
-    const t = team();
-    if (ow) {
-      const drop = new Set(t.items.filter(i => qs.includes(i.quarter)).map(i => i.key));
-      t.items = t.items.filter(i => !drop.has(i.key));
-      t.order = t.order.filter(k => !drop.has(k));
-    }
-    let added = 0;
-    const newKeys = [];
-    qs.forEach(q => poolItems(t, q).forEach(it => {
-      if (!t.items.some(x => x.key === it.key)) { t.items.push(it); newKeys.push(it.key); added++; }
-    }));
-    qs.forEach(q => { if (!t.imported.includes(q)) t.imported.push(q); });
-    t.imported.sort(qCmp);
-    $('#owCheck').checked = false;
-    closeModal('mImport');
-    renderAll(newKeys);
-    toast(`<span class="ok">✓</span> 已导入 <b>${added}</b> 个 issue → Backlog`);
-  }, 950);
+  return esc(out).replace(/@@/g, `<mark>${quarters.join(', ')}</mark>`);
 }
 
 /* ---------- Backlog ---------- */
@@ -3152,12 +3079,15 @@ function renderBacklog(newKeys){
         <button class="bl-empty-link" id="blClearInline">清除搜索</button></div>`;
       $('#blClearInline').onclick = () => setSearch('', true);
     } else {
-      body.innerHTML = t.imported.length
-        ? `<div class="bl-empty">Backlog 已清空<br>所有 issue 均已排期 🎉</div>`
-        : `<div class="bl-empty">尚未导入数据<br>
-           <button class="bl-empty-link" id="blEmptySync">从 Jira 拉取</button><br>
-           或点右上角<b>「新建条目」</b>手动添加</div>`;
-      const es = $('#blEmptySync'); if (es) es.onclick = e => { e.stopPropagation(); openSyncPop(); };
+      const sy = t.sync || {};
+      body.innerHTML = sy.status === 'syncing' && !sy.at
+        ? `<div class="bl-empty"><span class="mini-spin"></span> 正在从 Jira 同步…<br><span class="empty-why">按团队 JQL 检索 ${esc((syncQs(t) || []).join(' + ') || '全部范围')}</span></div>`
+        : sy.at
+          ? `<div class="bl-empty">Backlog 已清空<br>所有 issue 均已排期</div>`
+          : `<div class="bl-empty">还没有从 Jira 同步过<br>
+             <button class="bl-empty-link" id="blEmptySync">立即同步</button><br>
+             或点右上角<b>「新建条目」</b>手动添加</div>`;
+      const es = $('#blEmptySync'); if (es) es.onclick = e => { e.stopPropagation(); syncJira(t, 'manual'); };
     }
     return;
   }
@@ -3181,13 +3111,13 @@ function renderBacklog(newKeys){
 function blCard(it, gi, newKeys){
     const c = document.createElement('div');
     const draft = isDraftItem(it);
-    c.className = 'card' + (newKeys && newKeys.includes(it.key) ? ' pop' : '') + (draft ? ' draft' : '');
+    c.className = 'card' + (newKeys && newKeys.includes(it.key) ? ' pop' : '') + (draft ? ' draft' : '') + (it.syncNew ? ' sync-new' : '');
     if (newKeys && newKeys.includes(it.key)) c.style.animationDelay = (gi*0.05)+'s';
     c.innerHTML = `
       <div class="card-top">
         <span class="type-badge type-${it.type}">${it.type}</span>
         <span class="card-key">${itemDisplayKey(it)}</span>
-        ${draft ? `<span class="card-draft">DRAFT</span>` : ''}
+        ${draft ? `<span class="card-draft">DRAFT</span>` : ''}${cardSyncTag(it)}
         <span class="card-est">${it.estW}w</span>
       </div>
       <div class="card-title">${esc(it.title)}</div>
@@ -3378,7 +3308,7 @@ $('#dpGenerate').onclick = () => {
 let TL = null;
 function computeTL(){
   const t = team();
-  const list = chipList(t);
+  const list = [nextQ((syncQs(t) || [CURQ]).slice(-1)[0])];   // 同步范围的最后一个 Quarter 再多留一个季度
   const s0 = qStart(CURQ);
   const start = new Date(s0.getFullYear(), s0.getMonth()-1, 1);   // 前一个月起，容纳上季度遗留
   const end = qEnd(list[list.length-1]);
@@ -6424,6 +6354,7 @@ function renderResource(){
 /* ---------- 团队切换 / 新建 ---------- */
 function renderTeamUI(){
   const t = team();
+  renderSyncChip(); scheduleAutoSync(1200);   // 切换团队：先显示该团队已存数据，再检查新鲜度
   $('#teamName').textContent = t.name;
   $('#jqlPill').textContent = t.jql;
   $('#jqlPill').dataset.tip = '数据源 JQL||' + t.jql;
@@ -6438,7 +6369,6 @@ function renderTeamUI(){
   menu.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => {
     state.active = +b.dataset.i;
     $('#teamSwitch').classList.remove('open');
-    $('#owCheck').checked = false;
     renderAll();
   });
   menu.querySelector('.new-team').onclick = () => {
@@ -6658,6 +6588,7 @@ $('#jqlSave').onclick = async () => {
   const v = $('#jqlEdit').value.trim();
   if (!v){ $('#jqlEdit').focus(); return; }
   const t = team();
+  if (t.jql !== v) setTimeout(() => syncJira(t, 'jql'), 300);   // 范围变了：立即按新 JQL 同步
   t.jql = v;
   const url = $('#sheetUrl').value.trim();
   if (!url){
@@ -6665,7 +6596,7 @@ $('#jqlSave').onclick = async () => {
     t.releaseSheet = null;
     closeModal('mJql'); renderTeamUI(); renderGantt();
     toast(had ? 'JQL 已更新 · 发布时间表已移除，标尺恢复月份'
-              : '<span class="ok">✓</span> JQL 已更新，下次导入按新 JQL 执行');
+              : '<span class="ok">✓</span> JQL 已更新，正在按新 JQL 同步');
     return;
   }
   const cfg = { url, sheetName: $('#sheetName').value.trim() || 'Sheet1',
@@ -6741,24 +6672,14 @@ $('#tCreate').onclick = () => {
   if (!name){ $('#tName').focus(); return; }
   if (!jql) jql = $('#tJql').placeholder;
   const t = { name, jql, pool:null, checked:[CURQ], imported:[], items:[], order:[], members:[],
-              assigneeMap: loadAsgMap(name) };
+              assigneeMap: loadAsgMap(name), sync:{ at:null, status:'ok' } };
   state.teams.push(t);
   state.active = state.teams.length - 1;
   closeModal('mTeam');
   renderAll();
-  toast(`团队「${name}」已创建，正在首次导入 ${CURQ}…`);
-  setTimeout(() => runImportSilently([CURQ]), 500);
+  toast(`团队「${name}」已创建，正在首次同步 Jira…`);
+  setTimeout(() => syncJira(t, 'create'), 400);
 };
-function runImportSilently(qs){
-  const t = team();
-  const newKeys = [];
-  qs.forEach(q => poolItems(t, q).forEach(it => {
-    if (!t.items.some(x => x.key === it.key)){ t.items.push(it); newKeys.push(it.key); }
-  }));
-  qs.forEach(q => { if (!t.imported.includes(q)) t.imported.push(q); });
-  renderAll(newKeys);
-  toast(`<span class="ok">✓</span> 首次导入完成：${newKeys.length} 个 issue → Backlog`);
-}
 
 /* ---------- 协作同步 ticker：滚动展示其他成员最近一次编辑 ----------
    真实实现：activity SSE 事件按 actorClientId 过滤掉自己，取最新一条渲染 */
@@ -6871,21 +6792,21 @@ document.addEventListener('keydown', e => {
    只在用户主动点这个操作时才弹出安装引导，页面上没有常驻提示条。 */
 const EXT_STORE_URL = 'https://chromewebstore.google.com/detail/personal-ai/kefnadjndpllbibeklhajjddgmlbafel';
 const EXT_FEATURES = {
-  import:      { label:'导入 Backlog', why:'把 JQL 结果拉进 Backlog，需要扩展用你自己的 Jira 账号执行查询——服务端没有你的 Jira 权限。' },
+  import:      { label:'用个人 Jira Key 同步', why:'服务端 PAT 读不到的 Ticket，需要扩展用你自己配置的 Jira Key 读取；装好后「Jira 同步」会优先使用个人 Key。' },
   importTasks: { label:'导入 Task',    why:'读取各主任务名下的 Task，需要扩展用你自己的 Jira 账号执行查询。' },
   createJira:  { label:'创建 Jira',    why:'把草稿任务写回 Jira，需要扩展用你自己的 Jira 账号创建 issue，这样 reporter 才是你本人。' },
   fetchEta:    { label:'读取 ETA',     why:'读取外部依赖 issue 的 Target End，需要扩展用你自己的 Jira 账号访问该 issue。' },
   syncJira:    { label:'回写 Jira',    why:'把排期（Target Start/End）和 Owner 写回 issue，需要扩展用你自己的 Jira 账号执行——Roadmap 上的改动已经保存，只是没有同步到 Jira。' },
 };
 const EXT_PERKS = [
-  ['import',      '导入 Backlog', '按 JQL + Quarter 把 Jira issue 拉进 Backlog'],
+  ['import',      '个人 Key 同步', 'Jira 同步优先用你自己的 Jira Key 读取，能看到个人权限内的 Ticket'],
   ['importTasks', '导入 Task',    '拉取主任务名下的 Task，按 Jira Key 去重落位'],
   ['createJira',  '创建 Jira',    '草稿任务一键写回 Jira（直连 API 或 Agent 执行器）'],
   ['fetchEta',    '读取 ETA',     '外部依赖自动读取 Target End，缺 ETA 的红色提醒随之消失'],
   ['syncJira',    '回写 Jira',    '拖动排期写回 Target Start/End，改 Owner 写回 assignee'],
   ['identity',    '自动识别身份', '免去手动填名字，协作日志直接署你的实名'],
 ];
-const EXT_LOCKED_BTNS = [['#importBtn','import'], ['#importTasksBtn','importTasks'], ['#createJiraBtn','createJira']];
+const EXT_LOCKED_BTNS = [['#importTasksBtn','importTasks'], ['#createJiraBtn','createJira']];
 let extInstalled = false;          // Demo 默认未安装，点锁定按钮即可看到引导
 
 function applyExtState(){
@@ -6924,7 +6845,7 @@ function setExtInstalled(on){
   toast(on
     ? '<span class="ok">✓</span> 已检测到 Personal AI 扩展，Jira 相关操作已解锁'
     : '已模拟卸载扩展：需要 Jira 权限的操作进入锁定态');
-  if (on) silentJiraRefresh();     // 装扩展的浏览器打开页面即静默刷新一次
+  renderSyncChip();               // 读取身份随之变化（个人 Key 优先）；不额外触发同步
 }
 $('#egInstall').onclick = () => window.open(EXT_STORE_URL, '_blank', 'noopener');
 $('#jiraWriteNoticeBtn').onclick = () => { hideJiraWriteNotice(); openExtGate('syncJira'); };
@@ -6956,44 +6877,6 @@ const JIRA_REFRESH_POOL = {
     desc: 'Define the ranking heuristics for quick reply suggestions and assemble the offline evaluation set (~500 labelled conversations).',
     assignee: 'Kevin Liu' },
 };
-let jiraRefreshDone = false;
-function silentJiraRefresh(){
-  if (!extInstalled || jiraRefreshDone) return;
-  jiraRefreshDone = true;                            // 真实实现按 fetchedAt 节流，这里每次加载只跑一次
-  setTimeout(() => {
-    const t = state.teams[0];                        // demo：只模拟 Brandy 团队
-    const touched = [];
-    Object.entries(JIRA_REFRESH_POOL).forEach(([key, patch]) => {
-      let epic = null, sub = null;
-      t.items.forEach(x => {
-        if (itemDisplayKey(x) === key) epic = x;
-        x.subs.forEach(s => { if (s.key === key){ epic = x; sub = s; } });
-      });
-      if (!epic) return;
-      const tgt = sub || epic;
-      if (patch.summary) tgt.title = patch.summary;             // 备注名（alias）保留不动
-      if (patch.desc) tgt.desc = patch.desc;
-      if (patch.status) tgt.status = patch.status;
-      if (!sub && patch.tEndShift && epic.scheduled){           // Jira 侧改了 Target End → bar 重落位
-        epic.days = Math.max(2, epic.days + patch.tEndShift);
-        epic.tEnd = addD(epic.start, epic.days - 1);
-      }
-      if (sub && patch.assignee){
-        const cur = sub.owner ? (effectiveFull(t, sub.owner.n) || sub.owner.n) : null;
-        if (cur !== patch.assignee) sub.owner = ensureMember(t, { n: patch.assignee });   // 映射对得上则不改
-      }
-      touched.push({ epicKey: epic.key, subId: sub && sub.id });
-    });
-    if (!touched.length || state.active !== 0) return;
-    renderGantt(); renderBacklog();
-    touched.forEach(({ epicKey, subId }) => {
-      const el = subId
-        ? document.querySelector(`.g-row[data-key="${epicKey}"] .sbar[data-sid="${subId}"]`)
-        : document.querySelector(`.g-row[data-key="${epicKey}"] .bar`);
-      if (el) el.classList.add('refreshed');
-    });
-  }, 1200);
-}
 
 /* ---------- Milestone 过滤 ----------
    一个过滤状态（按团队记忆），一个谓词 msMatch，Backlog / 甘特 / 统计共用：
@@ -7925,23 +7808,21 @@ function zeroHitInits(){
   return keys.filter(k => !initStats(k).hit.length).sort(initKeyCmp);
 }
 /* 所选 Quarter 里「一个条目都没有、也没拉取过」的 → 尚未拉取，而不是「没有匹配」 */
+/* 所选 Quarter 不在同步范围（JQL 自动覆盖当前 + 下一个）且一个条目都没有 → 说明「不在同步范围」，而不是「没有匹配」 */
 function unpulledSel(){
-  const t = team();
-  return qSel().filter(q => q !== Q_NONE && !t.imported.includes(q) && !t.items.some(i => i.quarter === q));
+  const t = team(), qs = syncQs(t);
+  if (!qs) return [];
+  return qSel().filter(q => q !== Q_NONE && !qs.includes(q) && !t.items.some(i => i.quarter === q));
 }
 function pullHintHtml(id){
-  const u = unpulledSel();
+  const u = unpulledSel(), qs = syncQs(team());
   if (!u.length) return '';
-  return `<br><span class="empty-why"><b>${u.join(' / ')}</b> 尚未从 Jira 拉取 —— 筛选只作用于已加载的数据</span>
-    <button type="button" class="empty-pull" id="${id}">拉取 ${u.join(' / ')}…</button>`;
+  return `<br><span class="empty-why"><b>${u.join(' / ')}</b> 不在 Jira 同步范围 —— 团队 JQL 自动同步 ${qs.join(' + ')}，筛选只作用于已同步的数据</span>
+    <button type="button" class="empty-pull" id="${id}">查看同步范围</button>`;
 }
 function bindPull(id){
   const b = document.getElementById(id); if (!b) return;
-  b.onclick = e => {
-    e.stopPropagation();
-    const t = team(); unpulledSel().forEach(q => { if (!t.checked.includes(q)) t.checked.push(q); });
-    t.checked.sort(qCmp); openSyncPop();
-  };
+  b.onclick = e => { e.stopPropagation(); openJsPop(); };
 }
 
 /* ---------- 层级切换 ---------- */
@@ -8212,11 +8093,267 @@ function renderResInitLegend(seen){
   });
 }
 
+/* =====================================================================
+   Jira 同步（E-171 追加）—— 取代 Backlog「拉取」
+   · 位置：顶栏，紧跟团队 JQL；左半区 = 状态（单击 → 详情浮层），右半区 ⟳ = 立即同步（跳过 TTL）
+   · 读取身份优先级：扩展已连接且配置了个人 Jira Key → 个人 Key；否则服务端 PAT；都没有 → 只显示缓存并提示配置。
+     已配置却失败（401 / 403 / 超时）时不静默换账号，如实报错并保留旧数据。
+   · 范围：团队 JQL；JQL 含 Target Delivery Quarter 子句时自动替换为「当前 + 下一个 Quarter」，季度切换后自动滚动。
+     一次同步 = 按 JQL 检索新增 / 变更的 Epic（新增进 Backlog）+ 刷新已纳入的 Ticket + 补齐 INIT / 依赖镜像字段。
+   · 时机：进入页面 / 切换团队先显示已存数据，超过 10 分钟自动同步；页面可见时每分钟检查一次；⟳ 随时手动。
+   · 合并：只读不写回；不覆盖未回写的本地排期、草稿、备注名；JQL 结果里消失的 Ticket 不删除，标「不在 JQL 结果」；
+     本次读不到的 Ticket 保留旧值，标「未更新」—— 不把旧数据当最新。
+   ===================================================================== */
+const JIRA_TTL_MIN = 10;
+const SYNC_SIM = { personalKey: true, serverPat: true, failNext: false };   // Demo 开关（浮层底部）
+/* 演示：上次同步之后 Jira 里新建的 Epic（第一次同步时出现） */
+const JIRA_NEW_EPICS = [
+  ['NOVA-18248', 'EPIC', 'Brandy reply tone controls: brand voice presets per queue', 0, 4, 'INIT-6120'],
+  ['NOVA-18251', 'EPIC', 'Proactive outreach guardrails: frequency caps and quiet hours', 1, 3, 'INIT-6177'],
+];
+const syncIdentity = () => (extInstalled && SYNC_SIM.personalKey) ? 'personal' : SYNC_SIM.serverPat ? 'pat' : 'none';
+const SYNC_ID_LABEL = { personal:'个人 Jira Key（Personal AI 扩展）', pat:'服务端 PAT（团队共享账号）', none:'无可用凭据' };
+const syncQs = t => /"Target Delivery Quarter"\s+in\s*\(/i.test(t.jql) ? [CURQ, nextQ(CURQ)] : null;
+const syncAgeMin = t => t.sync && t.sync.at ? (Date.now() - t.sync.at) / 60000 : Infinity;
+const syncStale = t => syncAgeMin(t) > JIRA_TTL_MIN;
+function relAgo(d){
+  const m = Math.floor((Date.now() - d) / 60000);
+  return m < 1 ? '刚刚' : m < 60 ? `${m} 分钟前` : fmtHM(d);
+}
+function syncSt(t){
+  const sy = t.sync || {};
+  if (sy.status === 'syncing') return 'syncing';
+  if (syncIdentity() === 'none' && !sy.at) return 'none';
+  if (sy.status === 'failed') return 'failed';
+  if (syncIdentity() === 'none') return 'none';
+  if (!sy.at) return 'stale';
+  if (sy.status === 'partial') return 'partial';
+  return syncStale(t) ? 'stale' : 'ok';
+}
+function renderSyncChip(){
+  const t = team(), sy = t.sync || (t.sync = { at:null, status:'ok' }), st = syncSt(t);
+  const chip = $('#jsChip'); chip.dataset.st = st;
+  const at = sy.at ? fmtHM(sy.at) : null;
+  const txt = {
+    syncing: `同步中 · ${esc(sy.phase || '')}`,
+    failed:  `同步失败 · 显示 <b>${at || '—'}</b> 的数据`,
+    none:    sy.at ? `无法同步 · 显示 <b>${at}</b> 的数据` : '无法同步 Jira',
+    stale:   sy.at ? `<b>${relAgo(sy.at)}</b>同步 · 待刷新` : '尚未同步',
+    partial: `<b>${relAgo(sy.at || new Date())}</b> · ${(sy.last?.skipped || []).length} 项未更新`,
+    ok:      `已同步 · <b>${sy.at ? relAgo(sy.at) : ''}</b>`,
+  }[st];
+  const flash = sy.flashUntil && Date.now() < sy.flashUntil && (st === 'ok' || st === 'partial');
+  $('#jsText').innerHTML = flash ? sy.flashTxt : txt;
+  chip.classList.toggle('flash', !!flash);
+  $('#jsMain').dataset.tip = {
+    syncing: `正在同步 Jira||${SYNC_ID_LABEL[sy.id || syncIdentity()]} · 页面继续显示已存数据，完成后自动更新||单击查看详情`,
+    failed:  `同步失败 · ${esc(sy.err || '')}||页面仍是 ${at} 的数据，没有被标为最新||单击查看详情 · ⟳ 重试`,
+    none:    `无法同步 Jira||没有个人 Jira Key，服务端也未配置 PAT${sy.at ? ` · 显示 ${at} 的数据` : ''}||单击查看如何配置`,
+    stale:   `数据已超过 ${JIRA_TTL_MIN} 分钟||${sy.at ? `最近成功同步 ${at}` : '还没有同步过'}||⟳ 立即同步`,
+    partial: `最近成功同步 ${at} · 部分 Ticket 未更新||未更新的保留旧值，并在卡片上标出||单击查看是哪些`,
+    ok:      `最近成功同步 ${at}||读取身份：${SYNC_ID_LABEL[sy.id || syncIdentity()]}||单击查看范围与结果 · ⟳ 立即同步`,
+  }[st];
+  $('#jsNow').dataset.tip = st === 'syncing' ? '正在同步…' : st === 'none' ? '无法同步||先配置个人 Jira Key 或服务端 PAT' : `立即同步 Jira||跳过 ${JIRA_TTL_MIN} 分钟间隔：按团队 JQL 检索新增 / 变更的 Epic，并刷新已纳入的 Ticket`;
+  $('#jsNow').disabled = st === 'syncing';
+  $('#jsNow').setAttribute('aria-busy', String(st === 'syncing'));
+  if ($('#jsPop').classList.contains('show')) renderJsPop();
+}
+/* 刷新已纳入 Ticket 的镜像字段（沿用原静默刷新的模拟差异；备注名 / 本地排期不动） */
+function applyJiraPatches(t){
+  const touched = [];
+  Object.entries(JIRA_REFRESH_POOL).forEach(([key, patch]) => {
+    let epic = null, sub = null;
+    t.items.forEach(x => { if (itemDisplayKey(x) === key) epic = x; x.subs.forEach(s => { if (s.key === key){ epic = x; sub = s; } }); });
+    if (!epic) return;
+    const tgt = sub || epic;
+    if (patch.summary) tgt.title = patch.summary;
+    if (patch.desc) tgt.desc = patch.desc;
+    if (patch.status) tgt.status = patch.status;
+    if (!sub && patch.tEndShift && epic.scheduled){ epic.days = Math.max(2, epic.days + patch.tEndShift); epic.tEnd = addD(epic.start, epic.days - 1); }
+    if (sub && patch.assignee){
+      const cur = sub.owner ? (effectiveFull(t, sub.owner.n) || sub.owner.n) : null;
+      if (cur !== patch.assignee) sub.owner = ensureMember(t, { n: patch.assignee });
+    }
+    touched.push({ epicKey: epic.key, subId: sub && sub.id });
+  });
+  return touched;
+}
+let autoSyncTimer = null;
+function scheduleAutoSync(delay){
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer = setTimeout(() => {
+    const t = team();
+    if (document.hidden || !t.sync || t.sync.status === 'syncing' || t.sync.status === 'failed') return;
+    if (syncStale(t) && syncIdentity() !== 'none') syncJira(t, 'auto');
+  }, delay);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleAutoSync(400); });
+setInterval(() => { renderSyncChip(); scheduleAutoSync(0); }, 60000);
+function syncJira(t, reason){
+  const sy = t.sync || (t.sync = { at:null, status:'ok' });
+  if (sy.status === 'syncing') return;
+  const id = syncIdentity();
+  if (id === 'none'){
+    renderSyncChip();
+    if (reason === 'manual') openJsPop();
+    return;
+  }
+  const qs = syncQs(t), t0 = Date.now();
+  Object.assign(sy, { status:'syncing', id, phase:`检索 JQL（${qs ? qs.map(qShort).join(' + ') : '全部'}）` });
+  if (t === team()){ renderSyncChip(); if (!sy.at) renderBacklog(); }
+  setTimeout(() => {
+    sy.phase = `更新 ${t.items.length} 项 · 补齐 INIT / 依赖`;
+    if (t === team()) renderSyncChip();
+  }, 750);
+  setTimeout(() => {
+    if (SYNC_SIM.failNext){
+      SYNC_SIM.failNext = false;
+      Object.assign(sy, { status:'failed', err: id === 'personal' ? '个人 Jira Key 返回 401（可能已过期）' : 'Jira 请求超时（服务端 PAT）', failedAt: new Date() });
+      if (t !== team()) return;
+      renderSyncChip();
+      toast(`同步失败 · 继续显示 <b>${sy.at ? fmtHM(sy.at) : '已存'}</b> 的数据 <button type="button" class="toast-act" id="toastRetry">重试</button>`);
+      $('#toastRetry')?.addEventListener('click', () => syncJira(t, 'manual'));
+      return;
+    }
+    /* ① 按 JQL 检索：新增 Epic → Backlog（按 Jira Key 去重，已排期 / 本地字段不动） */
+    const added = [];
+    (qs || [CURQ]).forEach(q => poolItems(t, q).forEach(it => {
+      if (!t.items.some(x => x.key === it.key)){ t.items.push(it); added.push(it.key); }
+    }));
+    if (t.pool === 'brandy' && !sy.seededNew){
+      sy.seededNew = true;
+      JIRA_NEW_EPICS.forEach(([key, type, title, off, w, parent]) => {
+        if (t.items.some(x => x.key === key)) return;
+        const it = mkItem(key, type, title, qByOffset(off), w, 7 + off * 10);
+        it.parent = parent; t.items.push(it); added.push(key);
+      });
+    }
+    t.items.forEach(i => { i.syncNew = added.includes(i.key); });
+    /* ② 刷新已纳入的 Ticket（首次同步应用演示差异） */
+    const touched = sy.patched ? [] : applyJiraPatches(t);
+    sy.patched = true;
+    /* ③ JQL 结果里消失的：保留不删，只标注；④ 本次读不到的：保留旧值并标「未更新」 */
+    const missing = [];
+    if (t.pool === 'brandy'){ const m = t.items.find(i => i.key === 'NOVA-18155'); if (m){ m.notInJql = true; missing.push(m.key); } }
+    const skipped = [];
+    t.items.forEach(i => { i.syncSkipped = null; });
+    if (t.pool === 'brandy' && id === 'pat'){
+      const sk = t.items.find(i => i.key === 'NOVA-18061');
+      if (sk){ sk.syncSkipped = '服务端账号无权限读取（403）'; skipped.push({ key: sk.key, why: sk.syncSkipped }); }
+    }
+    if (qs) t.imported = [...new Set([...t.imported, ...qs])].sort(qCmp);
+    Object.assign(sy, { at: new Date(), status: skipped.length ? 'partial' : 'ok', err:null,
+      last: { added, updated: touched.length, checked: t.items.length, missing, skipped, dur: ((Date.now() - t0) / 1000).toFixed(1), id, qs } });
+    const parts = [added.length && `+${added.length} 新 Epic`, touched.length && `${touched.length} 项更新`].filter(Boolean);
+    sy.flashTxt = parts.length ? `已同步 · <b>${parts.join(' · ')}</b>` : '已同步 · <b>无变化</b>';
+    sy.flashUntil = Date.now() + 4500;
+    setTimeout(() => { if (t === team()) renderSyncChip(); }, 4600);
+    if (t !== team()) return;
+    renderAll(added);
+    touched.forEach(({ epicKey, subId }) => {
+      const el = subId ? document.querySelector(`.g-row[data-key="${epicKey}"] .sbar[data-sid="${subId}"]`)
+                       : document.querySelector(`.g-row[data-key="${epicKey}"] .bar`);
+      el?.classList.add('refreshed');
+    });
+    /* 峰终：有新增才打扰，并给出「去看看」的最短路径；被当前筛选隐藏的如实说明 */
+    if (added.length){
+      const hidden = added.filter(k => { const it = t.items.find(i => i.key === k); return it && !viewMatch(it); }).length;
+      toast(`<span class="ok">✓</span> Jira 同步 · 新增 <b>${added.length}</b> 个 Epic 到 Backlog${hidden ? `（${hidden} 个被当前筛选隐藏）` : ''} <button type="button" class="toast-act" id="toastSeeNew">查看</button>`);
+      $('#toastSeeNew')?.addEventListener('click', () => {
+        const el = [...document.querySelectorAll('.card.sync-new')][0];
+        if (el){ el.scrollIntoView({ block:'center', behavior: prefersReduced() ? 'auto' : 'smooth' }); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+      });
+    } else if (reason === 'manual') toast(`<span class="ok">✓</span> Jira 已同步 · ${touched.length ? `${touched.length} 项有更新` : '没有变化'}${skipped.length ? ` · ${skipped.length} 项未更新` : ''}`);
+  }, 1500);
+}
+function cardSyncTag(it){
+  if (it.syncSkipped) return `<span class="card-sync skip" data-tip="${itemDisplayKey(it)} 本次未更新||${esc(it.syncSkipped)}||保留上次同步的值，没有被当作最新">未更新</span>`;
+  if (it.notInJql) return `<span class="card-sync gone" data-tip="${itemDisplayKey(it)} 不在最新 JQL 结果中||可能被移出 Quarter / 取消，或当前账号无权限||已保留，不会自动删除；确认后可手动移除">不在 JQL 结果</span>`;
+  if (it.syncNew) return `<span class="card-sync new" data-tip="本次 Jira 同步新增||按团队 JQL 检索到的新 Epic，下次同步后标记消失">新</span>`;
+  return '';
+}
+/* 详情浮层：身份 / 范围 / 上次结果 / 规则 */
+function renderJsPop(){
+  const t = team(), sy = t.sync || {}, st = syncSt(t), id = sy.status === 'syncing' ? sy.id : syncIdentity(), qs = syncQs(t), L = sy.last || {};
+  const banner = st === 'failed'
+    ? `<div class="jp-banner err"><b>同步失败</b> · ${esc(sy.err || '')}<br>页面仍显示 <b>${sy.at ? fmtHM(sy.at) : '已存'}</b> 的数据，没有被标为最新。</div>`
+    : st === 'none'
+    ? `<div class="jp-banner none"><b>无法同步 Jira</b><br>${extInstalled ? '扩展已连接，但未配置个人 Jira Key' : '未安装 Personal AI 扩展'}，服务端也未配置 PAT。${sy.at ? `页面显示 <b>${fmtHM(sy.at)}</b> 的数据。` : ''}
+       <div class="jp-banner-acts">${extInstalled ? '<button type="button" class="jp-link" id="jpKey">在扩展中配置 Jira Key</button>' : '<button type="button" class="jp-link" id="jpExt">安装扩展</button>'}<span>或联系管理员配置服务端 PAT</span></div></div>`
+    : '';
+  const keyList = ks => ks.map(k => `<button type="button" class="jp-key" data-k="${k}">${k}</button>`).join('');
+  $('#jsPop').innerHTML = `
+    <div class="jp-head">
+      <div class="jp-title">Jira 同步</div>
+      <span class="jp-st" data-st="${st}">${{ ok:'已是最新', stale:'待刷新', syncing:'同步中', failed:'失败', partial:'部分成功', none:'不可用' }[st]}</span>
+    </div>
+    ${banner}
+    <dl class="jp-dl">
+      <dt>最近成功</dt><dd>${sy.at ? `<b>${fmtHM(sy.at)}</b> · ${relAgo(sy.at)}${L.dur ? ` · 用时 ${L.dur}s` : ''}` : '还没有成功同步过'}${st === 'syncing' ? `<div class="jp-prog"><span class="mini-spin"></span>${esc(sy.phase || '')}</div>` : ''}</dd>
+      <dt>读取身份</dt><dd><span class="jp-id" data-id="${id}"><i></i>${SYNC_ID_LABEL[id]}</span>
+        <div class="jp-note">优先级：个人 Jira Key → 服务端 PAT → 仅显示缓存。已配置但失败时不会自动换账号。</div></dd>
+      <dt>同步范围</dt><dd>${qs ? `团队 JQL · Target Delivery Quarter 自动 = <b>${qs.join(' + ')}</b><div class="jp-note">季度切换后自动滚动为「当前 + 下一个」</div>`
+        : `团队 JQL 原样（未包含 Target Delivery Quarter 子句）`}
+        <code class="jp-jql" data-tip="实际执行的 JQL||${esc(t.jql)}">${qs ? effectiveJql(t.jql, qs) : esc(t.jql)}</code></dd>
+      ${L.checked ? `<dt>上次结果</dt><dd class="jp-res">
+        ${L.added?.length ? `<div><span class="n add">+${L.added.length}</span>新 Epic → Backlog ${keyList(L.added)}</div>` : '<div><span class="n">0</span>没有新增 Epic</div>'}
+        <div><span class="n">${L.updated}</span>项有更新 · 共检查 ${L.checked} 项</div>
+        ${L.missing?.length ? `<div><span class="n gone">${L.missing.length}</span>不在 JQL 结果中，已保留 ${keyList(L.missing)}</div>` : ''}
+        ${L.skipped?.length ? `<div><span class="n skip">${L.skipped.length}</span>未更新 ${L.skipped.map(x => `<button type="button" class="jp-key" data-k="${x.key}">${x.key}</button><span class="jp-why">${esc(x.why)}</span>`).join('')}</div>` : ''}
+      </dd>` : ''}
+      <dt>自动</dt><dd>打开页面时数据超过 ${JIRA_TTL_MIN} 分钟自动同步，页面开着时持续检查。
+        <div class="jp-note">只读取 Jira，不会写回；未回写的本地排期、草稿、备注名不会被覆盖。</div></dd>
+    </dl>
+    <div class="jp-foot">
+      <div class="jp-sims" data-tip="仅 Demo||模拟不同凭据配置与失败场景">
+        <label><input type="checkbox" id="jpSimExt"${extInstalled ? ' checked' : ''}>扩展已连接</label>
+        <label><input type="checkbox" id="jpSimKey"${SYNC_SIM.personalKey ? ' checked' : ''}>扩展已配置个人 Key</label>
+        <label><input type="checkbox" id="jpSimPat"${SYNC_SIM.serverPat ? ' checked' : ''}>服务端 PAT 已配置</label>
+        <label><input type="checkbox" id="jpSimFail"${SYNC_SIM.failNext ? ' checked' : ''}>下次同步失败</label>
+      </div>
+      <button type="button" class="btn btn-primary jp-go" id="jpGo"${st === 'syncing' || st === 'none' ? ' disabled' : ''}>${st === 'failed' ? '重试' : st === 'syncing' ? '同步中…' : '立即同步'}</button>
+    </div>`;
+  $('#jpGo').onclick = () => syncJira(t, 'manual');
+  $('#jpSimExt').onchange = e => { extInstalled = e.target.checked; applyExtState(); renderSyncChip(); };
+  $('#jpSimKey').onchange = e => { SYNC_SIM.personalKey = e.target.checked; renderSyncChip(); };
+  $('#jpSimPat').onchange = e => { SYNC_SIM.serverPat = e.target.checked; renderSyncChip(); };
+  $('#jpSimFail').onchange = e => { SYNC_SIM.failNext = e.target.checked; };
+  $('#jpExt')?.addEventListener('click', () => { closeJsPop(); openExtGate('import'); });
+  $('#jpKey')?.addEventListener('click', () => toast('演示：打开 Personal AI 扩展 Options → Jira Key'));
+  $('#jsPop').querySelectorAll('.jp-key').forEach(b => b.onclick = () => {
+    const it = t.items.find(i => i.key === b.dataset.k); if (!it) return;
+    closeJsPop();
+    if (it.scheduled){ locateInGantt({ epicKey: it.key }); return; }
+    if (!viewMatch(it)) toast(`${it.key} 被当前筛选隐藏`);
+    const el = [...document.querySelectorAll('.card')].find(c => c.querySelector('.card-key')?.textContent === it.key);
+    if (el){ el.scrollIntoView({ block:'center', behavior: prefersReduced() ? 'auto' : 'smooth' }); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+  });
+}
+function openJsPop(){
+  renderJsPop();
+  const r = $('#jsChip').getBoundingClientRect(), pop = $('#jsPop');
+  pop.style.top = r.bottom + 8 + 'px';
+  pop.style.left = clamp(r.left, 12, innerWidth - 432) + 'px';
+  pop.classList.add('show'); $('#jsMain').setAttribute('aria-expanded', 'true');
+  requestAnimationFrame(() => $('#jpGo')?.focus());
+}
+function closeJsPop(refocus){
+  $('#jsPop').classList.remove('show'); $('#jsMain').setAttribute('aria-expanded', 'false');
+  if (refocus) $('#jsMain').focus();
+}
+$('#jsMain').onclick = () => $('#jsPop').classList.contains('show') ? closeJsPop() : openJsPop();
+$('#jsNow').onclick = () => syncJira(team(), 'manual');
+$('#jsPop').addEventListener('keydown', e => { if (e.key === 'Escape'){ e.stopPropagation(); closeJsPop(true); } });
+document.addEventListener('pointerdown', e => {
+  if (!$('#jsPop').classList.contains('show') || e.target.closest('#jsPop, #jsChip')) return;
+  closeJsPop();
+}, true);
+addEventListener('resize', () => { if ($('#jsPop').classList.contains('show')) closeJsPop(); });
+
 /* ---------- 总渲染 ---------- */
 function renderAll(newKeys){
   renderTierBar();
   renderTeamUI();
-  renderChips();
   renderQBar();
   renderMsBar();
   renderBacklog(newKeys);
@@ -8226,7 +8363,7 @@ function renderAll(newKeys){
 }
 renderAll();
 applyExtState();
-silentJiraRefresh();     // 装扩展时打开页面即静默刷新（demo 默认未安装为 no-op）
+scheduleAutoSync(2000);  // 先显示已存数据，再检查新鲜度：超过 10 分钟自动同步
 /* 初始滚动到当前月附近 */
 requestAnimationFrame(() => { $('#gScroll').scrollLeft = Math.max(0, X(mStart) - 60); });
 /* ticker 初始展示上一条历史日志（模拟页面加载时从 activity API 取回的最新一条） */
